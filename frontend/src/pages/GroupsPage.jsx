@@ -7,7 +7,7 @@ export default function GroupsPage() {
   const { user } = useAuth();
   const [groups, setGroups] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'MINE'
+  const [activeTab, setActiveTab] = useState('ALL');
   const [loading, setLoading] = useState(true);
 
   // Formulario nuevo grupo
@@ -100,15 +100,15 @@ export default function GroupsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white">Grupos de Estudio Académico</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Grupos de Estudio Académico</h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Únete a comunidades de tu carrera o crea un grupo para coordinar talleres y sesiones de estudio.
           </p>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-lg shadow-brand-600/30 flex items-center gap-2 transition hover:scale-105 active:scale-95"
+          className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-md shadow-brand-600/30 flex items-center gap-2 transition hover:scale-105 active:scale-95"
         >
           <Plus className="w-4 h-4" />
           <span>Crear Nuevo Grupo</span>
@@ -116,13 +116,13 @@ export default function GroupsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
         <button
           onClick={() => setActiveTab('ALL')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
             activeTab === 'ALL'
-              ? 'bg-brand-600/20 text-brand-300 border border-brand-500/30'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-brand-50 dark:bg-brand-600/20 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30'
+              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
           }`}
         >
           Explorar Todos ({groups.length})
@@ -132,8 +132,8 @@ export default function GroupsPage() {
           onClick={() => setActiveTab('MINE')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition ${
             activeTab === 'MINE'
-              ? 'bg-brand-600/20 text-brand-300 border border-brand-500/30'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-brand-50 dark:bg-brand-600/20 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30'
+              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
           }`}
         >
           Mis Grupos ({groups.filter(g => g.my_membership?.status === 'ACTIVE').length})
@@ -158,43 +158,43 @@ export default function GroupsPage() {
             return (
               <div
                 key={group.id}
-                className="rounded-2xl glass-panel p-5 border border-slate-800/80 hover:border-slate-700 transition flex flex-col justify-between"
+                className="rounded-2xl glass-panel p-5 border border-slate-200/90 dark:border-slate-800/80 hover:border-brand-300 dark:hover:border-slate-700 transition flex flex-col justify-between shadow-sm"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20">
                       {group.category?.name || 'General'}
                     </span>
 
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                       isPublic
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
+                        : 'bg-purple-50 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30'
                     }`}>
                       {isPublic ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                       <span>{isPublic ? 'Público' : 'Privado'}</span>
                     </span>
                   </div>
 
-                  <h3 className="text-base font-bold text-white mb-1.5">{group.name}</h3>
-                  <p className="text-xs text-slate-300 line-clamp-3 mb-4 leading-relaxed">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">{group.name}</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 mb-4 leading-relaxed">
                     {group.description || 'Sin descripción detallada.'}
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Users className="w-3.5 h-3.5 text-brand-400" />
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <Users className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                     <span>{group.members_count} miembros</span>
                   </div>
 
                   {isMember ? (
-                    <span className="flex items-center gap-1 text-emerald-400 font-semibold text-xs">
+                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
                       <CheckCircle className="w-3.5 h-3.5" />
                       <span>{membership.role === 'OWNER' ? 'Creador' : 'Miembro'}</span>
                     </span>
                   ) : isPending ? (
-                    <span className="flex items-center gap-1 text-amber-400 font-semibold text-xs">
+                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold text-xs">
                       <Clock className="w-3.5 h-3.5" />
                       <span>Solicitud pendiente</span>
                     </span>
@@ -203,8 +203,8 @@ export default function GroupsPage() {
                       onClick={() => handleJoin(group.id, group.group_type)}
                       className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition ${
                         isPublic
-                          ? 'bg-brand-600 hover:bg-brand-500 text-white'
-                          : 'bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30'
+                          ? 'bg-brand-600 hover:bg-brand-500 text-white shadow-sm'
+                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30'
                       }`}
                     >
                       {isPublic ? 'Unirme ahora' : 'Solicitar ingreso'}
@@ -216,42 +216,42 @@ export default function GroupsPage() {
           })}
         </div>
       ) : (
-        <div className="rounded-2xl glass-panel p-12 text-center border border-dashed border-slate-800">
-          <Users className="w-12 h-12 text-slate-600 mx-auto mb-2" />
-          <h3 className="text-sm font-bold text-white">No hay grupos en esta sección</h3>
-          <p className="text-xs text-slate-400 mt-1">Crea un grupo de estudio o explora los existentes.</p>
+        <div className="rounded-2xl glass-panel p-12 text-center border border-dashed border-slate-300 dark:border-slate-800">
+          <Users className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-2" />
+          <h3 className="text-sm font-bold text-slate-800 dark:text-white">No hay grupos en esta sección</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Crea un grupo de estudio o explora los existentes.</p>
         </div>
       )}
 
       {/* Modal Crear Grupo */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg rounded-2xl glass-panel p-6 border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-white mb-2">Crear Grupo de Estudio</h3>
-            <p className="text-xs text-slate-400 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Crear Grupo de Estudio</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Configura el tipo de acceso y la ubicación geográfica de referencia para mostrarlo en el mapa.
             </p>
 
             <form onSubmit={handleCreateGroup} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Nombre del grupo *</label>
+                <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">Nombre del grupo *</label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ej: Grupo de Redes y Arquitectura de Computadores"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Materia *</label>
+                  <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">Materia *</label>
                   <select
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -260,11 +260,11 @@ export default function GroupsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Tipo de Grupo *</label>
+                  <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">Tipo de Grupo *</label>
                   <select
                     value={groupType}
                     onChange={(e) => setGroupType(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200"
                   >
                     <option value="PUBLIC">Público (Ingreso Libre)</option>
                     <option value="PRIVATE">Privado (Requiere Aprobación)</option>
@@ -273,37 +273,37 @@ export default function GroupsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Descripción</label>
+                <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
                 <textarea
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Objetivos de estudio, horarios habituales, etc..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Latitud Mapa *</label>
+                  <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">Latitud Mapa *</label>
                   <input
                     type="number"
                     step="any"
                     required
                     value={latitude}
                     onChange={(e) => setLatitude(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Longitud Mapa *</label>
+                  <label className="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">Longitud Mapa *</label>
                   <input
                     type="number"
                     step="any"
                     required
                     value={longitude}
                     onChange={(e) => setLongitude(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -312,14 +312,14 @@ export default function GroupsPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-md"
                 >
                   {submitting ? 'Creando...' : 'Crear Grupo'}
                 </button>
