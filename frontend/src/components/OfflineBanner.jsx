@@ -11,8 +11,8 @@ export default function OfflineBanner() {
   return (
     <div className={`w-full py-2 px-4 text-xs sm:text-sm font-medium transition-colors ${
       !isOnline
-        ? 'bg-amber-950/80 border-b border-amber-600/40 text-amber-200'
-        : 'bg-indigo-950/80 border-b border-indigo-600/40 text-indigo-200'
+        ? 'bg-amber-100/90 dark:bg-amber-950/80 border-b border-amber-300 dark:border-amber-600/40 text-amber-950 dark:text-amber-200 shadow-sm'
+        : 'bg-indigo-50 dark:bg-indigo-950/80 border-b border-indigo-200 dark:border-indigo-600/40 text-indigo-950 dark:text-indigo-200 shadow-sm'
     }`}>
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
