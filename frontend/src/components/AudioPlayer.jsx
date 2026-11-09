@@ -29,7 +29,7 @@ export default function AudioPlayer({ src, title = 'Nota de audio académica' })
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/90 border border-slate-700/60 shadow-inner">
+    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 shadow-inner">
       <audio
         ref={audioRef}
         src={src}
@@ -47,15 +47,15 @@ export default function AudioPlayer({ src, title = 'Nota de audio académica' })
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between text-xs mb-1">
-          <span className="font-medium text-slate-300 truncate flex items-center gap-1.5">
-            <Volume2 className="w-3.5 h-3.5 text-brand-400" />
+          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
+            <Volume2 className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
             {title}
           </span>
-          <span className="text-[11px] text-slate-400">Audio adjunto</span>
+          <span className="text-[11px] text-slate-500">Audio adjunto</span>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+        <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
           <div
             className="bg-brand-500 h-full rounded-full transition-all duration-150"
             style={{ width: `${progress}%` }}
