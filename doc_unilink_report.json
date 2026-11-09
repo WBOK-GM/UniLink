@@ -79,7 +79,7 @@
           "rows": [
             ["Autenticación y Perfiles", "100% Operativo", "Registro y login con JWT y contraseñas hasheadas. Perfiles con nombre, carrera, semestre, biografía y coordenadas GPS privadas (RN-12)."],
             ["Diseño UI/UX y Sistema Dual de Temas", "100% Operativo", "Interfaz universitaria moderna con Modo Claro predeterminado, tarjetas limpias, sombreado sutil, navegación inferior móvil y botón de conmutación a Modo Oscuro persistente en LocalStorage."],
-            ["Publicaciones y Recursos", "100% Operativo", "Creación de publicaciones con adjuntos (PDFs, imágenes y notas de audio grabadas con micrófono). Modal obligatorio de autoría y derechos de autor (RN-30)."],
+            ["Publicaciones y Recursos", "100% Operativo", "Creación de publicaciones con adjuntos (PDFs, imágenes y notas de audio grabadas con micrófono), selector interactivo de ubicación en el mapa (OpenStreetMap/GPS con enlace directo a Google Maps), y modal obligatorio de autoría y derechos de autor (RN-30)."],
             ["Sistema de Reacciones", "100% Operativo", "Botones interactivos de Like y Dislike. Validación de una reacción por usuario (RN-05) y bloqueo de votación en publicaciones propias (RN-04)."],
             ["Grupos de Estudio", "100% Operativo", "Grupos públicos con ingreso directo (RN-09) y grupos privados con flujo de solicitud y aprobación (RN-10). Gestión de miembros y creador automático."],
             ["Explorador Geográfico / Mapa", "100% Operativo", "Mapa interactivo Leaflet con OpenStreetMap. Cálculo de distancias en kilómetros usando la fórmula de Haversine y filtrado por radio."],
