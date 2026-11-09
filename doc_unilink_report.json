@@ -1,0 +1,216 @@
+{
+  "title": "INFORME TÉCNICO Y ESPECIFICACIÓN: UNILINK PWA",
+  "subtitle": "Plataforma de Colaboración Académica, Grupos de Estudio Geolocalizados y Sincronización Offline",
+  "author": "Walter Alfonso (UniLink Development Team)",
+  "date": "2026-11-08",
+  "pageSize": "A4",
+  "language": "es",
+  "header": {
+    "text": "UniLink PWA — Informe Técnico de Implementación"
+  },
+  "footer": {
+    "text": "UniLink • Plataforma Universitaria PWA • Noveno Semestre",
+    "showPageNumber": true
+  },
+  "tableOfContents": true,
+  "sections": [
+    {
+      "heading": "1. Resumen Ejecutivo del Proyecto",
+      "level": 1,
+      "pageBreakBefore": false,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "UniLink es una Progressive Web Application (PWA) de alto impacto concebida para estudiantes universitarios, cuyo objetivo central es erradicar la dispersión de apuntes, documentos de clase, grupos de estudio y eventos académicos."
+        },
+        {
+          "type": "paragraph",
+          "text": "El proyecto responde directamente a los lineamientos planteados en el documento de especificación oficial 'Definición-proyecto-final.docx', cumpliendo una arquitectura cliente-servidor desacoplada, diseño responsivo de calidad profesional y características offline nativas avanzadas (Service Workers, IndexedDB mediante Dexie.js, y Web Push con protocolo VAPID)."
+        },
+        {
+          "type": "table",
+          "headers": ["Atributo", "Especificación del Proyecto"],
+          "rows": [
+            ["Nombre del Proyecto", "UniLink – Plataforma de Colaboración y Comunidad Académica"],
+            ["Tipo de Aplicación", "Progressive Web Application (PWA) instalable y offline-first"],
+            ["Control de Versiones", "Git Monorepositorio con ramas main y develop"],
+            ["Arquitectura", "Monolito modular desacoplado (Frontend React + Backend Express REST)"],
+            ["Base de Datos", "PostgreSQL (15 tablas normalizadas con UUIDs y claves foráneas)"],
+            ["Almacenamiento Offline", "IndexedDB (Dexie.js: OFFLINE_POSTS y OFFLINE_RESOURCES)"]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "2. Arquitectura de Software y Organización del Repositorio",
+      "level": 1,
+      "pageBreakBefore": true,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "El proyecto se organizó bajo una estricta estrategia de control de versiones Git en la carpeta 'UniLink', aislando completamente el código de cualquier otro archivo del sistema. Se definió la rama 'main' como línea base y se creó la rama 'develop' como rama activa de trabajo, aplicando commits atómicos y semánticos para cada hito completado."
+        },
+        {
+          "type": "list",
+          "style": "bullet",
+          "items": [
+            "backend/: API REST desarrollada en Node.js y Express con módulos separados para autenticación, perfiles, categorías, publicaciones, grupos, encuentros, notificaciones y reportes.",
+            "backend/schema.sql: Esquema DDL oficial de PostgreSQL que implementa las 15 tablas descritas en la especificación, con restricciones de integridad, checks e índices de rendimiento.",
+            "frontend/: Aplicación React 18 moderna configurada con Vite, Tailwind CSS, Lucide Icons, Leaflet (OpenStreetMap) y Dexie.js.",
+            "frontend/public/sw.js: Service Worker personalizado que administra la caché de la aplicación, intercepta el tráfico offline, escucha notificaciones Web Push con vibración y gestiona eventos de Background Sync.",
+            "scripts/test_api_e2e.js: Batería de pruebas automatizadas que valida la API y las reglas de negocio críticas."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "3. Módulos Funcionales Construidos y Operativos",
+      "level": 1,
+      "pageBreakBefore": true,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "A continuación se detalla el estado de cada uno de los módulos requeridos por la especificación, indicando los componentes implementados y su funcionamiento:"
+        },
+        {
+          "type": "table",
+          "headers": ["Módulo Funcional", "Estado", "Detalle de Implementación"],
+          "rows": [
+            ["Autenticación y Perfiles", "100% Operativo", "Registro y login con JWT y contraseñas hasheadas. Perfiles con nombre, carrera, semestre, biografía y coordenadas GPS privadas (RN-12)."],
+            ["Publicaciones y Recursos", "100% Operativo", "Creación de publicaciones con adjuntos (PDFs, imágenes y notas de audio grabadas con micrófono). Modal obligatorio de autoría y derechos de autor (RN-30)."],
+            ["Sistema de Reacciones", "100% Operativo", "Botones interactivos de Like y Dislike. Validación de una reacción por usuario (RN-05) y bloqueo de votación en publicaciones propias (RN-04)."],
+            ["Grupos de Estudio", "100% Operativo", "Grupos públicos con ingreso directo (RN-09) y grupos privados con flujo de solicitud y aprobación (RN-10). Gestión de miembros y creador automático."],
+            ["Explorador Geográfico / Mapa", "100% Operativo", "Mapa interactivo Leaflet con OpenStreetMap. Cálculo de distancias en kilómetros usando la fórmula de Haversine y filtrado por radio."],
+            ["Encuentros Académicos", "100% Operativo", "Programación de sesiones presenciales, virtuales e híbridas. Sistema RSVP para confirmar asistencia o declinar con contador de aforo (RN-16)."],
+            ["PWA y Sincronización Offline", "100% Operativo", "Almacenamiento de publicaciones pendientes en IndexedDB, reintentos automáticos al detectar evento online e idempotencia mediante client_operation_id (RN-17)."],
+            ["Web Push Notifications", "100% Operativo", "Integración completa de Web Push con VAPID, endpoints de suscripción y despacho de alertas al Service Worker."]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "4. Funcionamiento Inmediato sin Bloqueo por Credenciales",
+      "level": 1,
+      "pageBreakBefore": true,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Uno de los principales requerimientos consistió en garantizar que todo el esqueleto y la aplicación funcionen al 100% de inmediato, dejando listos los espacios para credenciales en la nube sin interrumpir la operación local."
+        },
+        {
+          "type": "paragraph",
+          "text": "Para lograrlo, se implementó el patrón de Adaptadores Híbridos en el backend:"
+        },
+        {
+          "type": "list",
+          "style": "bullet",
+          "items": [
+            "Almacén de Base de Datos Híbrido: Si no se provee la variable DATABASE_URL de Neon PostgreSQL, el servidor activa un almacén en memoria con persistencia de ciclo y datos 'seed' precargados (categorías universitarias, usuario de prueba estudiante y admin, grupos y publicaciones de ejemplo). Si se conecta la base de datos PostgreSQL, el esquema schema.sql toma el control inmediatamente.",
+            "Almacenamiento de Archivos Híbrido: Si no se han ingresado las llaves de Cloudflare R2 en el archivo .env, el middleware de Multer almacena y sirve los archivos de manera segura desde la carpeta local 'backend/uploads/'.",
+            "Criptografía VAPID Autónoma: Se generaron llaves criptográficas de 32 bytes válidas para desarrollo local, permitiendo probar la suscripción y recepción de notificaciones Push sin necesidad de registrarse previamente en servicios de terceros."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "5. Inventario de Credenciales Requeridas para Despliegue en la Nube",
+      "level": 1,
+      "pageBreakBefore": true,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Para realizar el despliegue final en producción dentro de las cuotas gratuitas sugeridas en la especificación, el equipo únicamente deberá suministrar los siguientes parámetros en el archivo 'backend/.env':"
+        },
+        {
+          "type": "table",
+          "headers": ["Servicio", "Variable de Entorno", "Propósito y Cómo Obtenerla"],
+          "rows": [
+            ["Neon PostgreSQL", "DATABASE_URL", "Cadena de conexión PostgreSQL gratuita con SSL. Se obtiene creando un proyecto gratuito en neon.tech."],
+            ["Cloudflare R2", "CLOUDFLARE_R2_ACCOUNT_ID", "ID de cuenta de Cloudflare para hospedar archivos sin costo de egreso."],
+            ["Cloudflare R2", "CLOUDFLARE_R2_ACCESS_KEY_ID", "Clave de acceso S3 generada en el panel de Cloudflare R2."],
+            ["Cloudflare R2", "CLOUDFLARE_R2_SECRET_ACCESS_KEY", "Secreto de acceso S3 generado en Cloudflare R2."],
+            ["Cloudflare R2", "CLOUDFLARE_R2_BUCKET_NAME", "Nombre del bucket creado para UniLink (ej: unilink-files)."],
+            ["Seguridad JWT", "JWT_SECRET", "Cadena secreta robusta para la firma de tokens de autenticación."],
+            ["Hosting Frontend", "Cloudflare Pages", "Alojamiento gratuito del build del frontend (carpeta frontend/dist)."],
+            ["Hosting Backend", "Render Free Web Service", "Alojamiento gratuito del servicio Node.js (carpeta backend)."]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "6. Resultados de Verificación y Pruebas Automatizadas",
+      "level": 1,
+      "pageBreakBefore": true,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Se diseñó y ejecutó el script de pruebas automatizadas 'scripts/test_api_e2e.js', el cual evalúa de extremo a extremo las rutas clave y las restricciones del sistema."
+        },
+        {
+          "type": "table",
+          "headers": ["Prueba Automatizada", "Criterio Evaluado", "Resultado"],
+          "rows": [
+            ["Health Check API", "GET /health responde status healthy", "PASÓ (100%)"],
+            ["Autenticación Estudiante", "POST /auth/login devuelve JWT válido", "PASÓ (100%)"],
+            ["Catálogo de Categorías", "GET /categories entrega listado inicial", "PASÓ (100%)"],
+            ["Publicación con Autoría (RN-30)", "POST /posts valida copyright_declaration", "PASÓ (100%)"],
+            ["Idempotencia Offline (RN-17)", "Evita duplicados ante reintentos con mismo client_operation_id", "PASÓ (100%)"],
+            ["Restricción Reacción Propia (RN-04)", "Autor no puede votar su propio recurso", "PASÓ (100%)"],
+            ["Geolocalización Haversine", "Cálculo preciso de distancia en km a grupos", "PASÓ (100%)"],
+            ["Agenda de Encuentros", "GET /meetings lista sesiones disponibles", "PASÓ (100%)"],
+            ["Llaves VAPID Push", "GET /notifications/vapid-public-key responde clave válida", "PASÓ (100%)"],
+            ["Compilación de Frontend (Vite)", "npm run build genera bundle sin errores", "PASÓ (100%)"]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "7. Funcionalidades Fuera del Alcance (Post-MVP)",
+      "level": 1,
+      "pageBreakBefore": true,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Siguiendo estrictamente la sección 11.3 del documento de especificación, se omitieron intencionalmente las siguientes características para asegurar la entrega del MVP en los plazos establecidos:"
+        },
+        {
+          "type": "list",
+          "style": "bullet",
+          "items": [
+            "Chat en tiempo real mediante WebSockets o Socket.io (la interacción se realiza mediante publicaciones, recursos y encuentros).",
+            "Mensajería privada individual entre estudiantes.",
+            "Transmisión o almacenamiento de video en alta definición (se priorizan audios, fotos y documentos PDF).",
+            "Algoritmos de compatibilidad basados en Machine Learning.",
+            "Sistema de moderación automática mediante procesamiento de lenguaje natural."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "8. Instrucciones de Ejecución Local",
+      "level": 1,
+      "pageBreakBefore": true,
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Para iniciar la plataforma en un computador local, se deben seguir estos pasos sencillos:"
+        },
+        {
+          "type": "list",
+          "style": "numbered",
+          "items": [
+            "Ingresar a la carpeta del proyecto: cd UniLink",
+            "Instalar todas las dependencias: npm run install:all",
+            "Iniciar backend y frontend simultáneamente: npm run dev",
+            "Abrir el navegador en http://localhost:5173 para explorar la PWA.",
+            "Credenciales Demo precargadas: estudiante@unilink.edu.co / contraseña: 123456"
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Para probar el funcionamiento offline: Abre las Herramientas de Desarrollador (F12) en el navegador, dirígete a la pestaña 'Network' y selecciona 'Offline'. Podrás crear publicaciones que se guardarán en Dexie.js y se sincronizarán solas al volver a poner 'Online'."
+        }
+      ]
+    }
+  ]
+}
