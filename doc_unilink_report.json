@@ -33,7 +33,8 @@
           "rows": [
             ["Nombre del Proyecto", "UniLink – Plataforma de Colaboración y Comunidad Académica"],
             ["Tipo de Aplicación", "Progressive Web Application (PWA) instalable y offline-first"],
-            ["Control de Versiones", "Git Monorepositorio con ramas main y develop"],
+            ["Diseño e Interfaz", "Dual Theme: Modo Claro como diseño primario por defecto y Modo Oscuro conmutador interactivo"],
+            ["Control de Versiones", "Git Monorepositorio con ramas main, develop y feature"],
             ["Arquitectura", "Monolito modular desacoplado (Frontend React + Backend Express REST)"],
             ["Base de Datos", "PostgreSQL (15 tablas normalizadas con UUIDs y claves foráneas)"],
             ["Almacenamiento Offline", "IndexedDB (Dexie.js: OFFLINE_POSTS y OFFLINE_RESOURCES)"]
@@ -48,7 +49,7 @@
       "content": [
         {
           "type": "paragraph",
-          "text": "El proyecto se organizó bajo una estricta estrategia de control de versiones Git en la carpeta 'UniLink', aislando completamente el código de cualquier otro archivo del sistema. Se definió la rama 'main' como línea base y se creó la rama 'develop' como rama activa de trabajo, aplicando commits atómicos y semánticos para cada hito completado."
+          "text": "El proyecto se organizó bajo una estricta estrategia de control de versiones Git en la carpeta 'UniLink', aislando completamente el código de cualquier otro archivo del sistema. Se definió la rama 'main' como línea base de despliegue, la rama 'develop' como integración central de funcionalidades de backend y frontend, y la rama 'feature' para el perfeccionamiento estético y el soporte integral de Modo Claro por defecto con conmutador dinámico a Modo Oscuro, aplicando commits atómicos y semánticos para cada hito completado."
         },
         {
           "type": "list",
@@ -77,6 +78,7 @@
           "headers": ["Módulo Funcional", "Estado", "Detalle de Implementación"],
           "rows": [
             ["Autenticación y Perfiles", "100% Operativo", "Registro y login con JWT y contraseñas hasheadas. Perfiles con nombre, carrera, semestre, biografía y coordenadas GPS privadas (RN-12)."],
+            ["Diseño UI/UX y Sistema Dual de Temas", "100% Operativo", "Interfaz universitaria moderna con Modo Claro predeterminado, tarjetas limpias, sombreado sutil, navegación inferior móvil y botón de conmutación a Modo Oscuro persistente en LocalStorage."],
             ["Publicaciones y Recursos", "100% Operativo", "Creación de publicaciones con adjuntos (PDFs, imágenes y notas de audio grabadas con micrófono). Modal obligatorio de autoría y derechos de autor (RN-30)."],
             ["Sistema de Reacciones", "100% Operativo", "Botones interactivos de Like y Dislike. Validación de una reacción por usuario (RN-05) y bloqueo de votación en publicaciones propias (RN-04)."],
             ["Grupos de Estudio", "100% Operativo", "Grupos públicos con ingreso directo (RN-09) y grupos privados con flujo de solicitud y aprobación (RN-10). Gestión de miembros y creador automático."],
