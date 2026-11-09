@@ -5,17 +5,21 @@ import {
   Image as ImageIcon,
   Mic,
   MapPin,
+  Map,
+  Navigation,
   UploadCloud,
   X,
   AlertCircle,
   ShieldCheck,
-  ArrowLeft
+  ArrowLeft,
+  Trash2
 } from 'lucide-react';
 import { api } from '../api/client';
 import { queueOfflinePost } from '../db/db';
 import { useAuth } from '../context/AuthContext';
 import AudioRecorder from '../components/AudioRecorder';
 import CopyrightModal from '../components/CopyrightModal';
+import LocationPickerModal from '../components/LocationPickerModal';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
@@ -26,6 +30,7 @@ export default function CreatePostPage() {
   const [categoryId, setCategoryId] = useState('');
   const [groupId, setGroupId] = useState('');
   const [locationText, setLocationText] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [postType, setPostType] = useState('RESOURCE');
 
   const [categories, setCategories] = useState([]);
@@ -35,6 +40,7 @@ export default function CreatePostPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -284,21 +290,113 @@ export default function CreatePostPage() {
             )}
           </div>
 
-          {/* Optional Location */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Ubicación opcional del recurso
-            </label>
+          {/* Optional Location with Interactive Map Picker */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Ubicación opcional del recurso
+              </label>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowLocationModal(true)}
+                  className="px-2.5 py-1 rounded-lg bg-brand-50 dark:bg-brand-600/20 hover:bg-brand-100 dark:hover:bg-brand-600/30 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30 text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
+                >
+                  <Map className="w-3.5 h-3.5" />
+                  <span>Seleccionar en Mapa</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!('geolocation' in navigator)) {
+                      alert('Geolocalización no soportada.');
+                      return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        const loc = {
+                          latitude: lat,
+                          longitude: lng,
+                          placeName: 'Mi GPS actual',
+                          formatted: `Mi ubicación GPS (${lat.toFixed(5)}, ${lng.toFixed(5)})`
+                        };
+                        setSelectedLocation(loc);
+                        setLocationText(loc.formatted);
+                      },
+                      (err) => alert('No se pudo obtener GPS: ' + err.message),
+                      { enableHighAccuracy: true }
+                    );
+                  }}
+                  title="Usar GPS actual"
+                  className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+                >
+                  <Navigation className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
             <div className="relative">
-              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <button
+                type="button"
+                onClick={() => setShowLocationModal(true)}
+                title="Abrir mapa para seleccionar ubicación"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-600 dark:text-brand-400 hover:scale-110 transition"
+              >
+                <MapPin className="w-4 h-4" />
+              </button>
               <input
                 type="text"
                 value={locationText}
                 onChange={(e) => setLocationText(e.target.value)}
-                placeholder="Ej: Sala de lectura piso 2, Edificio de Informática..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white shadow-sm focus:outline-none focus:border-brand-500 transition"
+                placeholder="Ej: Biblioteca piso 2, CTI o haz clic en Seleccionar en Mapa..."
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white shadow-sm focus:outline-none focus:border-brand-500 transition"
               />
+              {locationText && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocationText('');
+                    setSelectedLocation(null);
+                  }}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition"
+                  title="Quitar ubicación"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
+
+            {/* Selected Location Pill / Card */}
+            {locationText && (
+              <div className="p-2.5 rounded-xl bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800/40 flex items-center justify-between text-xs animate-fadeIn">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center shrink-0">
+                    📍
+                  </span>
+                  <div className="truncate">
+                    <span className="font-semibold text-brand-900 dark:text-brand-200 block truncate">
+                      {locationText}
+                    </span>
+                    <span className="text-[11px] text-brand-700 dark:text-brand-400">
+                      Ubicación asignada a la publicación
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationModal(true)}
+                    className="text-[11px] font-semibold text-brand-700 dark:text-brand-300 hover:underline"
+                  >
+                    Cambiar en mapa
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -324,6 +422,18 @@ export default function CreatePostPage() {
         isOpen={showCopyrightModal}
         onConfirm={executePostCreation}
         onCancel={() => setShowCopyrightModal(false)}
+      />
+
+      {/* Interactive Map Location Picker Modal */}
+      <LocationPickerModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        initialPlaceName={selectedLocation?.placeName || locationText}
+        initialCoords={selectedLocation ? { lat: selectedLocation.latitude, lng: selectedLocation.longitude } : undefined}
+        onSelectLocation={(loc) => {
+          setSelectedLocation(loc);
+          setLocationText(loc.formatted);
+        }}
       />
     </div>
   );

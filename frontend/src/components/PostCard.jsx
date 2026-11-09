@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   Flag,
   Trash2,
-  BookmarkCheck
+  BookmarkCheck,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
@@ -150,12 +151,25 @@ export default function PostCard({ post, onPostUpdated }) {
           {post.content}
         </p>
 
-        {post.location && (
-          <div className="flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300 font-semibold mt-3 bg-brand-50 dark:bg-brand-950/40 px-2.5 py-1 rounded-lg border border-brand-200 dark:border-brand-800/40 w-fit">
-            <MapPin className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-            <span>{post.location}</span>
-          </div>
-        )}
+        {post.location && (() => {
+          const coordsMatch = post.location.match(/\((-?\d+\.\d+),\s*(-?\d+\.\d+)\)/);
+          const mapUrl = coordsMatch
+            ? `https://www.google.com/maps?q=${coordsMatch[1]},${coordsMatch[2]}`
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(post.location)}`;
+          return (
+            <a
+              href={mapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Abrir ubicación en Google Maps"
+              className="inline-flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300 font-semibold mt-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/40 dark:hover:bg-brand-900/50 px-2.5 py-1 rounded-lg border border-brand-200 dark:border-brand-800/40 transition hover:scale-[1.01] shadow-2xs group"
+            >
+              <MapPin className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition" />
+              <span>{post.location}</span>
+              <ExternalLink className="w-3 h-3 text-brand-500/70 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition ml-0.5" />
+            </a>
+          );
+        })()}
       </div>
 
       {/* Attachments Section */}
