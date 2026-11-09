@@ -37,13 +37,11 @@ export default function FeedPage() {
       if (catRes.success) setCategories(catRes.categories || []);
       if (postRes.success) {
         setPosts(postRes.posts || []);
-        // Guardar en caché local para lectura offline
         try {
           await db.cached_feed.clear();
           await db.cached_feed.bulkAdd(postRes.posts || []);
         } catch (e) {}
       } else {
-        // Fallback a caché local de IndexedDB
         const cached = await db.cached_feed.toArray();
         if (cached.length > 0) setPosts(cached);
       }
@@ -99,27 +97,27 @@ export default function FeedPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 space-y-6">
       {/* Hero Welcome Banner */}
-      <div className="rounded-2xl bg-gradient-to-br from-brand-900/60 via-slate-900 to-indigo-950/40 p-6 sm:p-8 border border-brand-500/20 shadow-xl relative overflow-hidden">
+      <div className="rounded-2xl bg-gradient-to-br from-indigo-50/90 via-white to-brand-50/80 dark:from-brand-900/60 dark:via-slate-900 dark:to-indigo-950/40 p-6 sm:p-8 border border-brand-200/90 dark:border-brand-500/20 shadow-sm dark:shadow-xl relative overflow-hidden transition-colors duration-200">
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="flex items-center gap-1 text-xs font-bold text-brand-300 uppercase tracking-wider bg-brand-500/20 px-2.5 py-0.5 rounded-full border border-brand-500/30">
-                <Sparkles className="w-3.5 h-3.5" />
+              <span className="flex items-center gap-1 text-xs font-bold text-brand-700 dark:text-brand-300 uppercase tracking-wider bg-brand-100 dark:bg-brand-500/20 px-2.5 py-0.5 rounded-full border border-brand-200 dark:border-brand-500/30">
+                <Sparkles className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                 Comunidad Activa
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Colaboración Académica Sin Límites
             </h1>
-            <p className="text-slate-300 text-sm mt-1 max-w-xl">
+            <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 max-w-xl leading-relaxed">
               Comparte apuntes, guías y audios de tus materias. Descubre grupos cercanos y consulta tus recursos incluso sin conexión a internet.
             </p>
           </div>
 
           <Link
             to="/create-post"
-            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-lg shadow-brand-600/30 flex items-center gap-2 transition hover:scale-105 active:scale-95 shrink-0"
+            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-md shadow-brand-600/30 flex items-center gap-2 transition hover:scale-105 active:scale-95 shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Compartir Recurso</span>
@@ -137,7 +135,7 @@ export default function FeedPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar apuntes por tema, palabra clave, profesor o materia..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm transition"
           />
         </div>
 
@@ -148,7 +146,7 @@ export default function FeedPage() {
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
               selectedCategory === null
                 ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
-                : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
+                : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 shadow-sm'
             }`}
           >
             Todas las materias
@@ -161,7 +159,7 @@ export default function FeedPage() {
               className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                 selectedCategory === cat.id
                   ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
+                  : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 shadow-sm'
               }`}
             >
               {cat.name}
@@ -170,7 +168,7 @@ export default function FeedPage() {
 
           <button
             onClick={() => setShowSuggestModal(true)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-brand-400 hover:text-brand-300 hover:bg-brand-500/10 border border-brand-500/20 whitespace-nowrap flex items-center gap-1.5 transition ml-auto"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20 whitespace-nowrap flex items-center gap-1.5 transition ml-auto shadow-sm"
             title="Sugerir nueva categoría"
           >
             <FolderPlus className="w-3.5 h-3.5" />
@@ -180,11 +178,11 @@ export default function FeedPage() {
       </div>
 
       {/* Feed List Header */}
-      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 font-medium">
         <span>Mostrando {filteredPosts.length} publicación(es)</span>
         <button
           onClick={handleRefresh}
-          className="flex items-center gap-1.5 text-slate-400 hover:text-white transition"
+          className="flex items-center gap-1.5 hover:text-slate-800 dark:hover:text-white transition"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
           <span>Actualizar</span>
@@ -197,14 +195,14 @@ export default function FeedPage() {
           {[1, 2, 3].map((n) => (
             <div key={n} className="rounded-2xl glass-panel p-6 animate-pulse space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-800" />
+                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800" />
                 <div className="space-y-1.5">
-                  <div className="w-32 h-3.5 bg-slate-800 rounded" />
-                  <div className="w-20 h-2.5 bg-slate-800 rounded" />
+                  <div className="w-32 h-3.5 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="w-20 h-2.5 bg-slate-200 dark:bg-slate-800 rounded" />
                 </div>
               </div>
-              <div className="w-3/4 h-5 bg-slate-800 rounded" />
-              <div className="w-full h-12 bg-slate-800 rounded" />
+              <div className="w-3/4 h-5 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="w-full h-12 bg-slate-200 dark:bg-slate-800 rounded" />
             </div>
           ))}
         </div>
@@ -215,17 +213,17 @@ export default function FeedPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl glass-panel p-12 text-center border border-dashed border-slate-800 space-y-3">
-          <BookOpen className="w-12 h-12 text-slate-600 mx-auto" />
-          <h4 className="text-base font-bold text-slate-200">No hay publicaciones disponibles</h4>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+        <div className="rounded-2xl glass-panel p-12 text-center border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+          <BookOpen className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto" />
+          <h4 className="text-base font-bold text-slate-800 dark:text-slate-200">No hay publicaciones disponibles</h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
             {searchQuery
               ? 'No se encontraron resultados para tu búsqueda. Intenta con otros términos.'
               : 'Sé el primero en compartir un apunte, guía o resumen en esta categoría.'}
           </p>
           <Link
             to="/create-post"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold transition shadow-md"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Crear la primera publicación</span>
@@ -235,34 +233,34 @@ export default function FeedPage() {
 
       {/* Suggest Category Modal */}
       {showSuggestModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md rounded-2xl glass-panel p-6 border border-slate-700 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-2">Proponer Nueva Materia o Categoría</h3>
-            <p className="text-xs text-slate-400 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-700 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Proponer Nueva Materia o Categoría</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Si tu asignatura no está en el listado, puedes sugerirla. El sistema evitará duplicados antes de incorporarla.
             </p>
 
             <form onSubmit={handleSuggestSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Nombre de la materia</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Nombre de la materia</label>
                 <input
                   type="text"
                   required
                   value={suggestName}
                   onChange={(e) => setSuggestName(e.target.value)}
                   placeholder="Ej: Computabilidad y Complejidad"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-brand-500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Descripción breve (opcional)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Descripción breve (opcional)</label>
                 <textarea
                   rows={2}
                   value={suggestDesc}
                   onChange={(e) => setSuggestDesc(e.target.value)}
                   placeholder="Área temática o temario general..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-brand-500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-500"
                 />
               </div>
 
@@ -270,13 +268,13 @@ export default function FeedPage() {
                 <button
                   type="button"
                   onClick={() => setShowSuggestModal(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-md"
                 >
                   Enviar propuesta
                 </button>
