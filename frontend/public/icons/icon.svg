@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#4338ca" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#grad)" />
+  <!-- Academic Cap -->
+  <path d="M256 120 L90 210 L256 300 L422 210 Z" fill="#ffffff" opacity="0.95" />
+  <path d="M150 245 L150 330 C150 380 362 380 362 330 L362 245" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" />
+  <line x1="410" y1="215" x2="410" y2="340" stroke="#fbbf24" stroke-width="16" stroke-linecap="round" />
+  <circle cx="410" cy="350" r="16" fill="#fbbf24" />
+</svg>

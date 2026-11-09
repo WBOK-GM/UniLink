@@ -1,0 +1,37 @@
+{
+  "short_name": "UniLink",
+  "name": "UniLink - Comunidad y Colaboración Académica",
+  "description": "PWA para intercambio de recursos académicos, grupos de estudio geolocalizados y sincronización offline.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#4f46e5",
+  "background_color": "#0f172a",
+  "categories": ["education", "social", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo Apunte",
+      "url": "/create-post",
+      "description": "Publicar un nuevo recurso o documento académico"
+    },
+    {
+      "name": "Mapa de Grupos",
+      "url": "/map",
+      "description": "Descubrir grupos de estudio cercanos"
+    }
+  ]
+}
