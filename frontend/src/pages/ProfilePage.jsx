@@ -11,8 +11,8 @@ export default function ProfilePage() {
   const [university, setUniversity] = useState('');
   const [academicProgram, setAcademicProgram] = useState('');
   const [semester, setSemester] = useState(1);
-  const [latitude, setLatitude] = useState(4.60971);
-  const [longitude, setLongitude] = useState(-74.08175);
+  const [latitude, setLatitude] = useState(5.5530);
+  const [longitude, setLongitude] = useState(-73.3565);
   const [saving, setSaving] = useState(false);
   const [pushStatus, setPushStatus] = useState('DEFAULT');
 

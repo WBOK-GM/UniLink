@@ -5,7 +5,7 @@ import { MapPin, Navigation, X, Check, Search, Building2, BookOpen, Coffee, Comp
 export default function LocationPickerModal({
   isOpen,
   onClose,
-  initialCoords = { lat: 4.60971, lng: -74.08175 },
+  initialCoords = { lat: 5.5530, lng: -73.3565 },
   initialPlaceName = '',
   onSelectLocation
 }) {
@@ -17,13 +17,14 @@ export default function LocationPickerModal({
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
-  // Lugares universitarios de referencia rápida
+  // Lugares universitarios de referencia real UPTC Tunja
   const campusPresets = [
-    { name: 'Biblioteca Central', lat: 4.6375, lng: -74.0838, icon: BookOpen },
-    { name: 'Edificio de Aulas / CTI', lat: 4.6385, lng: -74.0845, icon: Building2 },
-    { name: 'Laboratorios de Ingeniería', lat: 4.6368, lng: -74.0825, icon: Compass },
-    { name: 'Plaza Central / Campus', lat: 4.6097, lng: -74.0817, icon: MapPin },
-    { name: 'Cafetería y Zonas Verdes', lat: 4.6358, lng: -74.0850, icon: Coffee },
+    { name: 'Biblioteca Central (Jorge Palacios Preciado)', lat: 5.5536, lng: -73.3581, icon: BookOpen },
+    { name: 'Facultad de Ingeniería (Aulas 302 / Sistemas)', lat: 5.5525, lng: -73.3553, icon: Building2 },
+    { name: 'Edificio Central y Rectoría', lat: 5.5530, lng: -73.3565, icon: Building2 },
+    { name: 'Laboratorios de Ingeniería y CTI', lat: 5.5520, lng: -73.3548, icon: Compass },
+    { name: 'Plaza Camilo Torres / Canchas', lat: 5.5540, lng: -73.3570, icon: MapPin },
+    { name: 'Restaurante y Cafetería Central', lat: 5.5532, lng: -73.3575, icon: Coffee },
   ];
 
   // Crear icono de marcador personalizado de alta estética
@@ -58,16 +59,16 @@ export default function LocationPickerModal({
     const timer = setTimeout(() => {
       if (!mapContainerRef.current) return;
 
-      const targetLat = initialCoords?.lat || 4.60971;
-      const targetLng = initialCoords?.lng || -74.08175;
+      const targetLat = initialCoords?.lat || 5.5530;
+      const targetLng = initialCoords?.lng || -73.3565;
 
       if (!mapInstanceRef.current) {
         const map = L.map(mapContainerRef.current, {
           zoomControl: true
-        }).setView([targetLat, targetLng], 15);
+        }).setView([targetLat, targetLng], 16);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
+          attribution: '&copy; OpenStreetMap contributors | UPTC Tunja'
         }).addTo(map);
 
         // Añadir marcador inicial
@@ -239,7 +240,7 @@ export default function LocationPickerModal({
           {/* Quick presets buttons */}
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
-              Lugares comunes del campus:
+              Lugares comunes del campus UPTC Tunja:
             </span>
             <div className="flex flex-wrap gap-1.5">
               {campusPresets.map((preset, idx) => {

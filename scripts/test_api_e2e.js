@@ -90,8 +90,8 @@ async function runTests() {
     });
     assert('El autor no puede votar su propio post (RN-04)', selfReactRes.status === 400);
 
-    // 7. Groups listing with Haversine Geolocation
-    const groupsRes = await apiCall('/groups?lat=4.60971&lng=-74.08175&radius_km=20');
+    // 7. Groups listing with Haversine Geolocation (UPTC Tunja Campus)
+    const groupsRes = await apiCall('/groups?lat=5.5530&lng=-73.3565&radius_km=20');
     assert('Grupos responden con cálculo de distancia Haversine', groupsRes.ok && groupsRes.body.groups?.length > 0);
     if (groupsRes.body.groups?.length > 0) {
       assert('Distancia en kilómetros calculada', groupsRes.body.groups[0].distance_km !== undefined);

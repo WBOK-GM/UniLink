@@ -10,7 +10,7 @@ export default function MapPage() {
   const [radiusKm, setRadiusKm] = useState(15);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState(null);
-  const [userCoords, setUserCoords] = useState({ lat: 4.60971, lng: -74.08175 }); // Coordenadas de referencia
+  const [userCoords, setUserCoords] = useState({ lat: 5.5530, lng: -73.3565 }); // UPTC Sede Central Tunja
 
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);

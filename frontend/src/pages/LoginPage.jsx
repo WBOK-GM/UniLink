@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('estudiante@unilink.edu.co');
   const [password, setPassword] = useState('123456');
   const [fullName, setFullName] = useState('');
-  const [university, setUniversity] = useState('Universidad Nacional');
+  const [university, setUniversity] = useState('Universidad Pedagógica y Tecnológica de Colombia (UPTC)');
   const [academicProgram, setAcademicProgram] = useState('Ingeniería de Sistemas');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

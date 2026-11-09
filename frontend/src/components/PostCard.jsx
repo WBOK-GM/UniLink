@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { saveResourceOffline } from '../db/db';
 import AudioPlayer from './AudioPlayer';
+import LocationViewModal from './LocationViewModal';
 
 export default function PostCard({ post, onPostUpdated }) {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export default function PostCard({ post, onPostUpdated }) {
   const [isReacting, setIsReacting] = useState(false);
   const [downloadSaved, setDownloadSaved] = useState({});
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [reportReason, setReportReason] = useState('Derechos de autor');
 
   const isAuthor = user && user.id === post.author?.id;
@@ -151,25 +153,20 @@ export default function PostCard({ post, onPostUpdated }) {
           {post.content}
         </p>
 
-        {post.location && (() => {
-          const coordsMatch = post.location.match(/\((-?\d+\.\d+),\s*(-?\d+\.\d+)\)/);
-          const mapUrl = coordsMatch
-            ? `https://www.google.com/maps?q=${coordsMatch[1]},${coordsMatch[2]}`
-            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(post.location)}`;
-          return (
-            <a
-              href={mapUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Abrir ubicación en Google Maps"
-              className="inline-flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300 font-semibold mt-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/40 dark:hover:bg-brand-900/50 px-2.5 py-1 rounded-lg border border-brand-200 dark:border-brand-800/40 transition hover:scale-[1.01] shadow-2xs group"
-            >
-              <MapPin className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition" />
-              <span>{post.location}</span>
-              <ExternalLink className="w-3 h-3 text-brand-500/70 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition ml-0.5" />
-            </a>
-          );
-        })()}
+        {post.location && (
+          <button
+            type="button"
+            onClick={() => setShowLocationModal(true)}
+            title="Ver ubicación UPTC interactiva dentro de la aplicación"
+            className="inline-flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300 font-semibold mt-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/40 dark:hover:bg-brand-900/50 px-2.5 py-1 rounded-lg border border-brand-200 dark:border-brand-800/40 transition hover:scale-[1.02] shadow-2xs group cursor-pointer"
+          >
+            <MapPin className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition" />
+            <span>{post.location}</span>
+            <span className="text-[10px] uppercase font-bold text-brand-500 bg-white dark:bg-slate-800 px-1 rounded border border-brand-200 dark:border-brand-700/60 ml-0.5">
+              Ver mapa
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Attachments Section */}
@@ -344,6 +341,13 @@ export default function PostCard({ post, onPostUpdated }) {
           </div>
         </div>
       )}
+
+      {/* In-App Interactive UPTC Location Viewer */}
+      <LocationViewModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        locationStr={post.location}
+      />
     </article>
   );
 }
