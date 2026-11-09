@@ -147,39 +147,39 @@ export default function MapPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 space-y-4">
       {/* Top Controls Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <Compass className="w-5 h-5 text-brand-400" />
-            <h2 className="text-lg font-bold text-white">Explorador Geográfico de Grupos</h2>
+            <Compass className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Explorador Geográfico de Grupos</h2>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Descubre grupos de estudio presenciales organizados por distancia (Fórmula Haversine).
           </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
           {/* Radius selector */}
-          <div className="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
-            <Filter className="w-3.5 h-3.5 text-brand-400" />
-            <span className="text-slate-400">Radio:</span>
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs shadow-sm">
+            <Filter className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+            <span className="text-slate-500 dark:text-slate-400">Radio:</span>
             <select
               value={radiusKm}
               onChange={(e) => setRadiusKm(Number(e.target.value))}
-              className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
+              className="bg-transparent text-slate-800 dark:text-white font-bold focus:outline-none cursor-pointer"
             >
-              <option value={1} className="bg-slate-900">1 km</option>
-              <option value={5} className="bg-slate-900">5 km</option>
-              <option value={15} className="bg-slate-900">15 km</option>
-              <option value={30} className="bg-slate-900">30 km</option>
-              <option value={100} className="bg-slate-900">Todos</option>
+              <option value={1} className="bg-white dark:bg-slate-900">1 km</option>
+              <option value={5} className="bg-white dark:bg-slate-900">5 km</option>
+              <option value={15} className="bg-white dark:bg-slate-900">15 km</option>
+              <option value={30} className="bg-white dark:bg-slate-900">30 km</option>
+              <option value={100} className="bg-white dark:bg-slate-900">Todos</option>
             </select>
           </div>
 
           {/* GPS button */}
           <button
             onClick={handleGetDeviceLocation}
-            className="px-3.5 py-1.5 rounded-xl bg-brand-600/20 hover:bg-brand-600/30 text-brand-300 border border-brand-500/30 text-xs font-semibold flex items-center gap-1.5 transition"
+            className="px-3.5 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-600/20 hover:bg-brand-100 dark:hover:bg-brand-600/30 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
             title="Centrar en mi ubicación actual"
           >
             <Navigation className="w-3.5 h-3.5" />
@@ -191,14 +191,14 @@ export default function MapPage() {
       {/* Map + Sidebar Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[580px]">
         {/* Leaflet Map Box */}
-        <div className="lg:col-span-2 h-full rounded-2xl overflow-hidden border border-slate-800 shadow-xl relative">
+        <div className="lg:col-span-2 h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md relative">
           <div ref={mapContainerRef} className="w-full h-full" />
         </div>
 
         {/* Groups List Sidebar */}
-        <div className="h-full glass-panel rounded-2xl border border-slate-800/80 p-4 flex flex-col">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+        <div className="h-full glass-panel rounded-2xl border border-slate-200/90 dark:border-slate-800/80 p-4 flex flex-col shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Grupos en el radio ({groups.length})
             </span>
             <span className="text-[11px] text-slate-500">Ordenados por proximidad</span>
@@ -206,7 +206,7 @@ export default function MapPage() {
 
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
             {groups.length === 0 ? (
-              <div className="text-center py-12 text-slate-500 text-xs">
+              <div className="text-center py-12 text-slate-400 text-xs">
                 No hay grupos en este radio de búsqueda. Aumenta el radio para explorar más.
               </div>
             ) : (
@@ -220,34 +220,44 @@ export default function MapPage() {
                     onClick={() => handleGroupCardClick(g)}
                     className={`p-3.5 rounded-xl border text-left cursor-pointer transition ${
                       isSelected
-                        ? 'bg-brand-500/15 border-brand-500/50 shadow-md'
-                        : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
+                        ? 'bg-brand-50 dark:bg-brand-500/15 border-brand-300 dark:border-brand-500/50 shadow-md'
+                        : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 hover:border-brand-300 dark:hover:border-slate-700 shadow-sm'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <h4 className="text-xs font-bold text-white truncate">{g.name}</h4>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{g.name}</h4>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                         isPublic
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                          ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
+                          : 'bg-purple-50 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30'
                       }`}>
                         {isPublic ? 'Público' : 'Privado'}
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-slate-400 line-clamp-2 mb-2">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 mb-2">
                       {g.description || 'Sin descripción'}
                     </p>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/60">
-                      <span className="flex items-center gap-1 text-brand-300 font-semibold">
-                        <MapPin className="w-3 h-3 text-brand-400" />
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1.5 border-t border-slate-100 dark:border-slate-800/60">
+                      <span className="flex items-center gap-1 text-brand-700 dark:text-brand-300 font-bold">
+                        <MapPin className="w-3 h-3 text-brand-600 dark:text-brand-400" />
                         {g.distance_km !== null ? `${g.distance_km} km` : 'Cerca'}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
+                      <span className="flex items-center gap-1 font-medium">
+                        <Users className="w-3 h-3 text-slate-400" />
                         {g.members_count} miembros
                       </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
                     </div>
                   </div>
                 );

@@ -154,16 +154,16 @@ export default function CreatePostPage() {
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white mb-4 transition"
+        className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white mb-4 transition"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>Volver</span>
+        <span>Volver al inicio</span>
       </button>
 
-      <div className="rounded-2xl glass-panel p-6 sm:p-8 border border-slate-700/80 shadow-2xl space-y-6">
+      <div className="rounded-2xl glass-panel p-6 sm:p-8 border border-slate-200/90 dark:border-slate-700/80 shadow-sm dark:shadow-2xl space-y-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white">Compartir Recurso Académico</h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Compartir Recurso Académico</h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Sube apuntes, resúmenes, grabaciones de clase o talleres para la comunidad estudiantil.
           </p>
         </div>
@@ -171,7 +171,7 @@ export default function CreatePostPage() {
         <form onSubmit={handleFormSubmit} className="space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
               Título del recurso o publicación *
             </label>
             <input
@@ -180,21 +180,21 @@ export default function CreatePostPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej: Apuntes de Grafos y Árboles - Semana 4"
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500 transition"
+              className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white shadow-sm focus:outline-none focus:border-brand-500 transition"
             />
           </div>
 
           {/* Category & Group Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                 Materia / Categoría *
               </label>
               <select
                 required
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 shadow-sm focus:outline-none focus:border-brand-500 transition"
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -205,13 +205,13 @@ export default function CreatePostPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                 Destino (General o Grupo)
               </label>
               <select
                 value={groupId}
                 onChange={(e) => setGroupId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 shadow-sm focus:outline-none focus:border-brand-500 transition"
               >
                 <option value="">Publicación general (Comunidad abierta)</option>
                 {groups.map((g) => (
@@ -225,7 +225,7 @@ export default function CreatePostPage() {
 
           {/* Content Textarea */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
               Descripción y contenido explicativo *
             </label>
             <textarea
@@ -234,7 +234,7 @@ export default function CreatePostPage() {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Explica de qué trata el material, fórmulas importantes, profesor o recomendaciones de estudio..."
-              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500 transition resize-y"
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white shadow-sm focus:outline-none focus:border-brand-500 transition resize-y"
             />
           </div>
 
@@ -243,10 +243,10 @@ export default function CreatePostPage() {
 
           {/* File Attachments Dropzone */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
               Adjuntar Archivos (PDF, Word, Imágenes de apuntes)
             </label>
-            <div className="border-2 border-dashed border-slate-700 hover:border-brand-500/80 rounded-xl p-4 text-center cursor-pointer transition bg-slate-900/40 relative">
+            <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 rounded-xl p-4 text-center cursor-pointer transition bg-slate-50/80 dark:bg-slate-900/40 relative">
               <input
                 type="file"
                 multiple
@@ -254,8 +254,8 @@ export default function CreatePostPage() {
                 onChange={handleFileChange}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
-              <UploadCloud className="w-8 h-8 text-brand-400 mx-auto mb-2" />
-              <p className="text-xs text-slate-300 font-medium">
+              <UploadCloud className="w-8 h-8 text-brand-600 dark:text-brand-400 mx-auto mb-2" />
+              <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
                 Arrastra archivos aquí o haz clic para seleccionar
               </p>
               <p className="text-[11px] text-slate-500 mt-1">Soporta PDFs, documentos Word, imágenes y audios hasta 25MB</p>
@@ -267,14 +267,14 @@ export default function CreatePostPage() {
                 {attachedFiles.map((file, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 shadow-sm"
                   >
-                    <FileText className="w-3.5 h-3.5 text-brand-400 shrink-0" />
-                    <span className="truncate max-w-[160px]">{file.name}</span>
+                    <FileText className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+                    <span className="truncate max-w-[160px] font-medium">{file.name}</span>
                     <button
                       type="button"
                       onClick={() => removeFile(idx)}
-                      className="p-0.5 text-slate-400 hover:text-rose-400 rounded transition"
+                      className="p-0.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -286,7 +286,7 @@ export default function CreatePostPage() {
 
           {/* Optional Location */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
               Ubicación opcional del recurso
             </label>
             <div className="relative">
@@ -296,22 +296,22 @@ export default function CreatePostPage() {
                 value={locationText}
                 onChange={(e) => setLocationText(e.target.value)}
                 placeholder="Ej: Sala de lectura piso 2, Edificio de Informática..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500 transition"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white shadow-sm focus:outline-none focus:border-brand-500 transition"
               />
             </div>
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
             <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Se solicitará confirmación de autoría (RN-30)</span>
             </span>
 
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-md shadow-brand-600/30 transition disabled:opacity-50"
             >
               {submitting ? 'Publicando...' : 'Publicar Recurso'}
             </button>
