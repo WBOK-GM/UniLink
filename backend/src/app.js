@@ -39,8 +39,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 4. Sanitización y desinfección de entradas contra inyecciones XSS
 app.use(sanitizeInput);
 
-// Servidor de archivos estáticos para subidas locales (Fallback)
-app.use('/uploads', express.static(uploadsDir));
+// Servidor de archivos estáticos para subidas locales con soporte de visualización en marco (PWA In-App Viewer)
+app.use('/uploads', (req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self' http://localhost:* http://127.0.0.1:*");
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Content-Disposition', 'inline');
+  next();
+}, express.static(uploadsDir));
 
 // Rutas de API v1
 app.use('/api/v1/auth', authRateLimiter, authRoutes);

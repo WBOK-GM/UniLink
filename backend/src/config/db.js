@@ -91,23 +91,74 @@ const memoryStore = {
       copyright_policy_version: 'v1.0',
       client_operation_id: 'op-initial-002',
       created_at: new Date(Date.now() - 3600000 * 20)
+    },
+    {
+      id: 'post-003',
+      author_id: 'u1111111-1111-1111-1111-111111111111',
+      category_id: 'c5',
+      group_id: null,
+      post_type: 'RESOURCE',
+      title: 'Apuntes y Ejercicios Resueltos de Cálculo Diferencial e Integral',
+      content: 'Formulario con reglas de derivación, aplicaciones en optimización y teoremas fundamentales del cálculo para preparar el examen parcial.',
+      status: 'ACTIVE',
+      location: 'Edificio Central - Sala de Estudio (UPTC Tunja) (5.55280, -73.35620)',
+      copyright_declaration_accepted: true,
+      copyright_policy_version: 'v1.0',
+      client_operation_id: 'op-initial-003',
+      created_at: new Date(Date.now() - 3600000 * 48)
     }
   ],
   files: [
     {
       id: 'f1',
       uploader_id: 'u1111111-1111-1111-1111-111111111111',
-      original_name: 'resumen_pwa_offline.pdf',
+      original_name: 'Guia_Service_Workers_Cache_PWA.pdf',
       storage_key: 'sample-pwa-guide.pdf',
       mime_type: 'application/pdf',
-      file_size: 1024 * 450,
+      file_size: 4881,
+      file_type: 'DOCUMENT',
+      status: 'AVAILABLE',
+      created_at: new Date()
+    },
+    {
+      id: 'f2',
+      uploader_id: 'u2222222-2222-2222-2222-222222222222',
+      original_name: 'Arquitectura_Docker_Traefik_UPTC.png',
+      storage_key: 'sample-docker-traefik.png',
+      mime_type: 'image/png',
+      file_size: 1024 * 75,
+      file_type: 'IMAGE',
+      status: 'AVAILABLE',
+      created_at: new Date()
+    },
+    {
+      id: 'f3',
+      uploader_id: 'u2222222-2222-2222-2222-222222222222',
+      original_name: 'Guia_Despliegue_Docker_Compose.pdf',
+      storage_key: 'sample-docker-guia.pdf',
+      mime_type: 'application/pdf',
+      file_size: 2365,
+      file_type: 'DOCUMENT',
+      status: 'AVAILABLE',
+      created_at: new Date()
+    },
+    {
+      id: 'f4',
+      uploader_id: 'u1111111-1111-1111-1111-111111111111',
+      original_name: 'Apuntes_Calculo_Diferencial_UPTC.pdf',
+      storage_key: 'sample-calculo-apuntes.pdf',
+      mime_type: 'application/pdf',
+      file_size: 2248,
       file_type: 'DOCUMENT',
       status: 'AVAILABLE',
       created_at: new Date()
     }
   ],
   post_files: [
-    { id: 'pf1', post_id: 'post-001', file_id: 'f1', display_order: 1 }
+    { id: 'pf1', post_id: 'post-001', file_id: 'f1', display_order: 1 },
+    { id: 'pf2', post_id: 'post-002', file_id: 'f2', display_order: 1 },
+    { id: 'pf3', post_id: 'post-002', file_id: 'f3', display_order: 2 },
+    { id: 'pf4', post_id: 'post-003', file_id: 'f4', display_order: 1 }
   ],
   post_reactions: [
     { id: 'pr1', post_id: 'post-001', user_id: 'u2222222-2222-2222-2222-222222222222', reaction_type: 'LIKE', created_at: new Date() }
