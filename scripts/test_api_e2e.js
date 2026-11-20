@@ -36,7 +36,7 @@ async function runTests() {
 
   try {
     // 1. Health check
-    const health = await (await fetch('http://localhost:5099/health')).json();
+    const health = await (await fetch(`http://localhost:${port}/health`)).json();
     assert('Health Check Responde Healthy', health.status === 'healthy');
 
     // 2. Auth Login Demo Estudiante
