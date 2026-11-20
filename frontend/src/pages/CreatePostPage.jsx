@@ -60,7 +60,15 @@ export default function CreatePostPage() {
   const handleFileChange = (e) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-      setAttachedFiles((prev) => [...prev, ...filesArray]);
+      const validFiles = [];
+      for (const file of filesArray) {
+        if (file.size > 25 * 1024 * 1024) {
+          alert(`El archivo "${file.name}" supera el límite de 25MB permitido por la plataforma.`);
+          continue;
+        }
+        validFiles.push(file);
+      }
+      setAttachedFiles((prev) => [...prev, ...validFiles]);
     }
   };
 
@@ -267,25 +275,61 @@ export default function CreatePostPage() {
               <p className="text-[11px] text-slate-500 mt-1">Soporta PDFs, documentos Word, imágenes y audios hasta 25MB</p>
             </div>
 
-            {/* Attached files chips */}
+            {/* Attached files preview cards */}
             {attachedFiles.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {attachedFiles.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 shadow-sm"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
-                    <span className="truncate max-w-[160px] font-medium">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(idx)}
-                      className="p-0.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
+                {attachedFiles.map((file, idx) => {
+                  const isImage = file.type?.startsWith('image/');
+                  const isPdf = file.type === 'application/pdf' || file.name?.toLowerCase().endsWith('.pdf');
+                  const sizeFormatted = file.size > 1024 * 1024
+                    ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                    : `${(file.size / 1024).toFixed(0)} KB`;
+
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-2xs"
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {isImage ? (
+                          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={file.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : isPdf ? (
+                          <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-800/40">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800/40">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {isImage ? 'Imagen' : isPdf ? 'Documento PDF' : 'Archivo'} • {sizeFormatted}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeFile(idx)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition shrink-0"
+                        title="Eliminar archivo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

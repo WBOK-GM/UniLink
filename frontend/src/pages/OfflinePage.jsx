@@ -9,16 +9,19 @@ import {
   Wifi,
   WifiOff,
   Trash2,
-  Download
+  Download,
+  Eye
 } from 'lucide-react';
 import { db, getDownloadedResources } from '../db/db';
 import { useOfflineSync } from '../hooks/useOfflineSync';
+import FileViewerModal from '../components/FileViewerModal';
 
 export default function OfflinePage() {
   const { isOnline, pendingCount, isSyncing, syncOfflinePosts } = useOfflineSync();
   const [offlinePosts, setOfflinePosts] = useState([]);
   const [downloadedFiles, setDownloadedFiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewingResource, setViewingResource] = useState(null);
 
   const loadOfflineData = async () => {
     try {
@@ -207,10 +210,17 @@ export default function OfflinePage() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleOpenOfflineBlob(item)}
-                    className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold transition shadow-sm"
+                    onClick={() => {
+                      setViewingResource({
+                        id: item.file_id,
+                        original_name: item.file_name,
+                        mime_type: item.file_name?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/png'
+                      });
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5"
                   >
-                    Abrir Documento
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Ver en la App</span>
                   </button>
 
                   <button
@@ -226,6 +236,15 @@ export default function OfflinePage() {
           </div>
         )}
       </div>
+
+      {/* In-App File Viewer Modal para recursos offline */}
+      {viewingResource && (
+        <FileViewerModal
+          file={viewingResource}
+          isOpen={!!viewingResource}
+          onClose={() => setViewingResource(null)}
+        />
+      )}
     </div>
   );
 }
