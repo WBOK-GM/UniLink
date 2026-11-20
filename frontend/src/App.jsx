@@ -71,8 +71,8 @@ function MainLayout() {
         isInstallable={isInstallable}
       />
 
-      {/* 2. Área de Contenido Principal (con margen izquierdo en Desktop lg:pl-64) */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen lg:pl-64 bg-[#f5f6fa] dark:bg-[#090d1f]">
+      {/* 2. Área de Contenido Principal (con margen izquierdo en Desktop lg:pl-56) */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen lg:pl-56 bg-[#f5f6fa] dark:bg-[#090d1f]">
         
         {/* Banner de Estado Offline */}
         <OfflineBanner />
