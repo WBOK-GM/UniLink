@@ -155,9 +155,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Registro híbrido (Online con API / Offline en IndexedDB)
+   * Registro institucional (Obligatoriamente en el Servidor Central PostgreSQL)
    */
   const register = async (payload) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new Error('⚠️ Conexión Requerida: El registro de nuevos estudiantes debe validarse directamente en la base de datos central de UniLink en PostgreSQL. Por favor conéctate a internet para crear tu cuenta.');
+    }
+
     try {
       const res = await api.register(payload);
       if (res.success && res.token) {
@@ -178,45 +182,10 @@ export const AuthProvider = ({ children }) => {
 
         return res;
       }
+      throw new Error(res.error || 'Error en el registro.');
     } catch (err) {
-      console.warn('[UniLink Auth] Error en registro online, registrando en IndexedDB local:', err.message);
-
-      // Si está offline, permitir registro local
-      const offlineToken = `offline-jwt-reg-${Date.now()}`;
-      const newUser = {
-        id: crypto.randomUUID(),
-        email: payload.email.toLowerCase().trim(),
-        role: 'STUDENT',
-        profile: {
-          full_name: payload.full_name,
-          university: payload.university || 'UPTC Tunja',
-          academic_program: payload.academic_program || 'Ingeniería de Sistemas',
-          semester: Number(payload.semester) || 1,
-          latitude: 5.5530,
-          longitude: -73.3565
-        }
-      };
-
-      setAuthToken(offlineToken);
-      setTokenState(offlineToken);
-      setUser(newUser);
-      setIsOfflineSession(true);
-      localStorage.setItem('unilink_cached_user', JSON.stringify(newUser));
-      await saveOfflineSession({ token: offlineToken, user: newUser });
-      await db.cached_users.put({
-        email: payload.email.toLowerCase().trim(),
-        password: payload.password,
-        role: 'STUDENT',
-        full_name: payload.full_name
-      });
-
-      return {
-        success: true,
-        token: offlineToken,
-        user: newUser,
-        isOffline: true,
-        message: 'Cuenta creada y guardada en almacenamiento local de la PWA.'
-      };
+      console.warn('[UniLink Auth] Error en registro online:', err.message);
+      throw err;
     }
   };
 
@@ -269,6 +238,9 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     removeAuthToken();
     localStorage.removeItem('unilink_cached_user');
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.clear();
+    }
     await clearOfflineSession();
     setUser(null);
     setTokenState(null);

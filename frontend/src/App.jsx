@@ -7,7 +7,7 @@ import Sidebar from './components/Sidebar';
 import TopHeader from './components/TopHeader';
 import BottomNav from './components/BottomNav';
 import OfflineBanner from './components/OfflineBanner';
-import AuditModal from './components/AuditModal';
+import AdminPortal from './admin/AdminPortal';
 
 import FeedPage from './pages/FeedPage';
 import CreatePostPage from './pages/CreatePostPage';
@@ -117,8 +117,8 @@ function MainLayout() {
         <BottomNav onOpenSidebar={() => setSidebarOpen(true)} />
       </div>
 
-      {/* Modal de Auditoría PWA y Seguridad (Sesión 22 & 23) */}
-      <AuditModal
+      {/* Consola Administrativa Dinámica Zero-Footprint (Carga bajo demanda en vivo) */}
+      <AdminPortal
         isOpen={showAuditModal}
         onClose={() => setShowAuditModal(false)}
       />

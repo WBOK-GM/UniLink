@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
     { to: '/?format=DOCUMENT', label: 'Recursos', icon: BookOpen },
     { to: '/groups', label: 'Grupos', icon: Users },
     { to: '/meetings', label: 'Encuentros', icon: Calendar },
-    { type: 'audit', label: 'Auditoría PWA', icon: ShieldCheck, badge: 'A+' },
+    ...(user?.role === 'ADMIN' ? [{ type: 'audit', label: 'Consola Servidor', icon: ShieldCheck, badge: 'A+' }] : []),
     ...(isInstallable ? [{ type: 'install', label: 'Instalar App', icon: Download }] : []),
     { to: '/create-post', label: 'Compartir', icon: Share2 },
     { to: user ? '/profile' : '/login', label: user ? 'Mi Perfil' : 'Ingresar', icon: user ? User : LogIn }

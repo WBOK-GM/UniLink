@@ -16,7 +16,7 @@ import {
   Zap
 } from 'lucide-react';
 import { runPwaAudit } from '../utils/auditPwa';
-import SensorDiagnosticsModal from './SensorDiagnosticsModal';
+import SensorDiagnosticsModal from '../components/SensorDiagnosticsModal';
 
 export default function AuditModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(true);

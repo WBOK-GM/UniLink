@@ -7,11 +7,14 @@ import {
   LogIn,
   User,
   LogOut,
-  GraduationCap
+  GraduationCap,
+  HardDrive,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useTheme } from '../context/ThemeContext';
+import StorageManagerModal from './StorageManagerModal';
 
 export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
   const location = useLocation();
@@ -19,6 +22,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
   const { isOnline, pendingCount } = useOfflineSync();
   const { isDark, toggleTheme } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showStorageModal, setShowStorageModal] = useState(false);
 
   const isHome = location.pathname === '/';
 
@@ -116,6 +120,32 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
                   type="button"
                   onClick={() => {
                     setShowProfileMenu(false);
+                    setShowStorageModal(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition text-left"
+                >
+                  <HardDrive className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Almacenamiento Offline</span>
+                </button>
+
+                {user?.role === 'ADMIN' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      onOpenAudit();
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition text-left"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Consola Servidor</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
                     logout();
                   }}
                   className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition text-left"
@@ -137,6 +167,11 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
         )}
 
       </div>
+
+      <StorageManagerModal
+        isOpen={showStorageModal}
+        onClose={() => setShowStorageModal(false)}
+      />
     </header>
   );
 }

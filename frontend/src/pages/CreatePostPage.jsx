@@ -23,6 +23,7 @@ import CopyrightModal from '../components/CopyrightModal';
 import LocationPickerModal from '../components/LocationPickerModal';
 import CameraCaptureModal from '../components/CameraCaptureModal';
 import { getResilientPosition } from '../utils/geoUtils';
+import { calculateFileSha256 } from '../utils/cryptoUtils';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
@@ -120,7 +121,7 @@ export default function CreatePostPage() {
       return;
     }
 
-    // 2. MODO ONLINE: Envío HTTP a la API REST
+    // 2. MODO ONLINE: Envío HTTP a la API REST con Integridad Criptográfica (SHA-256)
     try {
       const formData = new FormData();
       formData.append('title', title);
@@ -132,14 +133,23 @@ export default function CreatePostPage() {
       formData.append('client_operation_id', clientOpId);
       formData.append('copyright_declaration_accepted', 'true');
 
-      // Archivos adjuntos
-      attachedFiles.forEach((file) => {
+      // Archivos adjuntos con Checksum SHA-256 anti-corrupción
+      for (let i = 0; i < attachedFiles.length; i++) {
+        const file = attachedFiles[i];
         formData.append('attachments', file);
-      });
+        const checksum = await calculateFileSha256(file);
+        if (checksum) {
+          formData.append(`file_checksum_${i}`, checksum);
+        }
+      }
 
       // Audio grabado
       if (recordedAudio) {
         formData.append('attachments', recordedAudio);
+        const audioChecksum = await calculateFileSha256(recordedAudio);
+        if (audioChecksum) {
+          formData.append(`file_checksum_${attachedFiles.length}`, audioChecksum);
+        }
       }
 
       const res = await api.createPost(formData);

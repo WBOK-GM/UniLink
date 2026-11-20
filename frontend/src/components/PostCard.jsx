@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import { db, saveResourceOffline } from '../db/db';
+import { db, saveResourceOffline, deleteResourceOffline, isResourceSavedOffline } from '../db/db';
 import AudioPlayer from './AudioPlayer';
 import LocationViewModal from './LocationViewModal';
 import FileViewerModal from './FileViewerModal';
@@ -33,12 +33,23 @@ export default function PostCard({ post, onPostUpdated }) {
   const [viewingFile, setViewingFile] = useState(null);
   const [localThumbUrl, setLocalThumbUrl] = useState(null);
   const [imgError, setImgError] = useState(false);
+  const [isOfflineSaved, setIsOfflineSaved] = useState(false);
 
   const isAuthor = user && user.id === post.author?.id;
   const isLongContent = (post.content || '').length > 220;
 
   // Primer archivo adjunto para el preview visual izquierdo
   const mainAttachment = post.attachments && post.attachments.length > 0 ? post.attachments[0] : null;
+
+  useEffect(() => {
+    let isMounted = true;
+    isResourceSavedOffline(post.id).then((saved) => {
+      if (isMounted) setIsOfflineSaved(saved);
+    }).catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [post.id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,6 +76,40 @@ export default function PostCard({ post, onPostUpdated }) {
       }
     };
   }, [mainAttachment]);
+
+  const handleToggleOfflineReady = async (e) => {
+    e.stopPropagation();
+    if (!mainAttachment) return;
+    try {
+      setSavingFileId(mainAttachment.id);
+      if (isOfflineSaved) {
+        await deleteResourceOffline(post.id);
+        setIsOfflineSaved(false);
+      } else {
+        let blob;
+        if (mainAttachment.url) {
+          const response = await fetch(mainAttachment.url);
+          if (response.ok) {
+            blob = await response.blob();
+          }
+        }
+        if (blob) {
+          await saveResourceOffline(
+            post.id,
+            mainAttachment.id || mainAttachment.storage_key || mainAttachment.original_name,
+            mainAttachment.original_name,
+            blob,
+            user?.id || 'guest'
+          );
+          setIsOfflineSaved(true);
+        }
+      }
+    } catch (err) {
+      console.warn('Error alternando disponibilidad offline:', err);
+    } finally {
+      setSavingFileId(null);
+    }
+  };
 
   const handleSaveOffline = async (file) => {
     try {
@@ -330,6 +375,28 @@ export default function PostCard({ post, onPostUpdated }) {
                 >
                   <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Ver</span>
+                </button>
+              )}
+
+              {/* Casilla interactiva: Guardar para ver sin conexión (Ahorro de almacenamiento) */}
+              {mainAttachment && (
+                <button
+                  type="button"
+                  onClick={handleToggleOfflineReady}
+                  disabled={savingFileId === mainAttachment.id}
+                  className={`px-2.5 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition shadow-2xs select-none ${
+                    isOfflineSaved
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                  }`}
+                  title={
+                    isOfflineSaved
+                      ? 'Archivo disponible sin conexión en tu dispositivo. Clic para desmarcar y liberar espacio.'
+                      : 'Guardar este archivo en tu equipo para consultarlo sin internet.'
+                  }
+                >
+                  <span className={`w-2 h-2 rounded-full ${isOfflineSaved ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                  <span>{isOfflineSaved ? '✓ Offline' : 'Ver sin conexión'}</span>
                 </button>
               )}
 

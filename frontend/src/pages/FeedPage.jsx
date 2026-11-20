@@ -530,22 +530,41 @@ export default function FeedPage({ onOpenAudit }) {
                 <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0 ml-1" />
               </Link>
 
-              <div
-                onClick={onOpenAudit}
-                className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between cursor-pointer active:scale-95 transition"
-                title="Abrir Auditoría PWA"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-4 h-4" />
+              {user?.role === 'ADMIN' ? (
+                <div
+                  onClick={onOpenAudit}
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between cursor-pointer active:scale-95 transition"
+                  title="Abrir Consola del Servidor (Exclusivo Administrador)"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-black text-slate-900 dark:text-white block truncate">Consola Servidor</span>
+                      <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 block truncate">Auditoría A+</span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-black text-slate-900 dark:text-white block truncate">Seguridad PWA</span>
-                    <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 block truncate">Auditoría A+</span>
-                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0 ml-1" />
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0 ml-1" />
-              </div>
+              ) : (
+                <Link
+                  to="/profile"
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between active:scale-95 transition"
+                  title="Ver almacenamiento offline y perfil"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-black text-slate-900 dark:text-white block truncate">Mi Almacenamiento</span>
+                      <span className="text-[10px] font-extrabold text-purple-600 dark:text-purple-400 block truncate">PWA Offline</span>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-purple-500 shrink-0 ml-1" />
+                </Link>
+              )}
             </div>
 
             {/* Section: "Recursos Destacados" */}
@@ -686,7 +705,9 @@ export default function FeedPage({ onOpenAudit }) {
                 { icon: BookOpen, label: 'Apuntes en Feed', value: `+${posts.length} disponibles`, color: '#818cf8' },
                 { icon: Layers, label: 'Materias Activas', value: `${categories.length} materias`, color: '#c084fc' },
                 { icon: CloudUpload, label: 'Modo Offline', value: isOnline ? 'Listo (Sync)' : 'Sin Red', color: '#67e8f9' },
-                { icon: ShieldCheck, label: 'Seguridad PWA', value: 'Auditoría A+', color: '#6ee7b7', onClick: onOpenAudit },
+                user?.role === 'ADMIN'
+                  ? { icon: ShieldCheck, label: 'Consola Servidor', value: 'Auditoría A+', color: '#6ee7b7', onClick: onOpenAudit }
+                  : { icon: CheckCircle2, label: 'Almacenamiento', value: 'PWA Local', color: '#6ee7b7' },
               ].map(({ icon: Icon, label, value, color, onClick }, i) => (
                 <div
                   key={i}
@@ -918,16 +939,29 @@ export default function FeedPage({ onOpenAudit }) {
                   <span className="text-xl font-black text-slate-900 dark:text-white block">{categories.length}</span>
                   <span className="text-[10px] text-slate-400 block leading-tight">Materias Activas</span>
                 </div>
-                <div
-                  onClick={onOpenAudit}
-                  className="p-3 rounded-2xl cursor-pointer hover:scale-105 transition-transform border"
-                  style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}
-                  title="Abrir Auditoría PWA"
-                >
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
-                  <span className="text-xl font-black text-emerald-600 block">A+</span>
-                  <span className="text-[10px] text-emerald-600 block leading-tight font-semibold">Auditoría PWA</span>
-                </div>
+                {user?.role === 'ADMIN' ? (
+                  <div
+                    onClick={onOpenAudit}
+                    className="p-3 rounded-2xl cursor-pointer hover:scale-105 transition-transform border"
+                    style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}
+                    title="Abrir Consola de Auditoría del Servidor"
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+                    <span className="text-xl font-black text-emerald-600 block">A+</span>
+                    <span className="text-[10px] text-emerald-600 block leading-tight font-semibold">Consola Servidor</span>
+                  </div>
+                ) : (
+                  <Link
+                    to="/profile"
+                    className="p-3 rounded-2xl cursor-pointer hover:scale-105 transition-transform border block"
+                    style={{ background: '#f5f3ff', borderColor: '#ddd6fe' }}
+                    title="Ver Gestión de Almacenamiento Local"
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-purple-500 mx-auto mb-1" />
+                    <span className="text-xl font-black text-purple-600 block">PWA</span>
+                    <span className="text-[10px] text-purple-600 block leading-tight font-semibold">Memoria Local</span>
+                  </Link>
+                )}
               </div>
             </div>
 

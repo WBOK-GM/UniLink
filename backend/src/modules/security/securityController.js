@@ -2,6 +2,7 @@
  * Controlador de Seguridad y Auditoría UniLink
  */
 const { rateLimitStore } = require('../../middlewares/security');
+const { getStorageMetrics, cleanExpiredFiles } = require('../../services/storageRetentionService');
 
 // Registro en memoria de violaciones CSP y eventos de seguridad
 const securityAuditLog = [];
@@ -88,7 +89,8 @@ const getSecurityAuditStatus = async (req, res) => {
       auditSummary: {
         securityGrade: 'A+',
         totalCspViolationsLogged: securityAuditLog.length,
-        recentIncidents: securityAuditLog.slice(0, 10)
+        recentIncidents: securityAuditLog.slice(0, 10),
+        storage: getStorageMetrics()
       }
     });
   } catch (error) {
@@ -97,8 +99,29 @@ const getSecurityAuditStatus = async (req, res) => {
   }
 };
 
+const getStorageAuditStatus = async (req, res) => {
+  try {
+    const metrics = getStorageMetrics();
+    return res.json({ success: true, ...metrics });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const triggerStorageCleanup = async (req, res) => {
+  try {
+    const retentionDays = Number(req.body.retentionDays) || 10;
+    const result = await cleanExpiredFiles(retentionDays);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   handleCspReport,
   getSecurityAuditStatus,
+  getStorageAuditStatus,
+  triggerStorageCleanup,
   securityAuditLog
 };

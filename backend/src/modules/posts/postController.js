@@ -1,6 +1,9 @@
+const fs = require('fs');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { memoryStore } = require('../../config/db');
 const { getFileUrl } = require('../../config/storage');
+const { recordFileAccess } = require('../../services/storageRetentionService');
 
 const getPosts = async (req, res) => {
   try {
@@ -175,10 +178,34 @@ const createPost = async (req, res) => {
     // Si se adjuntaron archivos mediante Multer
     const attachments = [];
     if (req.files && req.files.length > 0) {
-      req.files.forEach((file, index) => {
+      for (let index = 0; index < req.files.length; index++) {
+        const file = req.files[index];
         let fileType = 'DOCUMENT';
         if (file.mimetype.startsWith('image/')) fileType = 'IMAGE';
         else if (file.mimetype.startsWith('audio/')) fileType = 'AUDIO';
+
+        // 1. Cálculo y Verificación de Integridad Criptográfica Anti-Corrupción (SHA-256)
+        let calculatedHash = null;
+        if (file.path && fs.existsSync(file.path)) {
+          const fileBuffer = fs.readFileSync(file.path);
+          calculatedHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+          // Validar contra el checksum enviado por el cliente si fue provisto
+          const clientChecksum = req.body[`file_checksum_${index}`] || req.body[`checksum_${index}`];
+          if (clientChecksum && clientChecksum.trim() !== '') {
+            const cleanClientHash = clientChecksum.replace(/^sha256:/i, '').trim().toLowerCase();
+            if (cleanClientHash !== calculatedHash.toLowerCase()) {
+              // El archivo llegó corrupto o fue alterado durante la transferencia
+              try { fs.unlinkSync(file.path); } catch (e) {}
+              return res.status(400).json({
+                success: false,
+                error: `Integridad comprometida: El archivo "${file.originalname}" está corrupto (Fallo de verificación SHA-256).`,
+                expectedChecksum: cleanClientHash,
+                receivedChecksum: calculatedHash
+              });
+            }
+          }
+        }
 
         const fileId = uuidv4();
         const fileRecord = {
@@ -189,7 +216,10 @@ const createPost = async (req, res) => {
           mime_type: file.mimetype,
           file_size: file.size,
           file_type: fileType,
+          checksum: calculatedHash ? `sha256:${calculatedHash}` : null,
           status: 'AVAILABLE',
+          access_count: 1,
+          last_accessed_at: new Date(),
           created_at: new Date()
         };
 
@@ -206,9 +236,11 @@ const createPost = async (req, res) => {
           original_name: fileRecord.original_name,
           url: getFileUrl(fileRecord.storage_key),
           mime_type: fileRecord.mime_type,
-          file_type: fileRecord.file_type
+          file_type: fileRecord.file_type,
+          checksum: fileRecord.checksum,
+          file_size: fileRecord.file_size
         });
-      });
+      }
     }
 
     return res.status(201).json({

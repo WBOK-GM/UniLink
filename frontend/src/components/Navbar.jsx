@@ -21,7 +21,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useTheme } from '../context/ThemeContext';
-import AuditModal from './AuditModal';
+import AdminPortal from '../admin/AdminPortal';
 import SensorDiagnosticsModal from './SensorDiagnosticsModal';
 
 export default function Navbar() {
@@ -132,17 +132,19 @@ export default function Navbar() {
             {/* Right Action Controls */}
             <div className="flex items-center gap-2 sm:gap-2.5">
               
-              {/* Botón PWA: Auditoría PWA & Seguridad (Sesión 22 & 23) */}
-              <button
-                type="button"
-                onClick={() => setShowAuditModal(true)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-brand-500/10 to-indigo-500/10 hover:from-emerald-500/20 hover:to-indigo-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-500/30 text-xs font-bold transition hover:scale-[1.02] shadow-2xs"
-                title="Abrir panel de Auditoría PWA y Seguridad (Sesión 22 y 23)"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span className="hidden sm:inline">Auditoría PWA</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              </button>
+              {/* Botón PWA: Exclusivo ADMIN (Sesión 22 & 23) */}
+              {user?.role === 'ADMIN' && (
+                <button
+                  type="button"
+                  onClick={() => setShowAuditModal(true)}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-brand-500/10 to-indigo-500/10 hover:from-emerald-500/20 hover:to-indigo-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-500/30 text-xs font-bold transition hover:scale-[1.02] shadow-2xs"
+                  title="Abrir consola de Auditoría del Servidor"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="hidden sm:inline">Consola Servidor</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                </button>
+              )}
 
               {/* Botón Instalar PWA (si está disponible para instalar) */}
               {isInstallable && (
@@ -297,8 +299,8 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Interactive Audit Modal */}
-      <AuditModal
+      {/* Interactive Admin Portal (Zero-Footprint Lazy Loading) */}
+      <AdminPortal
         isOpen={showAuditModal}
         onClose={() => setShowAuditModal(false)}
       />

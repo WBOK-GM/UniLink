@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import AuditModal from '../components/AuditModal';
+import AdminPortal from '../admin/AdminPortal';
+import StorageManagerModal from '../components/StorageManagerModal';
 import { getResilientPosition, UPTC_CAMPUS_PRESETS } from '../utils/geoUtils';
 
 export default function ProfilePage() {
@@ -33,6 +34,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [pushStatus, setPushStatus] = useState('DEFAULT');
   const [showAuditModal, setShowAuditModal] = useState(false);
+  const [showStorageModal, setShowStorageModal] = useState(false);
 
   useEffect(() => {
     if (user?.profile) {
@@ -188,35 +190,50 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* PWA & Security Health Summary Card */}
+      {/* Offline Storage Management Card */}
       <div className="rounded-3xl glass-panel p-6 border border-slate-200/90 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-brand-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25">
-            <ShieldCheck className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/25">
+            <Smartphone className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-slate-900 dark:text-white">
-                Estado de Salud PWA & Auditoría
+                Almacenamiento Offline del Dispositivo
               </h3>
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                Calificación A+
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30">
+                PWA Local
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Service Worker activo, precaching del App Shell y Content Security Policy (CSP) en ejecución estricta.
+              Administra los apuntes, PDFs y fotos guardados en tu equipo para consultar sin conexión y liberar espacio.
             </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowAuditModal(true)}
-          className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center gap-2 transition shadow-md shadow-brand-600/25 shrink-0"
-        >
-          <Zap className="w-3.5 h-3.5" />
-          <span>Ver Auditoría Completa</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowStorageModal(true)}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-2 transition shadow-md shadow-indigo-600/25"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Gestionar Almacenamiento</span>
+          </button>
+
+          {/* Opción Servidor y Auditoría: EXCLUSIVA para rol ADMIN */}
+          {user?.role === 'ADMIN' && (
+            <button
+              type="button"
+              onClick={() => setShowAuditModal(true)}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-2 transition border border-slate-700"
+              title="Consola de Administración y Auditoría del Servidor"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Consola Servidor</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Profile Edit Form */}
@@ -415,8 +432,14 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Audit Modal */}
-      <AuditModal
+      {/* Storage Management Modal */}
+      <StorageManagerModal
+        isOpen={showStorageModal}
+        onClose={() => setShowStorageModal(false)}
+      />
+
+      {/* Admin Portal (Dynamic Lazy Loading - Exclusivo ADMIN) */}
+      <AdminPortal
         isOpen={showAuditModal}
         onClose={() => setShowAuditModal(false)}
       />

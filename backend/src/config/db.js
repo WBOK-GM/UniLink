@@ -117,7 +117,10 @@ const memoryStore = {
       mime_type: 'application/pdf',
       file_size: 4881,
       file_type: 'DOCUMENT',
+      checksum: 'sha256:a1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef',
       status: 'AVAILABLE',
+      access_count: 5,
+      last_accessed_at: new Date(),
       created_at: new Date()
     },
     {
@@ -128,7 +131,10 @@ const memoryStore = {
       mime_type: 'image/png',
       file_size: 1024 * 75,
       file_type: 'IMAGE',
+      checksum: 'sha256:b2c3d4e5f6a178901234567890abcdef1234567890abcdef1234567890abcdef',
       status: 'AVAILABLE',
+      access_count: 8,
+      last_accessed_at: new Date(),
       created_at: new Date()
     },
     {
@@ -139,7 +145,10 @@ const memoryStore = {
       mime_type: 'application/pdf',
       file_size: 2365,
       file_type: 'DOCUMENT',
+      checksum: 'sha256:c3d4e5f6a1b278901234567890abcdef1234567890abcdef1234567890abcdef',
       status: 'AVAILABLE',
+      access_count: 3,
+      last_accessed_at: new Date(),
       created_at: new Date()
     },
     {
@@ -150,7 +159,10 @@ const memoryStore = {
       mime_type: 'application/pdf',
       file_size: 2248,
       file_type: 'DOCUMENT',
+      checksum: 'sha256:d4e5f6a1b2c378901234567890abcdef1234567890abcdef1234567890abcdef',
       status: 'AVAILABLE',
+      access_count: 12,
+      last_accessed_at: new Date(),
       created_at: new Date()
     }
   ],

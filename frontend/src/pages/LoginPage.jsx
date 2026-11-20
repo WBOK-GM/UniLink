@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   Sparkles,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,6 +31,18 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [showTokenAccess, setShowTokenAccess] = useState(false);
   const [directTokenInput, setDirectTokenInput] = useState('');
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Validación de seguridad de contraseña (Sesión 22: Validación de formularios)
   const getPasswordStrength = (pass) => {
@@ -45,6 +58,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    if (isRegister && (!isOnline || !navigator.onLine)) {
+      setError('⚠️ Conexión Requerida: El registro de nuevos estudiantes debe validarse directamente en la base de datos central de UniLink en PostgreSQL. Por favor conéctate a internet para crear tu cuenta.');
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isRegister) {
@@ -187,6 +206,19 @@ export default function LoginPage() {
           </div>
         )}
 
+        {/* Banner institucional cuando se intenta registrar sin conexión */}
+        {isRegister && !isOnline && (
+          <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5 shadow-2xs">
+            <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div>
+              <p className="font-extrabold text-[12px]">Conexión al Servidor Central Requerida</p>
+              <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5 leading-relaxed">
+                El registro de nuevos estudiantes debe validarse directamente en la base de datos global de UniLink para garantizar credenciales únicas institucionales. Conéctate a internet para registrarte.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
@@ -296,10 +328,14 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm shadow-lg shadow-brand-600/30 transition hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+            disabled={loading || (isRegister && !isOnline)}
+            className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-extrabold text-sm shadow-lg shadow-brand-600/30 transition hover:scale-[1.01] active:scale-[0.99]"
           >
-            {loading ? 'Procesando...' : isRegister ? 'Completar Registro' : 'Iniciar Sesión'}
+            {loading
+              ? 'Procesando...'
+              : isRegister
+              ? (!isOnline ? 'Registro no disponible sin conexión' : 'Completar Registro')
+              : 'Iniciar Sesión'}
           </button>
         </form>
 

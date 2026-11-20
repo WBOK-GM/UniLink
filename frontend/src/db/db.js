@@ -67,6 +67,88 @@ export async function getDownloadedResources() {
 }
 
 /**
+ * Verifica si un recurso específico está guardado offline
+ */
+export async function isResourceSavedOffline(resourceId) {
+  try {
+    const item = await db.offline_resources.get(resourceId);
+    return !!item;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Elimina un recurso específico del almacenamiento offline en el dispositivo
+ */
+export async function deleteResourceOffline(resourceId) {
+  try {
+    await db.offline_resources.delete(resourceId);
+    return true;
+  } catch (e) {
+    console.warn('[UniLink DB] Error eliminando recurso offline:', e);
+    return false;
+  }
+}
+
+/**
+ * Libera todo el almacenamiento offline de archivos descargados
+ * (No afecta la sesión ni los posts en cola del usuario)
+ */
+export async function clearAllOfflineResources() {
+  try {
+    await db.offline_resources.clear();
+    return true;
+  } catch (e) {
+    console.warn('[UniLink DB] Error liberando almacenamiento offline:', e);
+    return false;
+  }
+}
+
+/**
+ * Calcula las métricas de almacenamiento offline en el dispositivo
+ */
+export async function getOfflineStorageMetrics() {
+  try {
+    const resources = await db.offline_resources.toArray();
+    let totalBytes = 0;
+    const items = resources.map(r => {
+      const size = r.local_blob ? r.local_blob.size : (r.file_size || 0);
+      totalBytes += size;
+      return {
+        resource_id: r.resource_id,
+        file_id: r.file_id,
+        file_name: r.file_name,
+        size_bytes: size,
+        size_kb: +(size / 1024).toFixed(1),
+        size_mb: +(size / (1024 * 1024)).toFixed(2),
+        saved_at: r.saved_at
+      };
+    });
+
+    let systemEstimate = null;
+    if (navigator.storage && navigator.storage.estimate) {
+      const estimate = await navigator.storage.estimate();
+      systemEstimate = {
+        quota_mb: +(estimate.quota / (1024 * 1024)).toFixed(1),
+        usage_mb: +(estimate.usage / (1024 * 1024)).toFixed(2)
+      };
+    }
+
+    return {
+      fileCount: items.length,
+      totalBytes,
+      totalMb: +(totalBytes / (1024 * 1024)).toFixed(2),
+      items,
+      systemEstimate
+    };
+  } catch (e) {
+    console.warn('[UniLink DB] Error obteniendo métricas de almacenamiento:', e);
+    return { fileCount: 0, totalBytes: 0, totalMb: 0, items: [], systemEstimate: null };
+  }
+}
+
+/**
  * Guarda la sesión de autenticación activa en IndexedDB
  */
 export async function saveOfflineSession(sessionData) {
