@@ -24,7 +24,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 bg-[#f4f6fb]/90 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 transition-colors">
+    <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/60 transition-colors shadow-sm">
       
       {/* Left: Mobile Menu Trigger + UPTC Campus Tag */}
       <div className="flex items-center gap-3">

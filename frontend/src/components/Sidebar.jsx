@@ -10,9 +10,6 @@ import {
   Share2,
   LogIn,
   User,
-  PlusCircle,
-  Compass,
-  CloudUpload,
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -47,155 +44,171 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden animate-fadeIn"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-uptc-900 border-r border-uptc-800 text-white flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{ background: '#0b1028' }}
       >
-        {/* Top Header Logo */}
-        <div className="p-6 pb-4">
-          <div className="flex items-center justify-between">
+        {/* Top: Logo Area */}
+        <div>
+          <div className="px-6 pt-7 pb-5 flex items-center justify-between">
             <Link to="/" onClick={onClose} className="flex items-center gap-3 group">
-              {/* University Crest Vector Graphic */}
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-500 p-0.5 shadow-lg shadow-brand-600/30 group-hover:scale-105 transition-transform">
-                <div className="w-full h-full bg-uptc-900 rounded-[14px] flex items-center justify-center p-1.5">
-                  <svg viewBox="0 0 100 100" className="w-full h-full text-white fill-current">
-                    {/* Stylized University Eagle / Falcon Crest */}
-                    <path d="M50 8 C40 16 30 18 20 22 C22 36 26 48 34 58 C38 46 44 38 50 34 C56 38 62 46 66 58 C74 48 78 36 80 22 C70 18 60 16 50 8 Z" opacity="0.9" />
-                    <circle cx="50" cy="22" r="5" />
-                    <path d="M50 38 L38 60 C38 72 44 86 50 92 C56 86 62 72 62 60 Z" />
-                    <line x1="30" y1="92" x2="70" y2="92" stroke="white" strokeWidth="4" strokeLinecap="round" />
-                  </svg>
-                </div>
+              {/* UPTC Eagle Crest — larger, more prominent */}
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)' }}
+              >
+                <svg viewBox="0 0 80 80" className="w-8 h-8" fill="white">
+                  {/* Eagle body */}
+                  <ellipse cx="40" cy="46" rx="12" ry="18" opacity="0.95" />
+                  {/* Head */}
+                  <circle cx="40" cy="24" r="8" />
+                  {/* Beak */}
+                  <path d="M44 26 L52 29 L45 32 Z" />
+                  {/* Left wing spread */}
+                  <path d="M28 42 C18 34 6 36 4 42 C10 38 20 44 28 48 Z" opacity="0.9" />
+                  {/* Right wing spread */}
+                  <path d="M52 42 C62 34 74 36 76 42 C70 38 60 44 52 48 Z" opacity="0.9" />
+                  {/* Tail feathers */}
+                  <path d="M34 62 L40 74 L46 62 Q40 68 34 62 Z" />
+                  {/* Feet */}
+                  <line x1="36" y1="64" x2="32" y2="72" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="44" y1="64" x2="48" y2="72" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="32" y1="72" x2="28" y2="75" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                  <line x1="32" y1="72" x2="33" y2="76" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                  <line x1="48" y1="72" x2="52" y2="75" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                  <line x1="48" y1="72" x2="47" y2="76" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
               </div>
 
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-lg font-black tracking-tight text-white">UniLink</span>
-                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-brand-500/30 text-brand-300 border border-brand-400/30">
-                    UPTC
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-medium">Plataforma Académica</p>
+                <div className="text-xl font-black tracking-tight text-white leading-none">UniLink</div>
+                <div className="text-[11px] font-semibold mt-0.5" style={{ color: '#a5b4fc' }}>UPTC</div>
               </div>
             </Link>
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-uptc-800 lg:hidden"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white lg:hidden transition"
+              style={{ background: 'rgba(255,255,255,0.06)' }}
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
-        </div>
 
-        {/* Navigation Items List */}
-        <div className="flex-1 px-4 py-2 space-y-1 overflow-y-auto scrollbar-none">
-          {navItems.map((item, idx) => {
-            const Icon = item.icon;
-            const active = isActive(item);
+          {/* Nav Items */}
+          <nav className="px-3 space-y-0.5">
+            {navItems.map((item, idx) => {
+              const Icon = item.icon;
+              const active = isActive(item);
 
-            if (item.type === 'audit') {
+              if (item.type === 'audit') {
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => { if (onClose) onClose(); if (onOpenAudit) onOpenAudit(); }}
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-all text-left group"
+                    style={{ color: '#94a3b8' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{item.label}</span>
+                    </div>
+                    <span
+                      className="text-[10px] font-black px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(52,211,153,0.15)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.3)' }}
+                    >
+                      {item.badge}
+                    </span>
+                  </button>
+                );
+              }
+
+              if (item.type === 'install') {
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => { if (onClose) onClose(); if (onInstallApp) onInstallApp(); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all text-left"
+                    style={{ color: '#c4b5fd' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <Icon className="w-4 h-4 text-purple-400 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              }
+
               return (
-                <button
+                <Link
                   key={idx}
-                  type="button"
-                  onClick={() => {
-                    if (onClose) onClose();
-                    if (onOpenAudit) onOpenAudit();
-                  }}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold text-slate-300 hover:text-white hover:bg-uptc-800/80 transition-all text-left group"
+                  to={item.to}
+                  onClick={onClose}
+                  className="flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={
+                    active
+                      ? { background: '#4f46e5', color: '#fff' }
+                      : { color: '#94a3b8' }
+                  }
+                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; } }}
+                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; } }}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-slate-500'}`} />
                     <span>{item.label}</span>
                   </div>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                    {item.badge}
-                  </span>
-                </button>
+                  {item.to === '/profile' && pendingCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black">
+                      {pendingCount}
+                    </span>
+                  )}
+                </Link>
               );
-            }
-
-            if (item.type === 'install') {
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    if (onClose) onClose();
-                    if (onInstallApp) onInstallApp();
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold text-purple-300 hover:text-white hover:bg-purple-950/40 border border-purple-500/20 transition-all text-left"
-                >
-                  <Icon className="w-4 h-4 text-purple-400" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            }
-
-            return (
-              <Link
-                key={idx}
-                to={item.to}
-                onClick={onClose}
-                className={`flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
-                  active
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30 font-extrabold'
-                    : 'text-slate-300 hover:text-white hover:bg-uptc-800/60'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.to === '/profile' && pendingCount > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black">
-                    {pendingCount}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+            })}
+          </nav>
         </div>
 
-        {/* Bottom Architectural Building Graphic Watermark */}
-        <div className="p-4 pt-0 relative overflow-hidden pointer-events-none select-none">
-          <div className="w-full h-32 flex items-end justify-center opacity-15">
-            {/* SVG Architectural Silhouette of UPTC Central Building */}
-            <svg viewBox="0 0 200 120" className="w-full h-full fill-current text-white">
-              {/* Central Clock Tower */}
-              <rect x="85" y="10" width="30" height="100" />
-              <polygon points="100,0 80,15 120,15" />
-              <circle cx="100" cy="30" r="6" fill="#0b1028" />
-              <rect x="93" y="45" width="14" height="25" rx="7" fill="#0b1028" />
-              <rect x="90" y="80" width="20" height="30" rx="3" fill="#0b1028" />
-              {/* Left Wing */}
-              <rect x="15" y="40" width="65" height="70" />
-              <polygon points="10,40 85,40 50,28" />
-              <rect x="25" y="52" width="12" height="18" fill="#0b1028" />
-              <rect x="45" y="52" width="12" height="18" fill="#0b1028" />
-              <rect x="65" y="52" width="12" height="18" fill="#0b1028" />
-              <rect x="25" y="80" width="12" height="20" fill="#0b1028" />
-              <rect x="45" y="80" width="12" height="20" fill="#0b1028" />
-              <rect x="65" y="80" width="12" height="20" fill="#0b1028" />
-              {/* Right Wing */}
-              <rect x="120" y="40" width="65" height="70" />
-              <polygon points="115,40 190,40 150,28" />
-              <rect x="128" y="52" width="12" height="18" fill="#0b1028" />
-              <rect x="148" y="52" width="12" height="18" fill="#0b1028" />
-              <rect x="168" y="52" width="12" height="18" fill="#0b1028" />
-              <rect x="128" y="80" width="12" height="20" fill="#0b1028" />
-              <rect x="148" y="80" width="12" height="20" fill="#0b1028" />
-              <rect x="168" y="80" width="12" height="20" fill="#0b1028" />
+        {/* Bottom: Architectural Building Watermark */}
+        <div className="px-4 pb-4 select-none pointer-events-none">
+          <div className="relative overflow-hidden rounded-2xl" style={{ height: '120px' }}>
+            {/* Tower silhouette watermark */}
+            <svg viewBox="0 0 200 130" className="w-full h-full" style={{ opacity: 0.12 }}>
+              {/* Church-like tower */}
+              <rect x="80" y="8" width="40" height="110" fill="white" />
+              {/* Tower spire */}
+              <polygon points="100,0 76,12 124,12" fill="white" />
+              {/* Clock circle */}
+              <circle cx="100" cy="30" r="9" fill="#0b1028" />
+              {/* Bell window */}
+              <rect x="88" y="48" width="24" height="30" rx="12" fill="#0b1028" />
+              {/* Door */}
+              <rect x="90" y="90" width="20" height="28" rx="4" fill="#0b1028" />
+              {/* Left colonnade */}
+              <rect x="10" y="45" width="65" height="73" fill="white" />
+              <rect x="20" y="55" width="8" height="50" fill="#0b1028" />
+              <rect x="34" y="55" width="8" height="50" fill="#0b1028" />
+              <rect x="48" y="55" width="8" height="50" fill="#0b1028" />
+              <rect x="62" y="55" width="8" height="50" fill="#0b1028" />
+              {/* Right colonnade */}
+              <rect x="125" y="45" width="65" height="73" fill="white" />
+              <rect x="130" y="55" width="8" height="50" fill="#0b1028" />
+              <rect x="144" y="55" width="8" height="50" fill="#0b1028" />
+              <rect x="158" y="55" width="8" height="50" fill="#0b1028" />
+              <rect x="172" y="55" width="8" height="50" fill="#0b1028" />
             </svg>
           </div>
-          <p className="text-[10px] text-center text-slate-500 font-semibold mt-1">
+          <p className="text-center text-[10px] font-semibold mt-1" style={{ color: '#475569' }}>
             UPTC Tunja • Sede Central
           </p>
         </div>

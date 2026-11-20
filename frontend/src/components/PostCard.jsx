@@ -122,7 +122,7 @@ export default function PostCard({ post, onPostUpdated }) {
   };
 
   return (
-    <article className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 hover:shadow-lg hover:border-brand-300 dark:hover:border-slate-700 transition-all duration-200 shadow-2xs relative">
+    <article className="rounded-3xl bg-white border border-slate-100 p-5 sm:p-6 hover:shadow-md hover:border-indigo-200 transition-all duration-200 shadow-sm relative">
       
       {/* Contenedor Horizontal Principal (Matches Reference Image) */}
       <div className="flex flex-col sm:flex-row items-start gap-5">
@@ -164,7 +164,7 @@ export default function PostCard({ post, onPostUpdated }) {
           
           {/* Header Row: Subject Badge + Actions */}
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-500/30">
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
               {post.category?.name || 'Facultad de Ingeniería'}
             </span>
 

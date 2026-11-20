@@ -60,7 +60,7 @@ function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f6fb] dark:bg-[#090d1f] text-slate-900 dark:text-slate-100 flex transition-colors duration-200">
+    <div className="min-h-screen bg-white dark:bg-[#090d1f] text-slate-900 dark:text-slate-100 flex transition-colors duration-200">
       
       {/* 1. Sidebar Fijo en Escritorio / Desplegable en Móvil */}
       <Sidebar
@@ -72,7 +72,7 @@ function MainLayout() {
       />
 
       {/* 2. Área de Contenido Principal (con margen izquierdo en Desktop lg:pl-64) */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen lg:pl-64 bg-[#f5f6fa] dark:bg-[#090d1f]">
         
         {/* Banner de Estado Offline */}
         <OfflineBanner />
@@ -84,7 +84,7 @@ function MainLayout() {
         />
 
         {/* Contenedor de Páginas */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-7xl w-full mx-auto bg-[#f4f6fb] dark:bg-[#090d1f]">
           <Routes>
             <Route path="/" element={<FeedPage onOpenAudit={() => setShowAuditModal(true)} />} />
             <Route
