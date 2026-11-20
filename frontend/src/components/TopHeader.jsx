@@ -2,16 +2,12 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Menu,
-  MapPin,
-  Wifi,
-  WifiOff,
   Sun,
   Moon,
   LogIn,
   User,
   LogOut,
-  GraduationCap,
-  CloudUpload
+  GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
@@ -27,9 +23,9 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
   const isHome = location.pathname === '/';
 
   return (
-    <header className={`${isHome ? 'hidden lg:flex' : 'flex'} sticky top-0 z-30 bg-white/95 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 items-center justify-between border-b border-slate-200 dark:border-slate-800/60 transition-colors shadow-sm`}>
+    <header className={`${isHome ? 'hidden lg:flex' : 'flex'} sticky top-0 z-30 bg-white/95 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 transition-colors shadow-2xs`}>
       
-      {/* Left: Mobile Menu Trigger + UPTC Campus Tag */}
+      {/* Left: Mobile Menu Trigger + UPTC Campus Pill Tag */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -41,8 +37,8 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
         </button>
 
         {/* University Location Pill Tag (Matches Reference Image) */}
-        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+          <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
             <GraduationCap className="w-4 h-4" />
           </div>
           <div>
@@ -50,7 +46,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
               Comunidad Académica UPTC
             </span>
             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
               <span>Tunja, Boyacá</span>
             </span>
           </div>
@@ -62,7 +58,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
         
         {/* Status: En línea con punto verde pulsante (Matches Reference Image) */}
         <div
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs font-bold border shadow-2xs ${
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl text-xs font-bold border shadow-2xs ${
             isOnline
               ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800'
               : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/40 animate-pulse'
@@ -80,7 +76,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
           className="p-2 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-amber-400 transition shadow-2xs"
           title={isDark ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
         >
-          {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+          {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700 dark:text-slate-300" />}
         </button>
 
         {/* Auth CTA: Ingresar or Profile Menu (Matches Reference Image) */}
@@ -88,7 +84,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-md shadow-brand-600/25 transition"
+              className="flex items-center gap-2 p-1 sm:px-3 sm:py-1.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition"
             >
               <div className="w-6 h-6 rounded-lg bg-white/20 text-white font-black flex items-center justify-center text-xs">
                 {user.profile?.full_name ? user.profile.full_name.charAt(0) : 'U'}
@@ -133,7 +129,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
         ) : (
           <Link
             to="/login"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-xs shadow-md shadow-brand-600/25 transition hover:scale-[1.02]"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-md shadow-indigo-600/25 transition hover:scale-[1.02]"
           >
             <LogIn className="w-3.5 h-3.5" />
             <span>Ingresar</span>
