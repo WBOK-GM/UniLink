@@ -84,7 +84,7 @@ function MainLayout() {
         />
 
         {/* Contenedor de Páginas */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-7xl w-full mx-auto bg-[#f4f6fb] dark:bg-[#090d1f]">
+        <main className="flex-1 px-3 sm:px-6 lg:px-8 py-2 sm:py-6 max-w-7xl w-full mx-auto bg-[#f4f6fb] dark:bg-[#090d1f]">
           <Routes>
             <Route path="/" element={<FeedPage onOpenAudit={() => setShowAuditModal(true)} />} />
             <Route
@@ -113,7 +113,7 @@ function MainLayout() {
         </main>
 
         {/* Navegación Inferior en Móvil */}
-        <BottomNav />
+        <BottomNav onOpenSidebar={() => setSidebarOpen(true)} />
       </div>
 
       {/* Modal de Auditoría PWA y Seguridad (Sesión 22 & 23) */}

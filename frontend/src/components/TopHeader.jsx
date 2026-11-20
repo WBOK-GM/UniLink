@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Menu,
   MapPin,
@@ -18,13 +18,16 @@ import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useTheme } from '../context/ThemeContext';
 
 export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
+  const location = useLocation();
   const { user, logout } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
   const { isDark, toggleTheme } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  const isHome = location.pathname === '/';
+
   return (
-    <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/60 transition-colors shadow-sm">
+    <header className={`${isHome ? 'hidden lg:flex' : 'flex'} sticky top-0 z-30 bg-white/95 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 items-center justify-between border-b border-slate-200 dark:border-slate-800/60 transition-colors shadow-sm`}>
       
       {/* Left: Mobile Menu Trigger + UPTC Campus Tag */}
       <div className="flex items-center gap-3">
