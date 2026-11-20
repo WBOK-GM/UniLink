@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileText,
   Download,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import { saveResourceOffline } from '../db/db';
+import { db, saveResourceOffline } from '../db/db';
 import AudioPlayer from './AudioPlayer';
 import LocationViewModal from './LocationViewModal';
 import FileViewerModal from './FileViewerModal';
@@ -31,12 +31,40 @@ export default function PostCard({ post, onPostUpdated }) {
   const [reportReason, setReportReason] = useState('Derechos de autor');
   const [expandedContent, setExpandedContent] = useState(false);
   const [viewingFile, setViewingFile] = useState(null);
+  const [localThumbUrl, setLocalThumbUrl] = useState(null);
+  const [imgError, setImgError] = useState(false);
 
   const isAuthor = user && user.id === post.author?.id;
   const isLongContent = (post.content || '').length > 220;
 
   // Primer archivo adjunto para el preview visual izquierdo
   const mainAttachment = post.attachments && post.attachments.length > 0 ? post.attachments[0] : null;
+
+  useEffect(() => {
+    let isMounted = true;
+    let url = null;
+    if (mainAttachment) {
+      db.offline_resources
+        .where('file_id')
+        .equals(mainAttachment.id || mainAttachment.storage_key || mainAttachment.original_name)
+        .first()
+        .then((res) => {
+          if (isMounted && res && res.local_blob) {
+            const mime = res.local_blob.type || mainAttachment.mime_type || 'image/png';
+            const blob = new Blob([res.local_blob], { type: mime });
+            url = URL.createObjectURL(blob);
+            setLocalThumbUrl(url);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+      if (url && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [mainAttachment]);
 
   const handleSaveOffline = async (file) => {
     try {
@@ -119,11 +147,24 @@ export default function PostCard({ post, onPostUpdated }) {
           title={mainAttachment ? 'Clic para ver en la app' : ''}
         >
           {mainAttachment && (mainAttachment.file_type === 'IMAGE' || mainAttachment.mime_type?.startsWith('image/')) ? (
-            <img
-              src={mainAttachment.url}
-              alt={post.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-            />
+            !imgError ? (
+              <img
+                src={localThumbUrl || mainAttachment.url}
+                alt={post.title}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4338ca] flex flex-col items-center justify-center p-3 text-center text-white">
+                <ImageIcon className="w-8 h-8 text-indigo-300 mb-1" />
+                <span className="text-[11px] font-bold text-white line-clamp-2 px-1">
+                  {post.title}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full mt-1">
+                  Diagrama / Imagen
+                </span>
+              </div>
+            )
           ) : mainAttachment && (mainAttachment.file_type === 'AUDIO' || mainAttachment.mime_type?.startsWith('audio/')) ? (
             <div className="w-full h-full bg-gradient-to-br from-[#2a1b70] via-[#4f37b8] to-[#6d44d4] flex flex-col items-center justify-center p-3 text-center text-white">
               <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center mb-2">

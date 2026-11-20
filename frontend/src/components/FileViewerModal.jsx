@@ -37,6 +37,9 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
         setLoading(true);
         setError(null);
 
+        const isPdfDoc = file.mime_type === 'application/pdf' || file.original_name?.toLowerCase().endsWith('.pdf');
+        const defaultMimeType = isPdfDoc ? 'application/pdf' : 'image/png';
+
         // 1. Verificar si el archivo ya reside en IndexedDB (offline-first)
         const cachedResource = await db.offline_resources
           .where('file_id')
@@ -44,7 +47,10 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
           .first();
 
         if (cachedResource && cachedResource.local_blob) {
-          createdUrl = URL.createObjectURL(cachedResource.local_blob);
+          const typedBlob = new Blob([cachedResource.local_blob], {
+            type: file.mime_type || defaultMimeType
+          });
+          createdUrl = URL.createObjectURL(typedBlob);
           if (isMounted) {
             setBlobUrl(createdUrl);
             setIsSavedInPwa(true);
@@ -58,7 +64,8 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
           try {
             const res = await fetch(file.url);
             if (!res.ok) throw new Error(`HTTP ${res.status}: Archivo no disponible.`);
-            const blob = await res.blob();
+            const arrayBuf = await res.arrayBuffer();
+            const blob = new Blob([arrayBuf], { type: file.mime_type || defaultMimeType });
 
             // Guardar automáticamente en el navegador (PWA offline)
             await saveResourceOffline(
@@ -257,13 +264,47 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
               )}
             </div>
           ) : isPdf ? (
-            /* PDF In-App Frame Viewer */
-            <div className="w-full h-full flex flex-col">
-              <iframe
-                src={`${blobUrl || file.url}#toolbar=1&navpanes=0&scrollbar=1`}
-                title={file.original_name}
+            /* PDF In-App Object Viewer with Fallback */
+            <div className="w-full h-full flex flex-col bg-slate-900">
+              <object
+                data={blobUrl || file.url}
+                type="application/pdf"
                 className="w-full h-full border-0 rounded-b-3xl bg-slate-900"
-              />
+              >
+                {/* Fallback si el navegador restringe la ejecución de plugins incrustados */}
+                <div className="flex flex-col items-center justify-center p-8 text-center h-full space-y-4 bg-slate-900 text-white">
+                  <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                    <FileText className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-white mb-1">
+                      {file.original_name}
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-sm">
+                      Tu navegador requiere abrir los documentos PDF en una vista dedicada o descargarlos al dispositivo.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <a
+                      href={blobUrl || file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-2 transition shadow-md"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Abrir visor completo</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleDownloadToDevice}
+                      className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-2 transition border border-slate-700"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Descargar al equipo</span>
+                    </button>
+                  </div>
+                </div>
+              </object>
             </div>
           ) : isImage ? (
             /* High-Res Image Lightbox */

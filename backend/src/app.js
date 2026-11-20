@@ -42,8 +42,9 @@ app.use(sanitizeInput);
 // Servidor de archivos estáticos para subidas locales con soporte de visualización en marco (PWA In-App Viewer)
 app.use('/uploads', (req, res, next) => {
   res.removeHeader('X-Frame-Options');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'self' http://localhost:* http://127.0.0.1:*");
+  res.setHeader('Content-Security-Policy', "default-src 'self' blob: data: http://localhost:* http://127.0.0.1:*; frame-ancestors 'self' http://localhost:* http://127.0.0.1:*; object-src 'self' blob: data: http://localhost:* http://127.0.0.1:*;");
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Disposition', 'inline');
   next();
 }, express.static(uploadsDir));
