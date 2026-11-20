@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   FileText,
   Image as ImageIcon,
+  Camera,
   Mic,
   MapPin,
   Map,
@@ -20,6 +21,8 @@ import { useAuth } from '../context/AuthContext';
 import AudioRecorder from '../components/AudioRecorder';
 import CopyrightModal from '../components/CopyrightModal';
 import LocationPickerModal from '../components/LocationPickerModal';
+import CameraCaptureModal from '../components/CameraCaptureModal';
+import { getResilientPosition } from '../utils/geoUtils';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
@@ -32,6 +35,8 @@ export default function CreatePostPage() {
   const [locationText, setLocationText] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [postType, setPostType] = useState('RESOURCE');
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -40,7 +45,6 @@ export default function CreatePostPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
-  const [showLocationModal, setShowLocationModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -257,9 +261,23 @@ export default function CreatePostPage() {
 
           {/* File Attachments Dropzone */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Adjuntar Archivos (PDF, Word, Imágenes de apuntes)
-            </label>
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Adjuntar Archivos (PDF, Word, Imágenes de apuntes)
+              </label>
+
+              {/* Botón Tomar Foto con Cámara PWA */}
+              <button
+                type="button"
+                onClick={() => setShowCameraModal(true)}
+                className="px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 text-xs font-bold flex items-center gap-1.5 transition shadow-2xs"
+                title="Tomar foto con cámara web o del celular"
+              >
+                <Camera className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>Tomar Foto con Cámara</span>
+              </button>
+            </div>
+
             <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 rounded-xl p-4 text-center cursor-pointer transition bg-slate-50/80 dark:bg-slate-900/40 relative">
               <input
                 type="file"
@@ -352,29 +370,22 @@ export default function CreatePostPage() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!('geolocation' in navigator)) {
-                      alert('Geolocalización no soportada.');
-                      return;
+                  onClick={async () => {
+                    try {
+                      const pos = await getResilientPosition();
+                      const loc = {
+                        latitude: pos.lat,
+                        longitude: pos.lng,
+                        placeName: pos.placeName,
+                        formatted: `${pos.placeName} (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`
+                      };
+                      setSelectedLocation(loc);
+                      setLocationText(loc.formatted);
+                    } catch (err) {
+                      setShowLocationModal(true);
                     }
-                    navigator.geolocation.getCurrentPosition(
-                      (pos) => {
-                        const lat = pos.coords.latitude;
-                        const lng = pos.coords.longitude;
-                        const loc = {
-                          latitude: lat,
-                          longitude: lng,
-                          placeName: 'Mi GPS actual',
-                          formatted: `Mi ubicación GPS (${lat.toFixed(5)}, ${lng.toFixed(5)})`
-                        };
-                        setSelectedLocation(loc);
-                        setLocationText(loc.formatted);
-                      },
-                      (err) => alert('No se pudo obtener GPS: ' + err.message),
-                      { enableHighAccuracy: true }
-                    );
                   }}
-                  title="Usar GPS actual"
+                  title="Detectar ubicación GPS / Campus UPTC"
                   className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
                 >
                   <Navigation className="w-4 h-4" />
@@ -477,6 +488,15 @@ export default function CreatePostPage() {
         onSelectLocation={(loc) => {
           setSelectedLocation(loc);
           setLocationText(loc.formatted);
+        }}
+      />
+
+      {/* Camera Capture Modal PWA */}
+      <CameraCaptureModal
+        isOpen={showCameraModal}
+        onClose={() => setShowCameraModal(false)}
+        onPhotoCaptured={(photoFile) => {
+          setAttachedFiles((prev) => [...prev, photoFile]);
         }}
       />
     </div>

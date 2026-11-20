@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { MapPin, Navigation, X, Check, Search, Building2, BookOpen, Coffee, Compass } from 'lucide-react';
+import { getResilientPosition } from '../utils/geoUtils';
 
 export default function LocationPickerModal({
   isOpen,
@@ -142,36 +143,26 @@ export default function LocationPickerModal({
     }
   };
 
-  // Obtener GPS del dispositivo
-  const handleGetDeviceLocation = () => {
-    if (!('geolocation' in navigator)) {
-      alert('Tu dispositivo o navegador no soporta geolocalización GPS.');
-      return;
-    }
-
+  // Obtener GPS del dispositivo con estrategia resiliente
+  const handleGetDeviceLocation = async () => {
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setSelectedCoords(coords);
-        if (!placeName) {
-          setPlaceName('Mi ubicación GPS actual');
-        }
+    try {
+      const pos = await getResilientPosition();
+      const coords = { lat: pos.lat, lng: pos.lng };
+      setSelectedCoords(coords);
+      setPlaceName(pos.placeName);
 
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView([coords.lat, coords.lng], 16);
-          if (markerRef.current) {
-            markerRef.current.setLatLng([coords.lat, coords.lng]);
-          }
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.setView([coords.lat, coords.lng], 16);
+        if (markerRef.current) {
+          markerRef.current.setLatLng([coords.lat, coords.lng]);
         }
-        setLocating(false);
-      },
-      (err) => {
-        alert('No se pudo obtener el GPS: ' + err.message);
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+      }
+    } catch (err) {
+      console.warn('Error al obtener ubicación:', err);
+    } finally {
+      setLocating(false);
+    }
   };
 
   // Confirmar selección y devolver al padre

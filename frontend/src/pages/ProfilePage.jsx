@@ -12,11 +12,13 @@ import {
   Zap,
   GraduationCap,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import AuditModal from '../components/AuditModal';
+import { getResilientPosition, UPTC_CAMPUS_PRESETS } from '../utils/geoUtils';
 
 export default function ProfilePage() {
   const { user, updateUserProfile } = useAuth();
@@ -44,16 +46,22 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  const handleGpsUpdate = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLatitude(pos.coords.latitude);
-          setLongitude(pos.coords.longitude);
-          alert('📍 Coordenadas actualizadas desde tu GPS local.');
-        },
-        (err) => alert('No se pudo acceder al GPS: ' + err.message)
-      );
+  const handleGpsUpdate = async () => {
+    try {
+      const pos = await getResilientPosition();
+      setLatitude(pos.lat);
+      setLongitude(pos.lng);
+      alert(`📍 Coordenadas actualizadas: ${pos.placeName}`);
+    } catch (err) {
+      alert('No se pudo acceder al GPS físico. Se mantiene el campus UPTC.');
+    }
+  };
+
+  const handleSelectCampusPreset = (presetId) => {
+    const preset = UPTC_CAMPUS_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      setLatitude(preset.lat);
+      setLongitude(preset.lng);
     }
   };
 
@@ -309,6 +317,26 @@ export default function ProfilePage() {
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Tus coordenadas son <strong>100% privadas</strong>. Nunca se muestran a otros estudiantes en tu perfil. Solo se usan internamente en tu dispositivo para calcular las distancias en kilómetros a grupos de estudio cercanos usando la fórmula Haversine.
             </p>
+
+            {/* Selector de Edificio Campus UPTC */}
+            <div className="p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Punto de Referencia Campus:</span>
+              </div>
+              <select
+                onChange={(e) => handleSelectCampusPreset(e.target.value)}
+                defaultValue=""
+                className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer"
+              >
+                <option value="" disabled>Seleccionar sede/edificio UPTC...</option>
+                {UPTC_CAMPUS_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div>

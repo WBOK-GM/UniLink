@@ -1,8 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { Compass, MapPin, Users, Lock, Unlock, Navigation, Filter, ArrowRight } from 'lucide-react';
+import {
+  Compass,
+  MapPin,
+  Users,
+  Lock,
+  Unlock,
+  Navigation,
+  Filter,
+  ArrowRight,
+  Activity,
+  Building2,
+  AlertCircle,
+  X,
+  Info,
+  RefreshCw
+} from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getResilientPosition, UPTC_CAMPUS_PRESETS } from '../utils/geoUtils';
+import SensorDiagnosticsModal from '../components/SensorDiagnosticsModal';
 
 export default function MapPage() {
   const { user } = useAuth();
@@ -10,7 +27,11 @@ export default function MapPage() {
   const [radiusKm, setRadiusKm] = useState(15);
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedPresetId, setSelectedPresetId] = useState('central');
   const [userCoords, setUserCoords] = useState({ lat: 5.5530, lng: -73.3565 }); // UPTC Sede Central Tunja
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationNotice, setLocationNotice] = useState(null);
+  const [sensorModalOpen, setSensorModalOpen] = useState(false);
 
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -56,22 +77,58 @@ export default function MapPage() {
     };
   }, []);
 
-  // Obtener geolocalización real si está permitida
-  const handleGetDeviceLocation = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const newCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setUserCoords(newCoords);
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.setView([newCoords.lat, newCoords.lng], 14);
-          }
-          fetchGroups(newCoords.lat, newCoords.lng, radiusKm);
-        },
-        (err) => {
-          alert('No se pudo obtener la ubicación GPS: ' + err.message);
-        }
-      );
+  // Cambiar punto de referencia UPTC mediante el selector
+  const handlePresetChange = (presetId) => {
+    const preset = UPTC_CAMPUS_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      setSelectedPresetId(presetId);
+      const newCoords = { lat: preset.lat, lng: preset.lng };
+      setUserCoords(newCoords);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo([preset.lat, preset.lng], 15);
+      }
+      fetchGroups(preset.lat, preset.lng, radiusKm);
+      setLocationNotice({
+        type: 'info',
+        text: `Punto de referencia actualizado: ${preset.name}`
+      });
+    }
+  };
+
+  // Obtener geolocalización real si está permitida con fallback resiliente
+  const handleGetDeviceLocation = async () => {
+    setIsLocating(true);
+    setLocationNotice(null);
+
+    try {
+      const result = await getResilientPosition({ presetId: selectedPresetId });
+      const newCoords = { lat: result.lat, lng: result.lng };
+      setUserCoords(newCoords);
+
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo([newCoords.lat, newCoords.lng], 15);
+      }
+
+      fetchGroups(newCoords.lat, newCoords.lng, radiusKm);
+
+      if (result.isRealGps) {
+        setLocationNotice({
+          type: 'success',
+          text: `GPS conectado: ${result.placeName} (Precisión ~${result.accuracy}m)`
+        });
+      } else {
+        setLocationNotice({
+          type: 'warning',
+          text: result.errorNotice || 'GPS físico no detectado en el equipo. Ubicación centrada en campus UPTC.'
+        });
+      }
+    } catch (err) {
+      setLocationNotice({
+        type: 'warning',
+        text: 'No se pudo acceder al GPS físico. Mostrando campus UPTC Tunja.'
+      });
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -214,10 +271,28 @@ export default function MapPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap">
+          {/* UPTC Campus Landmark Quick Preset */}
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs shadow-2xs">
+            <Building2 className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+            <span className="text-slate-500 dark:text-slate-400 font-medium hidden md:inline">Campus:</span>
+            <select
+              value={selectedPresetId}
+              onChange={(e) => handlePresetChange(e.target.value)}
+              className="bg-transparent text-slate-800 dark:text-white font-bold focus:outline-none cursor-pointer text-xs"
+              title="Cambiar punto de referencia en el campus UPTC"
+            >
+              {UPTC_CAMPUS_PRESETS.map((p) => (
+                <option key={p.id} value={p.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                  {p.shortName}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Radius selector */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3.5 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs shadow-2xs">
-            <Filter className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs shadow-2xs">
+            <Filter className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
             <span className="text-slate-500 dark:text-slate-400">Radio:</span>
             <select
               value={radiusKm}
@@ -235,14 +310,66 @@ export default function MapPage() {
           {/* GPS button */}
           <button
             onClick={handleGetDeviceLocation}
+            disabled={isLocating}
             className="px-3.5 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-600/20 hover:bg-brand-100 dark:hover:bg-brand-600/30 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
-            title="Centrar en mi ubicación actual"
+            title="Detectar ubicación GPS con fallback inteligente"
           >
-            <Navigation className="w-3.5 h-3.5" />
-            <span>Mi GPS</span>
+            {isLocating ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Navigation className="w-3.5 h-3.5" />
+            )}
+            <span>{isLocating ? 'Buscando...' : 'Mi GPS'}</span>
+          </button>
+
+          {/* Botón Diagnóstico de Sensores */}
+          <button
+            type="button"
+            onClick={() => setSensorModalOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition"
+            title="Diagnóstico de Sensores y Permisos Hardware"
+          >
+            <Activity className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="hidden lg:inline">Diagnosticar Sensores</span>
           </button>
         </div>
       </div>
+
+      {/* Banner de Aviso de Ubicación / Fallback GPS */}
+      {locationNotice && (
+        <div
+          className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 text-xs shadow-xs animate-fadeIn ${
+            locationNotice.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-200'
+              : locationNotice.type === 'warning'
+              ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/40 text-amber-900 dark:text-amber-200'
+              : 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/40 text-indigo-900 dark:text-indigo-200'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Info className="w-4 h-4 shrink-0 text-brand-600 dark:text-brand-400" />
+            <span className="truncate">{locationNotice.text}</span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setSensorModalOpen(true)}
+              className="text-[11px] underline font-bold hover:opacity-80"
+            >
+              Ver Sensores
+            </button>
+            <button
+              type="button"
+              onClick={() => setLocationNotice(null)}
+              className="p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition"
+              title="Cerrar aviso"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Map + Sidebar Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[580px]">
@@ -312,6 +439,12 @@ export default function MapPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Diagnóstico de Sensores PWA */}
+      <SensorDiagnosticsModal
+        isOpen={sensorModalOpen}
+        onClose={() => setSensorModalOpen(false)}
+      />
     </div>
   );
 }

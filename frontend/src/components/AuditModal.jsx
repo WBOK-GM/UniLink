@@ -16,11 +16,13 @@ import {
   Zap
 } from 'lucide-react';
 import { runPwaAudit } from '../utils/auditPwa';
+import SensorDiagnosticsModal from './SensorDiagnosticsModal';
 
 export default function AuditModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(true);
   const [auditResult, setAuditResult] = useState(null);
   const [selectedDimension, setSelectedDimension] = useState('ALL');
+  const [sensorModalOpen, setSensorModalOpen] = useState(false);
 
   const executeAudit = async () => {
     setLoading(true);
@@ -320,6 +322,16 @@ export default function AuditModal({ isOpen, onClose }) {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setSensorModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200 dark:border-indigo-500/30 flex items-center gap-1.5 transition shadow-2xs"
+              title="Probar sensores GPS, Cámara, Micrófono y Vibración"
+            >
+              <Activity className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Probar Sensores PWA</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleDownloadReport}
               disabled={!auditResult}
               className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
@@ -339,6 +351,12 @@ export default function AuditModal({ isOpen, onClose }) {
         </div>
 
       </div>
+
+      {/* Modal de Diagnóstico de Sensores PWA */}
+      <SensorDiagnosticsModal
+        isOpen={sensorModalOpen}
+        onClose={() => setSensorModalOpen(false)}
+      />
     </div>
   );
 }

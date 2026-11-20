@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useTheme } from '../context/ThemeContext';
 import AuditModal from './AuditModal';
+import SensorDiagnosticsModal from './SensorDiagnosticsModal';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -31,6 +32,7 @@ export default function Navbar() {
 
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
+  const [showSensorModal, setShowSensorModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallable, setIsInstallable] = useState(false);
 
@@ -245,6 +247,18 @@ export default function Navbar() {
                         <span>Auditoría PWA & Seguridad</span>
                       </button>
 
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          setShowSensorModal(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60 transition text-left"
+                      >
+                        <Activity className="w-4 h-4 text-indigo-500" />
+                        <span>Diagnóstico de Sensores</span>
+                      </button>
+
                       <Link
                         to="/offline-queue"
                         onClick={() => setShowProfileMenu(false)}
@@ -287,6 +301,12 @@ export default function Navbar() {
       <AuditModal
         isOpen={showAuditModal}
         onClose={() => setShowAuditModal(false)}
+      />
+
+      {/* Sensor Diagnostics Modal */}
+      <SensorDiagnosticsModal
+        isOpen={showSensorModal}
+        onClose={() => setShowSensorModal(false)}
       />
     </>
   );
