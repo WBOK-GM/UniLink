@@ -13,10 +13,12 @@ import {
   Compass,
   ArrowRight,
   Sparkles,
-  BookOpen
+  BookOpen,
+  ListTodo
 } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import GroupDetailModal from '../components/GroupDetailModal';
 
 export default function GroupsPage() {
   const { user } = useAuth();
@@ -25,6 +27,7 @@ export default function GroupsPage() {
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedDetailGroupId, setSelectedDetailGroupId] = useState(null);
 
   // Formulario nuevo grupo
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -249,34 +252,46 @@ export default function GroupsPage() {
                   </p>
                 </div>
 
-                <div className="pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                <div className="pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs gap-2 flex-wrap">
                   <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-semibold">
                     <Users className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                     <span>{group.members_count} miembros</span>
                   </div>
 
-                  {isMember ? (
-                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
-                      <CheckCircle className="w-4 h-4" />
-                      <span>{membership.role === 'OWNER' ? 'Creador' : 'Miembro'}</span>
-                    </span>
-                  ) : isPending ? (
-                    <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-extrabold text-xs">
-                      <Clock className="w-4 h-4" />
-                      <span>Pendiente</span>
-                    </span>
-                  ) : (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleJoin(group.id)}
-                      className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition shadow-2xs ${
-                        isPublic
-                          ? 'bg-brand-600 hover:bg-brand-500 text-white shadow-brand-600/25'
-                          : 'bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40'
-                      }`}
+                      type="button"
+                      onClick={() => setSelectedDetailGroupId(group.id)}
+                      className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs"
+                      title="Ver integrantes, roles y tareas de este grupo"
                     >
-                      {isPublic ? 'Unirme' : 'Solicitar'}
+                      <ListTodo className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Tareas & Roles</span>
                     </button>
-                  )}
+
+                    {isMember ? (
+                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-extrabold text-[11px] px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>{membership.role === 'OWNER' ? 'Creador' : 'Miembro'}</span>
+                      </span>
+                    ) : isPending ? (
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-extrabold text-[11px] px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Pendiente</span>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleJoin(group.id)}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-2xs ${
+                          isPublic
+                            ? 'bg-brand-600 hover:bg-brand-500 text-white shadow-brand-600/25'
+                            : 'bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40'
+                        }`}
+                      >
+                        {isPublic ? 'Unirme' : 'Solicitar'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -409,6 +424,14 @@ export default function GroupsPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de Detalle de Grupo, Miembros y Tablero de Tareas */}
+      <GroupDetailModal
+        isOpen={!!selectedDetailGroupId}
+        groupId={selectedDetailGroupId}
+        onClose={() => setSelectedDetailGroupId(null)}
+        onGroupUpdated={loadGroups}
+      />
     </div>
   );
 }

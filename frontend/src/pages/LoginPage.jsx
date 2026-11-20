@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, loginWithToken } = useAuth();
 
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('estudiante@unilink.edu.co');
@@ -28,6 +28,8 @@ export default function LoginPage() {
   const [academicProgram, setAcademicProgram] = useState('Ingeniería de Sistemas');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showTokenAccess, setShowTokenAccess] = useState(false);
+  const [directTokenInput, setDirectTokenInput] = useState('');
 
   // Validación de seguridad de contraseña (Sesión 22: Validación de formularios)
   const getPasswordStrength = (pass) => {
@@ -75,6 +77,21 @@ export default function LoginPage() {
       navigate('/');
     } catch (e) {
       setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDirectTokenSubmit = async (e) => {
+    e.preventDefault();
+    if (!directTokenInput.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      await loginWithToken(directTokenInput.trim());
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Token de acceso inválido.');
     } finally {
       setLoading(false);
     }
@@ -129,6 +146,37 @@ export default function LoginPage() {
               >
                 Admin Demo
               </button>
+            </div>
+
+            {/* Acceso Directo por Token de Acceso */}
+            <div className="pt-1.5 border-t border-slate-200/80 dark:border-slate-700/80">
+              <button
+                type="button"
+                onClick={() => setShowTokenAccess(!showTokenAccess)}
+                className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition flex items-center justify-between w-full"
+              >
+                <span>¿Tienes un Token de Acceso institucional?</span>
+                <span>{showTokenAccess ? '▲ Ocultar' : '▼ Pegar Token'}</span>
+              </button>
+
+              {showTokenAccess && (
+                <form onSubmit={handleDirectTokenSubmit} className="mt-2 space-y-2">
+                  <input
+                    type="text"
+                    value={directTokenInput}
+                    onChange={(e) => setDirectTokenInput(e.target.value)}
+                    placeholder="Pega aquí tu token JWT o clave..."
+                    className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white font-mono"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!directTokenInput.trim()}
+                    className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-xs"
+                  >
+                    Ingresar con Token
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         )}

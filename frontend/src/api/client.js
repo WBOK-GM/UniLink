@@ -59,11 +59,16 @@ export const api = {
   reactToPost: (id, reaction_type) => request(`/posts/${id}/react`, { method: 'POST', body: JSON.stringify({ reaction_type }) }),
   deactivatePost: (id) => request(`/posts/${id}`, { method: 'DELETE' }),
 
-  // Groups
+  // Groups, Roles & Collaborative Tasks
   getGroups: (params = '') => request(`/groups${params ? `?${params}` : ''}`),
   getGroupById: (id) => request(`/groups/${id}`),
   createGroup: (payload) => request('/groups', { method: 'POST', body: JSON.stringify(payload) }),
   joinGroup: (id) => request(`/groups/${id}/join`, { method: 'POST' }),
+  getGroupMembers: (groupId) => request(`/groups/${groupId}/members`),
+  getGroupTasks: (groupId) => request(`/groups/${groupId}/tasks`),
+  createGroupTask: (groupId, payload) => request(`/groups/${groupId}/tasks`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateGroupTask: (groupId, taskId, payload) => request(`/groups/${groupId}/tasks/${taskId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteGroupTask: (groupId, taskId) => request(`/groups/${groupId}/tasks/${taskId}`, { method: 'DELETE' }),
 
   // Meetings
   getMeetings: (params = '') => request(`/meetings${params ? `?${params}` : ''}`),

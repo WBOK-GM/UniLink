@@ -175,13 +175,27 @@ export default function PostCard({ post, onPostUpdated }) {
               </span>
             </div>
           ) : (
-            /* Wavy purple texture extracted from target reference */
-            <div className="w-full h-full relative">
-              <img
-                src="/images/pdf_thumb_waves.png"
-                alt="Miniatura PDF"
-                className="w-full h-full object-cover"
-              />
+            /* Miniatura vectorial PDF de alta estética con ondas SVG y centrado geométrico perfecto */
+            <div className="w-full h-full bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4338ca] flex flex-col items-center justify-center p-3 text-center text-white relative overflow-hidden select-none">
+              {/* Ondas vectoriales fluidas en fondo */}
+              <svg
+                className="absolute inset-0 w-full h-full opacity-25 pointer-events-none"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+              >
+                <path d="M0,60 C30,40 60,80 100,55 L100,100 L0,100 Z" fill="#6366f1" />
+                <path d="M0,75 C40,65 70,85 100,70 L100,100 L0,100 Z" fill="#4338ca" />
+              </svg>
+
+              {/* Icono de documento PDF centrado con badge */}
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <div className="w-13 h-13 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/25 shadow-lg shadow-black/20 mb-1.5 group-hover:scale-105 transition-transform">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 backdrop-blur-sm text-white px-2.5 py-0.5 rounded-full border border-white/20 shadow-xs">
+                  PDF
+                </span>
+              </div>
             </div>
           )}
 

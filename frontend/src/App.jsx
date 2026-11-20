@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import SecurityGate from './components/SecurityGate';
 import Sidebar from './components/Sidebar';
 import TopHeader from './components/TopHeader';
 import BottomNav from './components/BottomNav';
@@ -19,9 +20,9 @@ import LoginPage from './pages/LoginPage';
 
 // Wrapper para rutas protegidas
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, token, loading } = useAuth();
   if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user || !token) return <Navigate to="/login" replace />;
   return children;
 }
 
@@ -130,7 +131,9 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
-          <MainLayout />
+          <SecurityGate>
+            <MainLayout />
+          </SecurityGate>
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>

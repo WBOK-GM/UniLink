@@ -215,6 +215,41 @@ const memoryStore = {
   meeting_attendees: [
     { id: 'ma1', meeting_id: 'm-001', user_id: 'u1111111-1111-1111-1111-111111111111', attendance_status: 'CONFIRMED', responded_at: new Date() }
   ],
+  group_tasks: [
+    {
+      id: 'gt-001',
+      group_id: 'g-001',
+      creator_id: 'u1111111-1111-1111-1111-111111111111',
+      title: 'Implementar Service Worker y Cache Storage PWA',
+      description: 'Estrategia network-first con fallback a caché y precaching de assets.',
+      assigned_to: 'u1111111-1111-1111-1111-111111111111',
+      status: 'DONE',
+      due_date: new Date(Date.now() + 86400000 * 3),
+      created_at: new Date()
+    },
+    {
+      id: 'gt-002',
+      group_id: 'g-001',
+      creator_id: 'u1111111-1111-1111-1111-111111111111',
+      title: 'Configurar sincronización en segundo plano con IndexedDB',
+      description: 'Cola de publicaciones locales con cola Dexie.',
+      assigned_to: 'u1111111-1111-1111-1111-111111111111',
+      status: 'IN_PROGRESS',
+      due_date: new Date(Date.now() + 86400000 * 5),
+      created_at: new Date()
+    },
+    {
+      id: 'gt-003',
+      group_id: 'g-001',
+      creator_id: 'u1111111-1111-1111-1111-111111111111',
+      title: 'Preparar diapositivas de sustentación de proyecto',
+      description: 'Documentar arquitectura offline-first y seguridad CSP.',
+      assigned_to: null,
+      status: 'TODO',
+      due_date: new Date(Date.now() + 86400000 * 7),
+      created_at: new Date()
+    }
+  ],
   notifications: [
     {
       id: 'n1',
