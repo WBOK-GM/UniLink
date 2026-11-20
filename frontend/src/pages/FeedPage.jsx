@@ -13,8 +13,10 @@ import {
   X,
   Compass,
   ArrowRight,
+  ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   SlidersHorizontal,
   Grid,
   Code,
@@ -37,7 +39,8 @@ import {
   Flame,
   MoreVertical,
   Bell,
-  Play
+  Play,
+  Sparkles
 } from 'lucide-react';
 import { api } from '../api/client';
 import { db } from '../db/db';
@@ -179,9 +182,9 @@ export default function FeedPage({ onOpenAudit }) {
 
   const featuredPost = posts.length > 0 ? posts[0] : {
     id: 'featured-default',
-    title: 'Guía Completa de Service Workers y Estrategias de Cache PWA',
+    title: 'Guía Completa de Service Workers y Estrategias de Caché PWA',
     category: { name: 'Facultad de Ingeniería' },
-    content: 'Comparto este resumen detallado con ejemplos de Cache First, Network First y Background Sync.',
+    content: 'Comparto este resumen detallado con ejemplos de Cache First, Network First y Background Sync con IndexedDB para el proyecto de noveno semestre.',
     author: { full_name: 'Walter Alfonso' },
     created_at: new Date().toISOString()
   };
@@ -341,7 +344,6 @@ export default function FeedPage({ onOpenAudit }) {
                     className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3 hover:border-indigo-200 transition"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      {/* Left thumbnail */}
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-700 to-indigo-500 text-white flex items-center justify-center shrink-0 font-black text-xs shadow-2xs">
                         {item.file_type === 'AUDIO' ? (
                           <Play className="w-4 h-4 fill-white ml-0.5" />
@@ -401,7 +403,7 @@ export default function FeedPage({ onOpenAudit }) {
               {/* UPTC Building blended on the right */}
               <div className="absolute right-0 top-10 bottom-0 w-1/2 pointer-events-none select-none flex items-end justify-end overflow-hidden">
                 <img
-                  src="/images/uptc_mobile_building_blend.png"
+                  src="/images/uptc_hero_facade.png"
                   alt="UPTC Sede Central"
                   className="w-full h-auto max-h-[195px] object-cover object-left opacity-90"
                 />
@@ -412,20 +414,11 @@ export default function FeedPage({ onOpenAudit }) {
                 {/* Logo + Brand */}
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center p-1 bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
-                    <svg viewBox="0 0 80 80" className="w-full h-full fill-white">
-                      <ellipse cx="40" cy="46" rx="12" ry="18" opacity="0.95" />
-                      <circle cx="40" cy="24" r="8" />
-                      <path d="M44 26 L52 29 L45 32 Z" />
-                      <path d="M28 42 C18 34 6 36 4 42 C10 38 20 44 28 48 Z" opacity="0.9" />
-                      <path d="M52 42 C62 34 74 36 76 42 C70 38 60 44 52 48 Z" opacity="0.9" />
-                      <path d="M34 62 L40 74 L46 62 Q40 68 34 62 Z" />
-                      <line x1="36" y1="64" x2="32" y2="72" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                      <line x1="44" y1="64" x2="48" y2="72" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                      <line x1="32" y1="72" x2="28" y2="75" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                      <line x1="32" y1="72" x2="33" y2="76" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                      <line x1="48" y1="72" x2="52" y2="75" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                      <line x1="48" y1="72" x2="47" y2="76" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                    </svg>
+                    <img
+                      src="/images/uptc_crest_official.png"
+                      alt="UPTC Crest"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <div>
                     <h2 className="text-base font-black tracking-tight text-white leading-none">UniLink</h2>
@@ -489,7 +482,6 @@ export default function FeedPage({ onOpenAudit }) {
 
             {/* 4 Stat Cards in 2x2 Grid (Matches Mobile Screen 1) */}
             <div className="grid grid-cols-2 gap-2.5 pt-1">
-              {/* Card 1: Apuntes en Feed */}
               <div
                 onClick={() => setSearchParams({ view: 'search' })}
                 className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between cursor-pointer active:scale-95 transition"
@@ -506,7 +498,6 @@ export default function FeedPage({ onOpenAudit }) {
                 <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0 ml-1" />
               </div>
 
-              {/* Card 2: Materias Activas */}
               <div
                 onClick={() => setSearchParams({ view: 'search' })}
                 className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between cursor-pointer active:scale-95 transition"
@@ -523,7 +514,6 @@ export default function FeedPage({ onOpenAudit }) {
                 <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0 ml-1" />
               </div>
 
-              {/* Card 3: Modo Offline */}
               <Link
                 to="/offline-queue"
                 className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between cursor-pointer active:scale-95 transition"
@@ -540,7 +530,6 @@ export default function FeedPage({ onOpenAudit }) {
                 <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0 ml-1" />
               </Link>
 
-              {/* Card 4: Seguridad PWA */}
               <div
                 onClick={onOpenAudit}
                 className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between cursor-pointer active:scale-95 transition"
@@ -577,17 +566,16 @@ export default function FeedPage({ onOpenAudit }) {
                 </button>
               </div>
 
-              {/* Featured Horizontal Card (Matches Screen 1) */}
+              {/* Featured Horizontal Card */}
               <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-3.5">
-                {/* Left purple square with PDF */}
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-indigo-700 via-indigo-600 to-purple-600 flex flex-col items-center justify-center text-white shrink-0 shadow-md shadow-indigo-600/20">
-                  <FileText className="w-7 h-7 mb-1" />
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md border border-white/20">
-                    PDF
-                  </span>
+                <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-md relative">
+                  <img
+                    src="/images/pdf_thumb_waves.png"
+                    alt="Miniatura PDF"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                {/* Right content */}
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <span className="inline-block px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
                     {featuredPost.category?.name || 'Facultad de Ingeniería'}
@@ -632,70 +620,67 @@ export default function FeedPage({ onOpenAudit }) {
 
 
       {/* ================================================================
-          B. DESKTOP VIEW (>= lg): The collegiate reference layout
+          B. DESKTOP VIEW (>= lg): The exact collegiate reference design
           ================================================================ */}
-      <div className="hidden lg:block space-y-5 pb-24">
+      <div className="hidden lg:block space-y-4 pb-20">
         
         {/* 1. HERO BANNER PRINCIPAL (DESKTOP) */}
         <div
-          className="rounded-2xl text-white relative overflow-hidden"
+          className="rounded-3xl text-white relative overflow-hidden shadow-xl"
           style={{
-            background: 'linear-gradient(135deg, #1a1060 0%, #2d1b8a 35%, #3d2496 55%, #4a2fa0 70%, #3b2080 100%)',
-            minHeight: '230px'
+            background: 'linear-gradient(135deg, #100b2b 0%, #1e1358 40%, #2a186c 70%, #3b1d82 100%)',
+            minHeight: '235px'
           }}
         >
-          {/* Decorative circle glow */}
-          <div
-            className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }}
-          />
-
-          {/* Real UPTC building blended on the right */}
-          <div className="absolute right-0 top-0 bottom-0 w-1/2 pointer-events-none select-none flex items-stretch overflow-hidden">
+          {/* Real UPTC building facade + trees + cursive slogan */}
+          <div className="absolute right-0 top-0 bottom-0 w-3/5 pointer-events-none select-none flex items-stretch justify-end overflow-hidden">
             <img
-              src="/images/uptc_building_blend.png"
+              src="/images/uptc_hero_facade.png"
               alt="UPTC Sede Central"
-              className="w-full h-full object-cover object-left opacity-75"
+              className="w-full h-full object-cover object-left"
             />
           </div>
 
-          {/* Cursive tagline overlay */}
-          <div
-            className="absolute bottom-6 right-6 sm:right-16 z-10 pointer-events-none select-none hidden sm:block"
-            style={{ transform: 'rotate(-6deg)' }}
-          >
-            <p
-              className="font-handwriting text-3xl text-white font-bold tracking-wide drop-shadow-lg"
-              style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}
+          {/* Top Right Carousel Navigation Controls (< >) */}
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => alert('Slide anterior')}
+              className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white transition active:scale-95"
+              title="Anterior"
             >
-              Aprende,<br />comparte, avanza
-            </p>
-            <svg className="w-44 h-4 -mt-1" viewBox="0 0 180 16" fill="none">
-              <path d="M 4,10 Q 90,2 176,12" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => alert('Siguiente slide')}
+              className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white transition active:scale-95"
+              title="Siguiente"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Content — left side */}
-          <div className="relative z-10 p-6 sm:p-9 max-w-lg space-y-4">
+          {/* Banner Left Content */}
+          <div className="relative z-10 p-6 sm:p-8 max-w-lg space-y-3">
             <div
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
               style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#c4b5fd' }}
             >
-              <GraduationCap className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>UniLink • UPTC</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight text-white">
-              Recursos Académicos &{' '}
+              Recursos Académicos &<br />
               <span style={{ color: '#a78bfa' }}>Apuntes PWA</span>
             </h1>
 
-            <p className="text-sm text-indigo-100/85 leading-relaxed">
-              Descubre apuntes de clase, grabaciones de cátedra y talleres compartidos.
-              Conecta con la comunidad UPTC y accede a la tecnología Offline-First.
+            <p className="text-xs sm:text-sm text-indigo-100/85 leading-relaxed max-w-md">
+              Descubre apuntes de clase, grabaciones de cátedra y talleres compartidos. Conecta con la comunidad UPTC y accede a la tecnología Offline-First.
             </p>
 
-            {/* 4 Stat Pills */}
+            {/* 4 Stat Pills inside Hero Banner */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
               {[
                 { icon: BookOpen, label: 'Apuntes en Feed', value: `+${posts.length} disponibles`, color: '#818cf8' },
@@ -706,12 +691,12 @@ export default function FeedPage({ onOpenAudit }) {
                 <div
                   key={i}
                   onClick={onClick}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl ${onClick ? 'cursor-pointer hover:opacity-80' : ''} transition`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl ${onClick ? 'cursor-pointer hover:bg-white/20' : ''} transition`}
                   style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)' }}
                 >
                   <Icon className="w-4 h-4 shrink-0" style={{ color }} />
                   <div className="min-w-0">
-                    <span className="text-[9px] block" style={{ color: '#c4b5fd' }}>{label}</span>
+                    <span className="text-[9px] block text-indigo-200">{label}</span>
                     <span className="text-[11px] font-extrabold text-white block leading-tight" style={i === 3 ? { color: '#6ee7b7' } : {}}>{value}</span>
                   </div>
                 </div>
@@ -722,14 +707,14 @@ export default function FeedPage({ onOpenAudit }) {
 
         {/* 2. SEARCH BAR (DESKTOP) */}
         <div className="relative">
-          <div className="flex items-center rounded-2xl bg-white border border-slate-200 shadow-sm p-1.5 focus-within:ring-2 focus-within:ring-indigo-400/30 focus-within:border-indigo-400 transition-all">
-            <Search className="w-4 h-4 text-slate-400 ml-3 shrink-0" />
+          <div className="flex items-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs p-1.5 focus-within:ring-2 focus-within:ring-indigo-400/30 transition-all">
+            <Search className="w-4 h-4 text-slate-400 ml-3.5 shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar apuntes por tema, palabra clave, profesor, materia o aula..."
-              className="w-full px-3 py-2 bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
+              className="w-full px-3 py-2 bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
             />
             {searchQuery && (
               <button type="button" onClick={() => setSearchQuery('')} className="p-1 text-slate-400 hover:text-slate-600 mr-2">
@@ -738,120 +723,137 @@ export default function FeedPage({ onOpenAudit }) {
             )}
             <button
               type="button"
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm flex items-center gap-1.5 transition shrink-0 shadow-md"
-              style={{ background: '#4f46e5' }}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 transition shrink-0 shadow-md shadow-indigo-600/25"
             >
-              <Search className="w-3.5 h-3.5" />
               <span>Buscar</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* 3. FORMAT CARDS (DESKTOP) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { filter: 'ALL', icon: Layers, title: 'Todos los formatos', sub: 'PDF, Word, etc.' },
-            { filter: 'DOCUMENT', icon: FileText, title: 'Documentos PDF / Word', sub: 'Apuntes y guías' },
-            { filter: 'AUDIO', icon: Mic, title: 'Grabaciones de Voz', sub: 'Clases y conferencias' },
-            { filter: 'LOCATION', icon: MapPin, title: 'Con Mapa en Campus', sub: 'Encuentra recursos' },
-          ].map(({ filter, icon: Icon, title, sub }) => {
-            const active = formatFilter === filter;
-            return (
-              <button
-                key={filter}
-                type="button"
-                onClick={() => setFormatFilter(filter)}
-                className="p-4 rounded-2xl text-left transition-all flex items-center justify-between group border"
-                style={
-                  active
-                    ? { background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', borderColor: 'transparent', boxShadow: '0 4px 20px rgba(79,70,229,0.35)' }
-                    : { background: 'white', color: '#1e293b', borderColor: '#e2e8f0' }
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={active ? { background: 'rgba(255,255,255,0.2)' } : { background: '#ede9fe' }}
-                  >
-                    <Icon className="w-5 h-5" style={active ? { color: 'white' } : { color: '#7c3aed' }} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black">{title}</h4>
-                    <p className="text-[10px] mt-0.5" style={active ? { color: 'rgba(255,255,255,0.75)' } : { color: '#94a3b8' }}>{sub}</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-1" style={active ? { color: 'white' } : { color: '#cbd5e1' }} />
-              </button>
-            );
-          })}
+        {/* 3. ROW 1: FORMAT SELECTION PILLS (Matches Target Reference Image) */}
+        <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
+          {/* Todos los formatos (Active Purple Pill with Dropdown) */}
+          <button
+            type="button"
+            onClick={() => setFormatFilter('ALL')}
+            className={`px-4 py-2 rounded-2xl whitespace-nowrap transition flex items-center gap-2 shadow-sm ${
+              formatFilter === 'ALL'
+                ? 'bg-indigo-600 text-white shadow-indigo-600/30'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Todos los formatos</span>
+            <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
+          </button>
+
+          {/* Documentos PDF / Word */}
+          <button
+            type="button"
+            onClick={() => setFormatFilter('DOCUMENT')}
+            className={`px-4 py-2 rounded-2xl whitespace-nowrap transition flex items-center gap-2 shadow-2xs ${
+              formatFilter === 'DOCUMENT'
+                ? 'bg-indigo-600 text-white shadow-indigo-600/30'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 text-indigo-500" />
+            <span>Documentos PDF / Word</span>
+          </button>
+
+          {/* Grabaciones de Voz */}
+          <button
+            type="button"
+            onClick={() => setFormatFilter('AUDIO')}
+            className={`px-4 py-2 rounded-2xl whitespace-nowrap transition flex items-center gap-2 shadow-2xs ${
+              formatFilter === 'AUDIO'
+                ? 'bg-indigo-600 text-white shadow-indigo-600/30'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+            }`}
+          >
+            <Mic className="w-3.5 h-3.5 text-purple-500" />
+            <span>Grabaciones de Voz</span>
+          </button>
+
+          {/* Con Mapa en Campus */}
+          <button
+            type="button"
+            onClick={() => setFormatFilter('LOCATION')}
+            className={`px-4 py-2 rounded-2xl whitespace-nowrap transition flex items-center gap-2 shadow-2xs ${
+              formatFilter === 'LOCATION'
+                ? 'bg-indigo-600 text-white shadow-indigo-600/30'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5 text-rose-500" />
+            <span>Con Mapa en Campus</span>
+          </button>
         </div>
 
-        {/* 4. EXPLORE BY CATEGORY (DESKTOP) */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-indigo-600" />
-              <h3 className="text-sm font-black text-slate-900 tracking-tight">Explora por categoría</h3>
-            </div>
+        {/* 4. ROW 2: CATEGORY FILTER PILLS (Matches Target Reference Image) */}
+        <div className="flex items-center justify-between gap-2 pt-0.5">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold flex-1">
+            {/* Todas las asignaturas (Dark Navy Pill with Dropdown) */}
             <button
               type="button"
-              onClick={() => setShowSuggestModal(true)}
-              className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1"
-            >
-              <span>Ver todas</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold">
-            <button
               onClick={() => setSelectedCategory(null)}
-              className="px-3.5 py-2 rounded-2xl whitespace-nowrap transition flex items-center gap-2 border"
-              style={
-                selectedCategory === null
-                  ? { background: '#1e1b4b', color: 'white', borderColor: 'transparent' }
-                  : { background: 'white', color: '#475569', borderColor: '#e2e8f0' }
-              }
+              className="px-3.5 py-1.5 rounded-2xl whitespace-nowrap transition flex items-center gap-1.5 shadow-sm text-white"
+              style={{ background: '#141a38' }}
             >
-              <Layers className="w-3.5 h-3.5" />
+              <Layers className="w-3.5 h-3.5 text-indigo-300" />
               <span>Todas las asignaturas ({categories.length})</span>
+              <ChevronDown className="w-3 h-3 ml-0.5 text-slate-300" />
             </button>
 
+            {/* Category Pills with Icons */}
             {categories.map((cat) => {
               const Icon = getCategoryIcon(cat.name);
               const active = selectedCategory === cat.id;
               return (
                 <button
                   key={cat.id}
+                  type="button"
                   onClick={() => setSelectedCategory(active ? null : cat.id)}
-                  className="px-3.5 py-2 rounded-2xl whitespace-nowrap transition flex items-center gap-2 border"
-                  style={
+                  className={`px-3.5 py-1.5 rounded-2xl whitespace-nowrap transition flex items-center gap-1.5 border shadow-2xs ${
                     active
-                      ? { background: '#1e1b4b', color: 'white', borderColor: 'transparent' }
-                      : { background: 'white', color: '#475569', borderColor: '#e2e8f0' }
-                  }
+                      ? 'bg-indigo-600 text-white border-transparent'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-slate-800 hover:border-indigo-300'
+                  }`}
                 >
-                  <Icon className="w-3.5 h-3.5" style={{ color: active ? 'white' : '#6366f1' }} />
+                  <Icon className="w-3.5 h-3.5 text-indigo-500" />
                   <span>{cat.name}</span>
                 </button>
               );
             })}
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowSuggestModal(true)}
+            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 shrink-0 ml-2"
+          >
+            <span>Ver todas</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* 5. TWO-COLUMN LAYOUT: Feed + Sidebar Widgets (DESKTOP) */}
+        {/* 5. TWO-COLUMN LAYOUT: Feed + Clean Sidebar Widgets */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 pt-1">
+          
           {/* Main column: Recursos Destacados */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between pb-1">
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                <h3 className="text-sm font-black text-slate-900 tracking-tight">Recursos destacados</h3>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white tracking-tight">
+                  Recursos destacados
+                </h3>
               </div>
-              <span className="text-xs text-slate-500 font-semibold">
-                {filteredPosts.length} publicaciones
-              </span>
+              <div className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-bold">
+                <span>1 publicación nueva</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+              </div>
             </div>
 
             {loading ? (
@@ -859,7 +861,7 @@ export default function FeedPage({ onOpenAudit }) {
                 {[1, 2].map((n) => (
                   <div key={n} className="rounded-3xl bg-white p-6 animate-pulse border border-slate-100 space-y-4">
                     <div className="flex gap-4">
-                      <div className="w-32 h-32 rounded-2xl bg-slate-100 shrink-0" />
+                      <div className="w-36 h-36 rounded-2xl bg-slate-100 shrink-0" />
                       <div className="flex-1 space-y-3">
                         <div className="w-24 h-4 bg-slate-100 rounded-lg" />
                         <div className="w-3/4 h-5 bg-slate-100 rounded-lg" />
@@ -876,16 +878,15 @@ export default function FeedPage({ onOpenAudit }) {
                 ))}
               </div>
             ) : (
-              <div className="rounded-3xl bg-white p-12 text-center border border-dashed border-slate-200 space-y-3">
+              <div className="rounded-3xl bg-white dark:bg-slate-900 p-12 text-center border border-dashed border-slate-200 dark:border-slate-800 space-y-3">
                 <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
-                <h4 className="text-base font-bold text-slate-700">No se encontraron recursos</h4>
+                <h4 className="text-base font-bold text-slate-700 dark:text-slate-300">No se encontraron recursos</h4>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
                   Prueba restableciendo los filtros o comparte el primer apunte.
                 </p>
                 <Link
                   to="/create-post"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-extrabold shadow-md"
-                  style={{ background: '#4f46e5' }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-extrabold shadow-md bg-indigo-600 hover:bg-indigo-500"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Publicar Recurso</span>
@@ -894,30 +895,34 @@ export default function FeedPage({ onOpenAudit }) {
             )}
           </div>
 
-          {/* Right widgets column */}
+          {/* Right widgets column (Clean 2-Widget Layout matching Image 1) */}
           <div className="space-y-4">
+            
             {/* Widget 1: Nuestra Comunidad */}
-            <div className="rounded-3xl bg-white border border-slate-100 p-5 shadow-sm space-y-4">
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-5 shadow-2xs space-y-4">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-indigo-600" />
-                <h4 className="text-sm font-black text-slate-900">Nuestra comunidad</h4>
+                <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                  Nuestra comunidad
+                </h4>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                   <Users className="w-5 h-5 text-indigo-500 mx-auto mb-1" />
-                  <span className="text-xl font-black text-slate-900 block">{posts.length}</span>
+                  <span className="text-xl font-black text-slate-900 dark:text-white block">{posts.length}</span>
                   <span className="text-[10px] text-slate-400 block leading-tight">Apuntes en Feed</span>
                 </div>
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                   <BookOpen className="w-5 h-5 text-purple-500 mx-auto mb-1" />
-                  <span className="text-xl font-black text-slate-900 block">{categories.length}</span>
+                  <span className="text-xl font-black text-slate-900 dark:text-white block">{categories.length}</span>
                   <span className="text-[10px] text-slate-400 block leading-tight">Materias Activas</span>
                 </div>
                 <div
                   onClick={onOpenAudit}
                   className="p-3 rounded-2xl cursor-pointer hover:scale-105 transition-transform border"
                   style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}
+                  title="Abrir Auditoría PWA"
                 >
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
                   <span className="text-xl font-black text-emerald-600 block">A+</span>
@@ -927,22 +932,21 @@ export default function FeedPage({ onOpenAudit }) {
             </div>
 
             {/* Widget 2: Actividad Reciente */}
-            <div className="rounded-3xl bg-white border border-slate-100 p-5 shadow-sm space-y-3">
+            <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-5 shadow-2xs space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-slate-400" />
-                  <h4 className="text-sm font-black text-slate-900">Actividad reciente</h4>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white">Actividad reciente</h4>
                 </div>
                 <Link to="/offline-queue" className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-0.5">
-                  Ver más <ArrowRight className="w-3.5 h-3.5" />
+                  Ver más →
                 </Link>
               </div>
 
               <div className="space-y-2 text-xs">
                 {[
-                  { icon: Code, color: '#ede9fe', iconColor: '#7c3aed', label: 'Nuevo apunte en Programación', time: 'Hace 1 h' },
-                  { icon: CheckCircle2, color: '#d1fae5', iconColor: '#059669', label: 'Sincronización completada', time: 'Hace 2 h' },
-                  { icon: Calendar, color: '#faf5ff', iconColor: '#9333ea', label: 'Taller de Bases de Datos', time: 'Hace 4 h' },
+                  { icon: BookOpen, color: '#ede9fe', iconColor: '#7c3aed', label: 'Nuevo aporte en Programación', time: 'Hace 1 h' },
+                  { icon: CheckCircle2, color: '#d1fae5', iconColor: '#059669', label: 'Sincronización completada', time: 'Hace 2 h' }
                 ].map(({ icon: Icon, color, iconColor, label, time }, i) => (
                   <div key={i} className="flex items-center justify-between gap-2 p-2 rounded-xl" style={{ background: '#f8fafc' }}>
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -957,26 +961,10 @@ export default function FeedPage({ onOpenAudit }) {
               </div>
             </div>
 
-            {/* Widget 3: CTA Mapa */}
-            <div
-              className="rounded-3xl text-white p-5 shadow-md space-y-3"
-              style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%)' }}
-            >
-              <h4 className="text-sm font-black">¿Buscas compañeros de estudio?</h4>
-              <p className="text-xs text-white/80 leading-relaxed">
-                Explora en el mapa de la UPTC los grupos activos cercanos a tu ubicación.
-              </p>
-              <Link
-                to="/map"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white font-extrabold text-xs shadow-md transition hover:scale-105"
-                style={{ color: '#4f46e5' }}
-              >
-                <Compass className="w-4 h-4" />
-                <span>Abrir Mapa de Grupos</span>
-              </Link>
-            </div>
           </div>
+
         </div>
+
       </div>
 
       {/* Suggest Modal */}
@@ -1013,7 +1001,7 @@ export default function FeedPage({ onOpenAudit }) {
                 <button type="button" onClick={() => setShowSuggestModal(false)} className="px-4 py-2 text-xs font-semibold text-slate-500">
                   Cancelar
                 </button>
-                <button type="submit" className="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md" style={{ background: '#4f46e5' }}>
+                <button type="submit" className="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md bg-indigo-600 hover:bg-indigo-500">
                   Enviar propuesta
                 </button>
               </div>
