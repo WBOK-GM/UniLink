@@ -5,8 +5,9 @@ async function runTests() {
   console.log('🧪 Iniciando Pruebas E2E de Endpoints UniLink...\n');
 
   const server = http.createServer(app);
-  await new Promise((resolve) => server.listen(5099, resolve));
-  const baseUrl = 'http://localhost:5099/api/v1';
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+  const baseUrl = `http://localhost:${port}/api/v1`;
 
   async function apiCall(endpoint, options = {}) {
     const res = await fetch(`${baseUrl}${endpoint}`, {
