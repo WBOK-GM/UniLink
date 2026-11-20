@@ -183,7 +183,9 @@ async function runAudits() {
   } catch (err) {
     console.error('Error durante la ejecución de auditoría:', err);
   } finally {
-    server.close();
+    server.close(() => {
+      process.exit(totalChecks - passedChecks > 0 ? 1 : 0);
+    });
   }
 }
 

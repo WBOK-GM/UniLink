@@ -26,10 +26,18 @@ export default {
           card: '#1e293b',
           border: '#334155',
           hover: '#283548'
+        },
+        uptc: {
+          950: '#070b1e',
+          900: '#0b1028',
+          850: '#0f1638',
+          800: '#141d47',
+          700: '#1e2b68',
         }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        handwriting: ['Caveat', 'cursive'],
       }
     },
   },

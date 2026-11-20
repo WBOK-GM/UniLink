@@ -14,7 +14,9 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
-  FileCheck
+  FileCheck,
+  Mic,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
@@ -36,7 +38,10 @@ export default function PostCard({ post, onPostUpdated }) {
   const [expandedContent, setExpandedContent] = useState(false);
 
   const isAuthor = user && user.id === post.author?.id;
-  const isLongContent = (post.content || '').length > 280;
+  const isLongContent = (post.content || '').length > 220;
+
+  // Primer archivo adjunto para el preview visual izquierdo
+  const mainAttachment = post.attachments && post.attachments.length > 0 ? post.attachments[0] : null;
 
   const handleReaction = async (type) => {
     if (!user) {
@@ -77,6 +82,7 @@ export default function PostCard({ post, onPostUpdated }) {
       const blob = await response.blob();
       await saveResourceOffline(post.id, file.id, file.original_name, blob, user?.id || 'guest');
       setDownloadSaved(prev => ({ ...prev, [file.id]: true }));
+      alert(`✅ "${file.original_name}" guardado para lectura sin conexión.`);
     } catch (e) {
       console.warn('Error guardando offline:', e);
       window.open(file.url, '_blank');
@@ -116,287 +122,235 @@ export default function PostCard({ post, onPostUpdated }) {
   };
 
   return (
-    <article className="rounded-3xl glass-panel p-5 sm:p-7 card-hover-lift border border-slate-200/90 dark:border-slate-800/90 transition-all duration-200 shadow-xs relative">
+    <article className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 hover:shadow-lg hover:border-brand-300 dark:hover:border-slate-700 transition-all duration-200 shadow-2xs relative">
       
-      {/* Header: Author + Subject Tag */}
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-600 text-white font-extrabold flex items-center justify-center text-sm shadow-md shadow-brand-500/25 shrink-0">
-            {post.author?.full_name ? post.author.full_name.charAt(0) : 'U'}
+      {/* Contenedor Horizontal Principal (Matches Reference Image) */}
+      <div className="flex flex-col sm:flex-row items-start gap-5">
+        
+        {/* Left Side: Thumbnail Preview Box (PDF / Image / Audio) */}
+        <div className="w-full sm:w-36 h-36 rounded-2xl bg-gradient-to-br from-[#2a1b70] via-[#4f37b8] to-[#6d44d4] flex flex-col items-center justify-center text-white shrink-0 shadow-md shadow-brand-900/15 relative overflow-hidden group">
+          {mainAttachment && (mainAttachment.file_type === 'IMAGE' || mainAttachment.mime_type?.startsWith('image/')) ? (
+            <img
+              src={mainAttachment.url}
+              alt={post.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            />
+          ) : mainAttachment && (mainAttachment.file_type === 'AUDIO' || mainAttachment.mime_type?.startsWith('audio/')) ? (
+            <div className="flex flex-col items-center justify-center p-3 text-center">
+              <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center mb-2">
+                <Mic className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
+                Audio
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-3 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center mb-2 shadow-inner">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-md border border-white/20">
+                PDF
+              </span>
+            </div>
+          )}
+
+          {/* Decorative radial shine */}
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
+        </div>
+
+        {/* Right Side: Post Details & Controls */}
+        <div className="flex-1 min-w-0 space-y-2.5 w-full">
+          
+          {/* Header Row: Subject Badge + Actions */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-500/30">
+              {post.category?.name || 'Facultad de Ingeniería'}
+            </span>
+
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <button
+                type="button"
+                onClick={() => setShowReportModal(true)}
+                className="p-1 hover:text-amber-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                title="Reportar publicación"
+              >
+                <Flag className="w-3.5 h-3.5" />
+              </button>
+
+              {isAuthor && (
+                <button
+                  type="button"
+                  onClick={handleDeactivate}
+                  className="p-1 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  title="Desactivar publicación"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">
-                {post.author?.full_name || 'Estudiante'}
-              </span>
-              {post.author?.university && (
-                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                  {post.author.university}
+          {/* Title */}
+          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-snug">
+            {post.title}
+          </h3>
+
+          {/* Excerpt Description */}
+          <div className="relative">
+            <p className={`text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed ${
+              isLongContent && !expandedContent ? 'line-clamp-2' : ''
+            }`}>
+              {post.content}
+            </p>
+            {isLongContent && (
+              <button
+                type="button"
+                onClick={() => setExpandedContent(!expandedContent)}
+                className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline mt-0.5 inline-block"
+              >
+                {expandedContent ? 'Mostrar menos' : 'Leer más'}
+              </button>
+            )}
+          </div>
+
+          {/* Audio Player Integrado si el recurso es audio */}
+          {mainAttachment && (mainAttachment.file_type === 'AUDIO' || mainAttachment.mime_type?.startsWith('audio/')) && (
+            <div className="pt-1">
+              <AudioPlayer src={mainAttachment.url} title={mainAttachment.original_name} />
+            </div>
+          )}
+
+          {/* Footer Row: Author + Download Button (Matches Reference Image) */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            
+            {/* Author + Time */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                {post.author?.full_name ? post.author.full_name.charAt(0) : 'W'}
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap text-slate-500 dark:text-slate-400 font-semibold text-xs truncate">
+                <span className="text-slate-900 dark:text-white font-extrabold truncate">
+                  {post.author?.full_name || 'Walter Alfonso'}
                 </span>
+                <span>•</span>
+                <span>{formatRelativeTime(post.created_at)}</span>
+
+                {post.location && (
+                  <>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowLocationModal(true)}
+                      className="text-brand-600 dark:text-brand-400 font-bold hover:underline flex items-center gap-1"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      <span className="truncate max-w-[120px]">{post.location}</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Actions: Download Button + Reactions + External Link */}
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              
+              {/* Reacciones Likes / Dislikes */}
+              <div className="flex items-center gap-1 mr-1">
+                <button
+                  type="button"
+                  onClick={() => handleReaction('LIKE')}
+                  disabled={isAuthor}
+                  className={`p-1.5 rounded-lg flex items-center gap-1 text-xs font-bold transition ${
+                    myReaction === 'LIKE'
+                      ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-500/15'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Me gusta"
+                >
+                  <ThumbsUp className={`w-3.5 h-3.5 ${myReaction === 'LIKE' ? 'fill-current' : ''}`} />
+                  <span>{likes}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleReaction('DISLIKE')}
+                  disabled={isAuthor}
+                  className={`p-1.5 rounded-lg flex items-center gap-1 text-xs font-bold transition ${
+                    myReaction === 'DISLIKE'
+                      ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="No me gusta"
+                >
+                  <ThumbsDown className={`w-3.5 h-3.5 ${myReaction === 'DISLIKE' ? 'fill-current' : ''}`} />
+                  <span>{dislikes}</span>
+                </button>
+              </div>
+
+              {/* Botón Descargar / Guardar Offline (Matches Image) */}
+              {mainAttachment && (
+                <button
+                  type="button"
+                  onClick={() => handleSaveOffline(mainAttachment)}
+                  disabled={savingFileId === mainAttachment.id}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs"
+                  title="Descargar y guardar copia offline"
+                >
+                  {downloadSaved[mainAttachment.id] ? (
+                    <>
+                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-emerald-600 dark:text-emerald-400">Guardado</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                      <span>{savingFileId === mainAttachment.id ? 'Descargando...' : 'Descargar'}</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* External Link */}
+              {mainAttachment && (
+                <a
+                  href={mainAttachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  title="Abrir recurso en pestaña nueva"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-              <span>{post.author?.academic_program || 'Comunidad UniLink'}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-slate-400" />
-                {formatRelativeTime(post.created_at)}
-              </span>
-            </div>
           </div>
         </div>
 
-        {/* Category Badge */}
-        {post.category && (
-          <span className="text-xs font-bold px-3 py-1 rounded-xl bg-gradient-to-r from-brand-50 to-indigo-50 dark:from-brand-950/40 dark:to-indigo-950/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30 shrink-0 shadow-2xs">
-            {post.category.name}
-          </span>
-        )}
       </div>
 
-      {/* Post Title & Content */}
-      <div className="space-y-2 mb-4">
-        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-snug">
-          {post.title}
-        </h3>
-
-        <div className="relative">
-          <p className={`text-slate-700 dark:text-slate-300 text-sm whitespace-pre-line leading-relaxed ${
-            isLongContent && !expandedContent ? 'line-clamp-3' : ''
-          }`}>
-            {post.content}
-          </p>
-
-          {isLongContent && (
-            <button
-              type="button"
-              onClick={() => setExpandedContent(!expandedContent)}
-              className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 mt-1 flex items-center gap-1 transition"
-            >
-              <span>{expandedContent ? 'Mostrar menos' : 'Leer más...'}</span>
-              {expandedContent ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
-          )}
-        </div>
-
-        {/* Location Badge with In-App Campus Map Trigger */}
-        {post.location && (
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setShowLocationModal(true)}
-              title="Ver ubicación UPTC interactiva dentro de la aplicación"
-              className="inline-flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300 font-bold bg-brand-50/80 hover:bg-brand-100/90 dark:bg-brand-950/40 dark:hover:bg-brand-900/50 px-3 py-1.5 rounded-xl border border-brand-200 dark:border-brand-800/40 transition hover:scale-[1.01] shadow-2xs group cursor-pointer"
-            >
-              <MapPin className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition" />
-              <span>{post.location}</span>
-              <span className="text-[10px] uppercase font-black text-brand-600 dark:text-brand-400 bg-white dark:bg-slate-800 px-1.5 py-0.2 rounded border border-brand-200 dark:border-brand-700/60 ml-1">
-                Ver en mapa
-              </span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Attachments Section */}
-      {post.attachments && post.attachments.length > 0 && (
-        <div className="space-y-3 mb-5 pt-1">
-          {post.attachments.map((file) => {
-            // Audio Recording / Player
-            if (file.file_type === 'AUDIO' || file.mime_type?.startsWith('audio/')) {
-              return (
-                <div key={file.id} className="rounded-2xl p-1 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                  <AudioPlayer src={file.url} title={file.original_name} />
-                </div>
-              );
-            }
-
-            // Image Preview
-            if (file.file_type === 'IMAGE' || file.mime_type?.startsWith('image/')) {
-              return (
-                <div key={file.id} className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 max-h-80 shadow-inner group relative">
-                  <img
-                    src={file.url}
-                    alt={file.original_name}
-                    className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
-                    loading="lazy"
-                  />
-                  <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold flex items-center gap-1.5">
-                    <span>{file.original_name}</span>
-                  </div>
-                </div>
-              );
-            }
-
-            // Documents (PDF, Word, TXT)
-            const isSavedLocally = downloadSaved[file.id];
-            const isSavingThis = savingFileId === file.id;
-
-            return (
-              <div
-                key={file.id}
-                className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-slate-900/90 dark:via-slate-900 dark:to-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-slate-700 transition shadow-2xs"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 to-brand-100 dark:from-indigo-500/20 dark:to-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 border border-brand-200/60 dark:border-brand-500/20">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                      {file.original_name}
-                    </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-                      <span className="font-semibold uppercase text-brand-600 dark:text-brand-400">PDF / Documento</span>
-                      <span>•</span>
-                      <span>Disponible para consulta sin internet</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Botón Guardar Offline (Dexie IndexedDB) */}
-                  <button
-                    type="button"
-                    onClick={() => handleSaveOffline(file)}
-                    disabled={isSavingThis}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs ${
-                      isSavedLocally
-                        ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
-                        : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
-                    }`}
-                    title="Almacenar una copia local en IndexedDB para abrir sin conexión"
-                  >
-                    {isSavedLocally ? (
-                      <>
-                        <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span className="hidden sm:inline">Guardado Offline</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-                        <span className="hidden sm:inline">{isSavingThis ? 'Guardando...' : 'Guardar Offline'}</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Botón Abrir / Descargar */}
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                    title="Abrir documento en pestaña nueva"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Footer: Reactions Bar, Copyright Declaration & Controls */}
-      <div className="flex items-center justify-between pt-3.5 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400 flex-wrap gap-2">
-        {/* Like & Dislike */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleReaction('LIKE')}
-            disabled={isAuthor}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-2xs ${
-              myReaction === 'LIKE'
-                ? 'bg-brand-50 dark:bg-brand-600/25 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/40 shadow-xs'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
-            } ${isAuthor ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={isAuthor ? 'El autor no puede votar su propio aporte (RN-04)' : 'Me gusta'}
-          >
-            <ThumbsUp className={`w-3.5 h-3.5 ${myReaction === 'LIKE' ? 'text-brand-600 dark:text-brand-400 fill-brand-600 dark:fill-brand-400' : ''}`} />
-            <span>{likes}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleReaction('DISLIKE')}
-            disabled={isAuthor}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition shadow-2xs ${
-              myReaction === 'DISLIKE'
-                ? 'bg-rose-50 dark:bg-rose-600/25 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40 shadow-xs'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
-            } ${isAuthor ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={isAuthor ? 'El autor no puede votar su propio aporte (RN-04)' : 'No me gusta'}
-          >
-            <ThumbsDown className={`w-3.5 h-3.5 ${myReaction === 'DISLIKE' ? 'text-rose-600 dark:text-rose-400 fill-rose-600 dark:fill-rose-400' : ''}`} />
-            <span>{dislikes}</span>
-          </button>
-        </div>
-
-        {/* Right side: Copyright & Deactivate */}
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold hidden sm:flex">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Autoría declarada (RN-30)</span>
-          </span>
-
-          <button
-            type="button"
-            onClick={() => setShowReportModal(true)}
-            className="p-1.5 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition"
-            title="Reportar publicación por infracción"
-          >
-            <Flag className="w-3.5 h-3.5" />
-          </button>
-
-          {isAuthor && (
-            <button
-              type="button"
-              onClick={handleDeactivate}
-              className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
-              title="Desactivar mi publicación"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Report Content Modal */}
+      {/* Report Modal */}
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 shadow-2xl">
-            <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-              Reportar Contenido Académico
-            </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Indica la razón por la que consideras que esta publicación incumple las normas de convivencia o derechos de autor:
-            </p>
-
+            <h4 className="text-base font-black text-slate-900 dark:text-white mb-2">Reportar Contenido</h4>
+            <p className="text-xs text-slate-500 mb-4">Indica la razón por la que consideras que esta publicación incumple las normas:</p>
             <select
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 mb-4 focus:outline-none focus:border-brand-500"
+              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm mb-4"
             >
               <option value="Derechos de autor">Infracción de derechos de autor</option>
-              <option value="Contenido ofensivo">Contenido ofensivo o discriminatorio</option>
-              <option value="Spam">Spam o publicidad no académica</option>
-              <option value="Información engañosa">Información académica errónea o engañosa</option>
+              <option value="Contenido ofensivo">Contenido ofensivo</option>
+              <option value="Spam">Spam o publicidad</option>
+              <option value="Información engañosa">Información académica engañosa</option>
             </select>
-
-            <div className="flex justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowReportModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
-              >
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowReportModal(false)} className="px-4 py-2 text-xs font-semibold text-slate-500">
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={handleSendReport}
-                className="px-5 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30"
-              >
+              <button onClick={handleSendReport} className="px-5 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white">
                 Enviar reporte
               </button>
             </div>
@@ -404,7 +358,7 @@ export default function PostCard({ post, onPostUpdated }) {
         </div>
       )}
 
-      {/* In-App Interactive UPTC Location Viewer */}
+      {/* Campus Map Modal */}
       <LocationViewModal
         isOpen={showLocationModal}
         onClose={() => setShowLocationModal(false)}

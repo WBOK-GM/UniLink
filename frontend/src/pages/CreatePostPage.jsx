@@ -156,21 +156,21 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24">
+    <div className="max-w-3xl mx-auto pb-20">
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white mb-4 transition"
+        className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white mb-4 transition"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Volver al inicio</span>
       </button>
 
-      <div className="rounded-2xl glass-panel p-6 sm:p-8 border border-slate-200/90 dark:border-slate-700/80 shadow-sm dark:shadow-2xl space-y-6">
+      <div className="rounded-3xl bg-white dark:bg-slate-900 p-6 sm:p-9 border border-slate-200/90 dark:border-slate-800 shadow-xl space-y-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Compartir Recurso Académico</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">Compartir Recurso Académico</h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Sube apuntes, resúmenes, grabaciones de clase o talleres para la comunidad estudiantil.
+            Sube apuntes, resúmenes, grabaciones de clase o talleres para la comunidad estudiantil de la UPTC.
           </p>
         </div>
 

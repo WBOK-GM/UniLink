@@ -59,12 +59,12 @@ export default function OfflinePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-20">
       {/* Network Header Banner */}
-      <div className={`rounded-2xl p-6 border shadow-sm dark:shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${
+      <div className={`rounded-3xl p-6 sm:p-7 border shadow-sm dark:shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${
         isOnline
-          ? 'bg-emerald-50 dark:bg-slate-900/90 border-emerald-200 dark:border-emerald-500/30'
-          : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/40'
+          ? 'bg-emerald-50/80 dark:bg-slate-900/90 border-emerald-200 dark:border-emerald-500/30'
+          : 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/40'
       }`}>
         <div className="flex items-center gap-3.5">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${

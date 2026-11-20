@@ -145,22 +145,22 @@ export default function MapPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 space-y-4">
+    <div className="max-w-7xl mx-auto space-y-4 pb-20">
       {/* Top Controls Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
             <Compass className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Explorador Geográfico de Grupos</h2>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white">Explorador Geográfico de Grupos</h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Descubre grupos de estudio presenciales organizados por distancia (Fórmula Haversine).
+            Descubre grupos de estudio presenciales organizados por distancia geográfica (Fórmula Haversine).
           </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
           {/* Radius selector */}
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs shadow-sm">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3.5 py-2 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs shadow-2xs">
             <Filter className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
             <span className="text-slate-500 dark:text-slate-400">Radio:</span>
             <select

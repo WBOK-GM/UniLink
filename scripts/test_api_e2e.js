@@ -112,7 +112,9 @@ async function runTests() {
   } catch (error) {
     console.error('Error durante ejecución de pruebas:', error);
   } finally {
-    server.close();
+    server.close(() => {
+      process.exit(failed > 0 ? 1 : 0);
+    });
   }
 }
 

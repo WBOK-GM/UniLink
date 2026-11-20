@@ -14,7 +14,7 @@ const rateLimitStore = {
 };
 
 // Limpieza periódica de registros caducados cada 10 minutos
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [ip, record] of rateLimitStore.auth.entries()) {
     if (now > record.resetTime) rateLimitStore.auth.delete(ip);
@@ -23,6 +23,9 @@ setInterval(() => {
     if (now > record.resetTime) rateLimitStore.api.delete(ip);
   }
 }, 10 * 60 * 1000);
+if (cleanupInterval && cleanupInterval.unref) {
+  cleanupInterval.unref();
+}
 
 /**
  * Generador de limitador de tasa deslizante en memoria
