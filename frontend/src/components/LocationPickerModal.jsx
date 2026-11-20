@@ -27,14 +27,18 @@ export default function LocationPickerModal({
     { name: 'Restaurante y Cafetería Central', lat: 5.5532, lng: -73.3575, icon: Coffee },
   ];
 
-  // Crear icono de marcador personalizado de alta estética
+  // Crear icono de marcador personalizado de alta estética con SVG nativo
   const createPinIcon = () => {
     return L.divIcon({
       className: 'unilink-picker-pin',
       html: `
         <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
           <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; width: 36px; height: 36px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.5); border: 2.5px solid #ffffff;">
-            <span style="transform: rotate(45deg); font-size: 15px;">📍</span>
+            <span style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </span>
           </div>
           <div style="width: 14px; height: 5px; background: rgba(0,0,0,0.3); border-radius: 50%; margin-top: 3px; filter: blur(1.5px);"></div>
         </div>

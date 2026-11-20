@@ -132,7 +132,11 @@ export default function LocationViewModal({ isOpen, onClose, locationStr }) {
         html: `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
             <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; width: 40px; height: 40px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(79, 70, 229, 0.6); border: 3px solid #ffffff;">
-              <span style="transform: rotate(45deg); font-size: 18px;">📍</span>
+              <span style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+              </span>
             </div>
             <div style="width: 16px; height: 6px; background: rgba(0,0,0,0.3); border-radius: 50%; margin-top: 4px; filter: blur(2px);"></div>
           </div>
