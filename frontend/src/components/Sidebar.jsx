@@ -56,29 +56,30 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
         style={{ background: '#0b1028' }}
       >
         {/* Top: Logo Area with Authentic UPTC Crest and Single Label */}
-        <div>
-          <div className="px-5 pt-6 pb-4 flex flex-col items-center relative text-center">
+        <div className="w-full">
+          <div className="w-full px-4 pt-7 pb-5 flex flex-col items-center justify-center relative text-center">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white lg:hidden transition"
+              className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-400 hover:text-white lg:hidden transition"
               style={{ background: 'rgba(255,255,255,0.06)' }}
+              title="Cerrar menú"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <Link to="/" onClick={onClose} className="flex flex-col items-center group">
-              <div className="w-14 h-12 flex items-center justify-center mb-1 group-hover:scale-105 transition-transform">
+            <Link to="/" onClick={onClose} className="w-full flex flex-col items-center justify-center text-center group">
+              <div className="w-24 h-16 sm:w-28 sm:h-20 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform duration-200">
                 <img
                   src="/images/uptc_eagle_crest.png"
                   alt="Escudo Oficial UPTC"
-                  className="w-full h-full object-contain filter drop-shadow-md"
+                  className="w-full h-full object-contain filter drop-shadow-[0_4px_14px_rgba(255,255,255,0.2)] mx-auto"
                 />
               </div>
 
-              <h1 className="text-xl font-black tracking-tight text-white leading-none">
+              <h1 className="text-2xl font-black tracking-tight text-white leading-tight text-center">
                 UniLink
               </h1>
-              <span className="text-[10px] font-extrabold text-slate-300 tracking-widest mt-1 uppercase">
+              <span className="text-[11px] font-black text-indigo-300 tracking-[0.25em] uppercase text-center block mt-0.5">
                 UPTC
               </span>
             </Link>
