@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
             </button>
 
             <Link to="/" onClick={onClose} className="w-full flex flex-col items-center justify-center text-center group">
-              <div className="w-24 h-16 sm:w-28 sm:h-20 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform duration-200">
+              <div className="w-16 h-16 sm:w-18 sm:h-18 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform duration-200">
                 <img
                   src="/images/uptc_eagle_crest.png"
                   alt="Escudo Oficial UPTC"
