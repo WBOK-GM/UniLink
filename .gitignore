@@ -31,10 +31,15 @@ backend/uploads/*
 .DS_Store
 Thumbs.db
 
-# Academic guides and session slides (PDF guides)
+# Academic guides, reports and session documents
 [Ss]esion*.pdf
 Sesion*.pdf
 *.pdf
+*.docx
+*.doc
+*informe*
+*INFORME*
+*report*.json
 
 # IDEs
 .idea/
