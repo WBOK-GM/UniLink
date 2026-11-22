@@ -23,7 +23,7 @@ const getGroupMembers = async (req, res) => {
           member_role: m.member_role, // 'OWNER' | 'MODERATOR' | 'MEMBER'
           membership_status: m.membership_status,
           joined_at: m.joined_at,
-          full_name: profile?.full_name || 'Estudiante UPTC',
+          full_name: profile?.full_name || 'Estudiante Universitario',
           academic_program: profile?.academic_program || 'Ingeniería',
           semester: profile?.semester || 1,
           email: user?.email

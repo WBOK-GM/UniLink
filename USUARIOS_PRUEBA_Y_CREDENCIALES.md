@@ -1,4 +1,4 @@
-# 🎓 UniLink UPTC - Usuarios de Prueba, Credenciales y Matriz de Roles
+# 🎓 UniLink - Usuarios de Prueba, Credenciales y Matriz de Roles
 
 Este documento detalla las credenciales de prueba preconfiguradas, los perfiles de usuario, los alcances de seguridad y los procedimientos para la evaluación, auditoría y despliegue del sistema **UniLink PWA**.
 
@@ -9,7 +9,7 @@ Este documento detalla las credenciales de prueba preconfiguradas, los perfiles 
 | Rol | Correo Electrónico Institucional | Contraseña | Nombre Completo | Programa / Dependencia |
 | :--- | :--- | :--- | :--- | :--- |
 | **Estudiante** | `estudiante@unilink.edu.co` | `123456` | Walter Alfonso | Ingeniería de Sistemas y Computación (Semestre 9) |
-| **Administrador** | `admin@unilink.edu.co` | `123456` | Administrador General | Consola Central de Infraestructura UPTC |
+| **Administrador** | `admin@unilink.edu.co` | `123456` | Administrador General | Consola Central de Infraestructura |
 
 > [!NOTE]
 > Las contraseñas en la base de datos PostgreSQL se almacenan hasheadas con **bcrypt** (salt rounds = 10). Para simplificar pruebas académicas y de auditoría se utiliza la clave `123456`.
@@ -22,7 +22,7 @@ Este documento detalla las credenciales de prueba preconfiguradas, los perfiles 
 - **Email**: `estudiante@unilink.edu.co`
 - **Password**: `123456`
 - **ID de Usuario**: `u1111111-1111-1111-1111-111111111111`
-- **Ubicación de referencia**: Campus Central UPTC Tunja (`5.5530, -73.3565`)
+- **Ubicación de referencia**: Campus Central Tunja (`5.5530, -73.3565`)
 
 ### Capacidades y Alcance en la PWA
 - **Feed Académico Offline-First**: Visualización de notas, apuntes, resúmenes y material bibliográfico ordenado por relevancia y temporalidad.

@@ -12,7 +12,8 @@ import {
   Sparkles,
   Eye,
   EyeOff,
-  AlertCircle
+  AlertCircle,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,14 +22,14 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, register, loginWithToken } = useAuth();
+  const { login, register, loginWithToken, loginAsGuest } = useAuth();
 
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [university, setUniversity] = useState('Universidad Pedagógica y Tecnológica de Colombia (UPTC)');
+  const [university, setUniversity] = useState('Universidad');
   const [academicProgram, setAcademicProgram] = useState('Ingeniería de Sistemas');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -70,7 +71,7 @@ export default function LoginPage() {
     }
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
-      setError('El formato del correo electrónico es inválido. Debe ser una dirección real (ej: tu.nombre@uptc.edu.co o estudiante@unilink.edu.co).');
+      setError('El formato del correo electrónico es inválido. Debe ser una dirección real (ej: tu.nombre@universidad.edu.co o estudiante@unilink.edu.co).');
       setLoading(false);
       return;
     }
@@ -135,7 +136,7 @@ export default function LoginPage() {
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {isRegister
-              ? 'Únete a la comunidad académica universitaria de la UPTC.'
+              ? 'Únete a la comunidad académica universitaria abierta.'
               : 'Accede a tus recursos compartidos y grupos de estudio.'}
           </p>
         </div>
@@ -188,7 +189,7 @@ export default function LoginPage() {
                   type="text"
                   value={university}
                   onChange={(e) => setUniversity(e.target.value)}
-                  placeholder="Ej: UPTC Tunja"
+                  placeholder="Ej: Universidad / Campus"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-500 transition shadow-2xs"
                 />
               </div>
@@ -245,7 +246,7 @@ export default function LoginPage() {
                   setEmail(e.target.value);
                   if (error) setError('');
                 }}
-                placeholder="tu.correo@uptc.edu.co"
+                placeholder="tu.correo@universidad.edu.co"
                 className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border ${
                   email.length > 0
                     ? EMAIL_REGEX.test(email.trim())
@@ -311,8 +312,8 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Switch tab */}
-        <div className="text-center pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+        {/* Switch tab & Acceso Invitado */}
+        <div className="text-center pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
           <button
             type="button"
             onClick={() => {
@@ -326,12 +327,30 @@ export default function LoginPage() {
               : '¿No tienes cuenta todavía? Regístrate gratis'}
           </button>
 
-          {/* Acceso por Token Institucional para pruebas / desarrollo */}
-          <div className="pt-1">
+          {/* Botón de Acceso como Invitado */}
+          <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => {
+                loginAsGuest();
+                navigate('/');
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center justify-center gap-2 shadow-2xs group"
+            >
+              <UserCheck className="w-4 h-4 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform" />
+              <span>Continuar como Invitado (Modo Explorador)</span>
+            </button>
+            <p className="text-[10.5px] text-center text-slate-400 dark:text-slate-500 mt-1.5 leading-tight">
+              Consulta apuntes, mapas y recursos libremente sin crear cuenta.
+            </p>
+          </div>
+
+          {/* Acceso por Token para desarrollo */}
+          <div className="pt-0.5">
             <button
               type="button"
               onClick={() => setShowTokenAccess(!showTokenAccess)}
-              className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 transition"
+              className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
             >
               {showTokenAccess ? '▲ Ocultar acceso por Token JWT' : '🔐 ¿Ingresar con Token Institucional?'}
             </button>

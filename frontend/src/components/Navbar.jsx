@@ -97,7 +97,7 @@ export default function Navbar() {
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-                  Comunidad Académica UPTC
+                  Comunidad Académica Universitaria
                 </p>
               </div>
             </Link>
@@ -224,7 +224,7 @@ export default function Navbar() {
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
                         <span className="text-[10px] font-bold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/20 px-2 py-0.5 rounded border border-brand-200 dark:border-brand-500/30 inline-block mt-1">
-                          {user.profile?.academic_program || 'Ingeniería UPTC'}
+                          {user.profile?.academic_program || 'Ingeniería de Sistemas'}
                         </span>
                       </div>
 

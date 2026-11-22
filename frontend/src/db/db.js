@@ -199,7 +199,7 @@ export async function seedDefaultOfflineUser() {
       password: '123456',
       role: 'STUDENT',
       full_name: 'Walter Alfonso',
-      university: 'Universidad Pedagógica y Tecnológica de Colombia (UPTC)',
+      university: 'Universidad (Campus Tunja)',
       academic_program: 'Ingeniería de Sistemas y Computación',
       semester: 9,
       latitude: 5.5530,

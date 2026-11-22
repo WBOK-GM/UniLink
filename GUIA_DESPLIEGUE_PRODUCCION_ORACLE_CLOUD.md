@@ -155,13 +155,13 @@ NODE_ENV=production
 PORT=5000
 
 # Seguridad de Tokens JWT (genera una clave aleatoria de al menos 32 caracteres)
-JWT_SECRET=UPTC_UniLink_Secr3t_Pr0d_Key_2026_AmpereARM_SecureToken!
+JWT_SECRET=UniLink_Campus_Secr3t_Pr0d_Key_2026_AmpereARM_SecureToken!
 
 # Base de Datos PostgreSQL
 POSTGRES_DB=unilink_db
 POSTGRES_USER=unilink_admin
-POSTGRES_PASSWORD=ClaveUltraSeguraUPTC2026!
-DATABASE_URL=postgres://unilink_admin:ClaveUltraSeguraUPTC2026!@postgres:5432/unilink_db
+POSTGRES_PASSWORD=ClaveUltraSeguraUniLink2026!
+DATABASE_URL=postgres://unilink_admin:ClaveUltraSeguraUniLink2026!@postgres:5432/unilink_db
 
 # Política de Retención y Almacenamiento Escalable (LRU)
 STORAGE_RETENTION_DAYS=10

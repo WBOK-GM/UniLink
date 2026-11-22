@@ -55,7 +55,7 @@ export default function ProfilePage() {
       setLongitude(pos.lng);
       alert(`📍 Coordenadas actualizadas: ${pos.placeName}`);
     } catch (err) {
-      alert('No se pudo acceder al GPS físico. Se mantiene el campus UPTC.');
+      alert('No se pudo acceder al GPS físico. Se mantiene la referencia del campus.');
     }
   };
 
@@ -69,6 +69,10 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (user?.role === 'GUEST') {
+      alert('Modo Invitado: Tu perfil es temporal. Crea una cuenta o inicia sesión para guardar tus datos permanentes.');
+      return;
+    }
     try {
       setSaving(true);
       const res = await api.updateProfile({
@@ -143,6 +147,24 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 space-y-6">
+      {user?.role === 'GUEST' && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <p className="font-extrabold text-[12px]">Perfil en Modo Invitado (Solo Lectura)</p>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400">Estás explorando temporalmente. Regístrate gratis para personalizar tu foto, biografía y asignaturas.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shrink-0 transition"
+          >
+            Crear Cuenta
+          </button>
+        </div>
+      )}
       
       {/* Student Identity Card (Carnet Digital Universitario) */}
       <div className="rounded-3xl bg-gradient-to-br from-indigo-900 via-brand-800 to-purple-900 text-white p-6 sm:p-8 relative overflow-hidden shadow-xl shadow-brand-900/20">
@@ -168,7 +190,7 @@ export default function ProfilePage() {
                 <span>{academicProgram || 'Ingeniería de Sistemas'}</span>
               </span>
               <span>•</span>
-              <span>{university || 'UPTC Tunja'}</span>
+              <span>{university || 'Comunidad Universitaria'}</span>
               <span>•</span>
               <span className="font-bold text-emerald-300">Semestre {semester} de 10</span>
             </div>
@@ -335,7 +357,7 @@ export default function ProfilePage() {
               Tus coordenadas son <strong>100% privadas</strong>. Nunca se muestran a otros estudiantes en tu perfil. Solo se usan internamente en tu dispositivo para calcular las distancias en kilómetros a grupos de estudio cercanos usando la fórmula Haversine.
             </p>
 
-            {/* Selector de Edificio Campus UPTC */}
+            {/* Selector de Edificio Campus */}
             <div className="p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-brand-600 dark:text-brand-400" />
@@ -346,7 +368,7 @@ export default function ProfilePage() {
                 defaultValue=""
                 className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer"
               >
-                <option value="" disabled>Seleccionar sede/edificio UPTC...</option>
+                <option value="" disabled>Seleccionar sede/edificio de referencia...</option>
                 {UPTC_CAMPUS_PRESETS.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}

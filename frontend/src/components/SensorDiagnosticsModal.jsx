@@ -330,7 +330,7 @@ export default function SensorDiagnosticsModal({ isOpen, onClose }) {
                   </div>
 
                   <p className="text-xs text-slate-600 dark:text-slate-400 mb-3 leading-relaxed">
-                    Localiza tu posición en el campus UPTC para ordenar publicaciones y calcular distancias a grupos de estudio.
+                    Localiza tu posición en el campus para ordenar publicaciones y calcular distancias a grupos de estudio.
                   </p>
 
                   {/* Resultados GPS */}
@@ -343,7 +343,7 @@ export default function SensorDiagnosticsModal({ isOpen, onClose }) {
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                             : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300'
                         }`}>
-                          {gpsResult.source === 'GPS_HARDWARE' ? 'GPS Físico Real' : 'Fallback Campus UPTC'}
+                          {gpsResult.source === 'GPS_HARDWARE' ? 'GPS Físico Real' : 'Fallback Campus Universitario'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -617,7 +617,7 @@ export default function SensorDiagnosticsModal({ isOpen, onClose }) {
                     Solución integrada de UniLink:
                   </b>
                   <p className="text-slate-600 dark:text-slate-400">
-                    No necesitas configurar nada adicional. UniLink detecta automáticamente la ausencia de hardware y te permite seleccionar cualquiera de los puntos oficiales de la UPTC (Facultad de Ingeniería, Biblioteca Central, Rectoría, etc.) con 1 solo clic.
+                    No necesitas configurar nada adicional. UniLink detecta automáticamente la ausencia de hardware y te permite seleccionar cualquiera de los puntos de referencia del campus (Facultad de Ingeniería, Biblioteca Central, Rectoría, etc.) con 1 solo clic.
                   </p>
                 </div>
               </div>
@@ -664,7 +664,7 @@ export default function SensorDiagnosticsModal({ isOpen, onClose }) {
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between shrink-0">
           <span className="text-xs text-slate-500 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-brand-500" />
-            <span>PWA Hardware Abstraction Layer • UPTC Tunja</span>
+            <span>PWA Hardware Abstraction Layer • Campus Tunja</span>
           </span>
 
           <button

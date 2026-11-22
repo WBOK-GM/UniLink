@@ -55,7 +55,7 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
         }`}
         style={{ background: '#0b1028' }}
       >
-        {/* Top: Logo Area with Authentic UPTC Crest and Single Label */}
+        {/* Top: Logo Area with Academic Crest and Single Label */}
         <div className="w-full">
           <div className="w-full px-4 pt-7 pb-5 flex flex-col items-center justify-center relative text-center">
             <button
@@ -71,7 +71,7 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
               <div className="w-16 h-16 sm:w-18 sm:h-18 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform duration-200">
                 <img
                   src="/images/uptc_eagle_crest.png"
-                  alt="Escudo Oficial UPTC"
+                  alt="Emblema Académico UniLink"
                   className="w-full h-full object-contain filter drop-shadow-[0_4px_14px_rgba(255,255,255,0.2)] mx-auto"
                 />
               </div>
@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
                 UniLink
               </h1>
               <span className="text-[11px] font-black text-indigo-300 tracking-[0.25em] uppercase text-center block mt-0.5">
-                UPTC
+                CAMPUS
               </span>
             </Link>
           </div>
@@ -241,7 +241,7 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
 
           {/* Crisp HTML Typography with app font (Inter) */}
           <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 tracking-tight text-center mt-1">
-            UPTC Tunja • Sede Central
+            Campus Universitario • Comunidad Abierta
           </p>
         </div>
       </aside>

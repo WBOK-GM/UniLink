@@ -78,7 +78,7 @@ function MainLayout() {
         {/* Banner de Estado Offline */}
         <OfflineBanner />
 
-        {/* Barra Superior con Tag UPTC, Estado de Red y Acciones */}
+        {/* Barra Superior con Tag Campus, Estado de Red y Acciones */}
         <TopHeader
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onOpenAudit={() => setShowAuditModal(true)}

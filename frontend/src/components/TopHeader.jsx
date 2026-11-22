@@ -9,7 +9,8 @@ import {
   LogOut,
   GraduationCap,
   HardDrive,
-  ShieldCheck
+  ShieldCheck,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
@@ -29,7 +30,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
   return (
     <header className={`${isHome ? 'hidden lg:flex' : 'flex'} sticky top-0 z-30 bg-white/95 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 transition-colors shadow-2xs`}>
       
-      {/* Left: Mobile Menu Trigger + UPTC Campus Pill Tag */}
+      {/* Left: Mobile Menu Trigger + Campus Pill Tag */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -47,11 +48,11 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
           </div>
           <div>
             <span className="text-xs font-black text-slate-900 dark:text-white leading-tight block">
-              Comunidad Académica UPTC
+              Comunidad Académica Universitaria
             </span>
             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              <span>Tunja, Boyacá</span>
+              <span>Campus Abierto</span>
             </span>
           </div>
         </div>
@@ -59,6 +60,21 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
 
       {/* Right Controls: Online status, Theme toggle & Auth */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Guest Mode Indicator */}
+        {user?.role === 'GUEST' && (
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-bold">
+              <Eye className="w-3.5 h-3.5" />
+              <span>Modo Invitado (Solo Lectura)</span>
+            </span>
+            <button
+              onClick={logout}
+              className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition shadow-xs"
+            >
+              Registrarse
+            </button>
+          </div>
+        )}
         
         {/* Status: En línea con punto verde pulsante (Matches Reference Image) */}
         <div

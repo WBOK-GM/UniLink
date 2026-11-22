@@ -28,7 +28,7 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [selectedPresetId, setSelectedPresetId] = useState('central');
-  const [userCoords, setUserCoords] = useState({ lat: 5.5530, lng: -73.3565 }); // UPTC Sede Central Tunja
+  const [userCoords, setUserCoords] = useState({ lat: 5.5530, lng: -73.3565 }); // Campus Sede Central Tunja
   const [isLocating, setIsLocating] = useState(false);
   const [locationNotice, setLocationNotice] = useState(null);
   const [sensorModalOpen, setSensorModalOpen] = useState(false);
@@ -77,7 +77,7 @@ export default function MapPage() {
     };
   }, []);
 
-  // Cambiar punto de referencia UPTC mediante el selector
+  // Cambiar punto de referencia del campus mediante el selector
   const handlePresetChange = (presetId) => {
     const preset = UPTC_CAMPUS_PRESETS.find((p) => p.id === presetId);
     if (preset) {
@@ -119,13 +119,13 @@ export default function MapPage() {
       } else {
         setLocationNotice({
           type: 'warning',
-          text: result.errorNotice || 'GPS físico no detectado en el equipo. Ubicación centrada en campus UPTC.'
+          text: result.errorNotice || 'GPS físico no detectado en el equipo. Ubicación centrada en campus universitario.'
         });
       }
     } catch (err) {
       setLocationNotice({
         type: 'warning',
-        text: 'No se pudo acceder al GPS físico. Mostrando campus UPTC Tunja.'
+        text: 'No se pudo acceder al GPS físico. Mostrando campus universitario.'
       });
     } finally {
       setIsLocating(false);
@@ -166,7 +166,7 @@ export default function MapPage() {
             </svg>
             <b style="color: #0f172a; font-size: 13px; font-weight: 800;">Tu Punto de Referencia</b>
           </div>
-          <span style="font-size: 11px; color: #475569; line-height: 1.4; display: block;">Ubicación privada utilizada para calcular distancias en el campus UPTC.</span>
+          <span style="font-size: 11px; color: #475569; line-height: 1.4; display: block;">Ubicación privada utilizada para calcular distancias en el campus universitario.</span>
         </div>
       `);
 
@@ -217,7 +217,7 @@ export default function MapPage() {
           </div>
 
           <p style="font-size: 12px; color: #334155; margin: 0 0 10px 0; line-height: 1.45;">
-            ${group.description || 'Grupo académico de la comunidad UPTC.'}
+            ${group.description || 'Grupo académico de la comunidad universitaria.'}
           </p>
 
           <div style="font-size: 11.5px; color: #475569; margin-bottom: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;">
@@ -272,7 +272,7 @@ export default function MapPage() {
         </div>
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap">
-          {/* UPTC Campus Landmark Quick Preset */}
+          {/* Campus Landmark Quick Preset */}
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs shadow-2xs">
             <Building2 className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
             <span className="text-slate-500 dark:text-slate-400 font-medium hidden md:inline">Campus:</span>
@@ -280,7 +280,7 @@ export default function MapPage() {
               value={selectedPresetId}
               onChange={(e) => handlePresetChange(e.target.value)}
               className="bg-transparent text-slate-800 dark:text-white font-bold focus:outline-none cursor-pointer text-xs"
-              title="Cambiar punto de referencia en el campus UPTC"
+              title="Cambiar punto de referencia en el campus"
             >
               {UPTC_CAMPUS_PRESETS.map((p) => (
                 <option key={p.id} value={p.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">

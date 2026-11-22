@@ -33,6 +33,20 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      // Si es sesión de invitado, restaurar sin consultar API
+      if (activeToken === 'guest-session-token') {
+        const cached = localStorage.getItem('unilink_cached_user');
+        if (cached) {
+          try {
+            setUser(JSON.parse(cached));
+          } catch (e) {}
+        }
+        setAuthToken(activeToken);
+        setTokenState(activeToken);
+        setLoading(false);
+        return;
+      }
+
       setAuthToken(activeToken);
       setTokenState(activeToken);
 
@@ -92,7 +106,7 @@ export const AuthProvider = ({ children }) => {
           email: normalizedEmail,
           password,
           role: res.user.role,
-          full_name: res.user.profile?.full_name || 'Estudiante UPTC'
+          full_name: res.user.profile?.full_name || 'Estudiante'
         });
 
         return res;
@@ -123,8 +137,8 @@ export const AuthProvider = ({ children }) => {
               ? 'Walter Alfonso'
               : isAdminDemo
               ? 'Administrador General'
-              : cachedUser?.full_name || 'Estudiante UPTC',
-            university: 'Universidad Pedagógica y Tecnológica de Colombia (UPTC)',
+              : cachedUser?.full_name || 'Estudiante',
+            university: 'Universidad (Campus Tunja)',
             academic_program: 'Ingeniería de Sistemas y Computación',
             semester: 9,
             latitude: 5.5530,
@@ -218,7 +232,7 @@ export const AuthProvider = ({ children }) => {
         role: 'STUDENT',
         profile: {
           full_name: 'Walter Alfonso (Acceso por Token)',
-          university: 'UPTC Tunja',
+          university: 'Universidad (Campus Tunja)',
           academic_program: 'Ingeniería de Sistemas y Computación',
           semester: 9,
           latitude: 5.5530,
@@ -230,6 +244,32 @@ export const AuthProvider = ({ children }) => {
       await saveOfflineSession({ token: cleanToken, user: fallbackUser });
       return { success: true, user: fallbackUser };
     }
+  };
+
+  /**
+   * Inicio de sesión como Invitado (Modo Explorador / Solo Lectura)
+   */
+  const loginAsGuest = () => {
+    const guestUser = {
+      id: 'guest-explorer-001',
+      email: 'invitado@unilink.app',
+      role: 'GUEST',
+      profile: {
+        full_name: 'Visitante Invitado',
+        university: 'Comunidad Universitaria',
+        academic_program: 'Explorador Académico',
+        semester: 1,
+        latitude: 5.5530,
+        longitude: -73.3565
+      }
+    };
+    const guestToken = 'guest-session-token';
+    setAuthToken(guestToken);
+    setTokenState(guestToken);
+    setUser(guestUser);
+    setIsOfflineSession(false);
+    localStorage.setItem('unilink_cached_user', JSON.stringify(guestUser));
+    return { success: true, user: guestUser };
   };
 
   /**
@@ -264,9 +304,11 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         isOfflineSession,
+        isGuest: user?.role === 'GUEST',
         login,
         register,
         loginWithToken,
+        loginAsGuest,
         logout,
         updateUserProfile
       }}

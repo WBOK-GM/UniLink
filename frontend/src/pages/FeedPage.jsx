@@ -400,29 +400,29 @@ export default function FeedPage({ onOpenAudit }) {
                 background: 'linear-gradient(145deg, #100b2b 0%, #1e1250 45%, #2a186c 75%, #3b1d82 100%)'
               }}
             >
-              {/* UPTC Building blended on the right */}
+              {/* Campus Building blended on the right */}
               <div className="absolute right-0 top-10 bottom-0 w-1/2 pointer-events-none select-none flex items-end justify-end overflow-hidden">
                 <img
                   src="/images/uptc_hero_facade.png"
-                  alt="UPTC Sede Central"
+                  alt="Campus Universitario"
                   className="w-full h-auto max-h-[195px] object-cover object-left opacity-90"
                 />
               </div>
 
-              {/* Mobile Hero Header Row: Logo UPTC + Bell & Avatar */}
+              {/* Mobile Hero Header Row: Logo Campus + Bell & Avatar */}
               <div className="relative z-10 flex items-center justify-between pb-3">
                 {/* Logo + Brand */}
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center p-1 bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
                     <img
                       src="/images/uptc_crest_official.png"
-                      alt="UPTC Crest"
+                      alt="Emblema UniLink"
                       className="w-full h-full object-contain"
                     />
                   </div>
                   <div>
                     <h2 className="text-base font-black tracking-tight text-white leading-none">UniLink</h2>
-                    <span className="text-[10px] font-bold text-indigo-200 tracking-wider">UPTC</span>
+                    <span className="text-[10px] font-bold text-indigo-200 tracking-wider">CAMPUS</span>
                   </div>
                 </div>
 
@@ -457,7 +457,7 @@ export default function FeedPage({ onOpenAudit }) {
                   & Apuntes <span className="text-purple-400">PWA</span>
                 </h2>
                 <p className="text-xs text-indigo-100/80 pt-1.5 leading-relaxed">
-                  Conecta, comparte y aprende con la comunidad UPTC.
+                  Conecta, comparte y aprende con la comunidad universitaria.
                 </p>
               </div>
             </div>
@@ -651,11 +651,11 @@ export default function FeedPage({ onOpenAudit }) {
             minHeight: '235px'
           }}
         >
-          {/* Real UPTC building facade + trees + cursive slogan */}
+          {/* Campus building facade + trees + cursive slogan */}
           <div className="absolute right-0 top-0 bottom-0 w-3/5 pointer-events-none select-none flex items-stretch justify-end overflow-hidden">
             <img
               src="/images/uptc_hero_facade.png"
-              alt="UPTC Sede Central"
+              alt="Campus Universitario"
               className="w-full h-full object-cover object-left"
             />
           </div>
@@ -687,7 +687,7 @@ export default function FeedPage({ onOpenAudit }) {
               style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#c4b5fd' }}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>UniLink • UPTC</span>
+              <span>UniLink • Campus Universitario</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight text-white">
@@ -696,7 +696,7 @@ export default function FeedPage({ onOpenAudit }) {
             </h1>
 
             <p className="text-xs sm:text-sm text-indigo-100/85 leading-relaxed max-w-md">
-              Descubre apuntes de clase, grabaciones de cátedra y talleres compartidos. Conecta con la comunidad UPTC y accede a la tecnología Offline-First.
+              Descubre apuntes de clase, grabaciones de cátedra y talleres compartidos. Conecta con la comunidad académica y accede a la tecnología Offline-First.
             </p>
 
             {/* 4 Stat Pills inside Hero Banner */}

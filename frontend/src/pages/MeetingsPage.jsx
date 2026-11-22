@@ -119,7 +119,7 @@ export default function MeetingsPage() {
           <div className="space-y-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-white shadow-2xs">
               <Calendar className="w-3.5 h-3.5 text-amber-300" />
-              <span>Agenda Académica UPTC</span>
+              <span>Agenda Académica Universitaria</span>
             </span>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
               Encuentros & Sesiones de Estudio
@@ -130,7 +130,13 @@ export default function MeetingsPage() {
           </div>
 
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              if (user?.role === 'GUEST') {
+                alert('Modo Invitado: Para agendar o proponer encuentros de estudio debes registrarte o iniciar sesión.');
+                return;
+              }
+              setShowCreateModal(true);
+            }}
             className="px-5 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-brand-700 font-extrabold text-xs sm:text-sm shadow-lg shadow-black/15 flex items-center gap-2 transition hover:scale-105 active:scale-95 shrink-0"
           >
             <Plus className="w-4 h-4 text-brand-600" />

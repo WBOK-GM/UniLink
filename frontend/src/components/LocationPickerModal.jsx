@@ -18,7 +18,7 @@ export default function LocationPickerModal({
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
-  // Lugares universitarios de referencia real UPTC Tunja
+  // Lugares universitarios de referencia real Campus Tunja
   const campusPresets = [
     { name: 'Biblioteca Central (Jorge Palacios Preciado)', lat: 5.5536, lng: -73.3581, icon: BookOpen },
     { name: 'Facultad de Ingeniería (Aulas 302 / Sistemas)', lat: 5.5525, lng: -73.3553, icon: Building2 },
@@ -73,7 +73,7 @@ export default function LocationPickerModal({
         }).setView([targetLat, targetLng], 16);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors | UPTC Tunja'
+          attribution: '&copy; OpenStreetMap contributors | UniLink Campus'
         }).addTo(map);
 
         // Añadir marcador inicial
@@ -235,7 +235,7 @@ export default function LocationPickerModal({
           {/* Quick presets buttons */}
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
-              Lugares comunes del campus UPTC Tunja:
+              Lugares comunes del campus universitario:
             </span>
             <div className="flex flex-wrap gap-1.5">
               {campusPresets.map((preset, idx) => {

@@ -1,11 +1,11 @@
 /**
  * UniLink Geolocation & Sensor Utilities
  * Implementa geolocalización resiliente de 2 etapas (alta precisión -> baja precisión/caché)
- * con fallback inteligente para el campus universitario UPTC Tunja cuando el hardware GPS
+ * con fallback inteligente para el campus universitario cuando el hardware GPS
  * está ausente o el servicio del sistema operativo (GeoClue/Linux/Chrome) está deshabilitado.
  */
 
-// Lugares universitarios de referencia real UPTC Sede Central Tunja
+// Lugares universitarios de referencia real Campus Tunja
 export const UPTC_CAMPUS_PRESETS = [
   {
     id: 'ingenieria',
@@ -25,7 +25,7 @@ export const UPTC_CAMPUS_PRESETS = [
   },
   {
     id: 'central',
-    name: 'Edificio Central y Rectoría UPTC',
+    name: 'Edificio Central y Rectoría',
     shortName: 'Edificio Central',
     lat: 5.5530,
     lng: -73.3565,
@@ -57,10 +57,12 @@ export const UPTC_CAMPUS_PRESETS = [
   }
 ];
 
+export const CAMPUS_PRESETS = UPTC_CAMPUS_PRESETS;
+
 export const DEFAULT_CAMPUS_LOCATION = {
   lat: 5.5525,
   lng: -73.3553,
-  placeName: 'Facultad de Ingeniería (UPTC Tunja)',
+  placeName: 'Facultad de Ingeniería (Campus Tunja)',
   isFallback: true
 };
 
@@ -83,7 +85,7 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Encuentra el preset de UPTC más cercano a unas coordenadas dadas
+ * Encuentra el preset de campus más cercano a unas coordenadas dadas
  */
 export function findNearestCampusPreset(lat, lng) {
   let nearest = UPTC_CAMPUS_PRESETS[0];
@@ -106,7 +108,7 @@ export function findNearestCampusPreset(lat, lng) {
  * 2. Si falla o expira, intento de baja precisión (WiFi / Celular / IP) con caché permitido de 5 minutos.
  * 3. Si el sistema operativo no tiene GPS físico o el servicio de ubicación del SO está inactivo
  *    (ej. Linux Chromium reportando "User denied Geolocation"), retorna gracefully el punto
- *    de referencia de la UPTC sin alertas bloqueantes.
+ *    de referencia del campus sin alertas bloqueantes.
  *
  * @param {Object} options Opciones adicionales
  * @returns {Promise<{
@@ -129,7 +131,7 @@ export async function getResilientPosition(options = {}) {
       accuracy: null,
       isRealGps: false,
       source: 'CAMPUS_FALLBACK',
-      errorNotice: 'Tu navegador no soporta la API de geolocalización. Se activó el campus UPTC Tunja.'
+      errorNotice: 'Tu navegador no soporta la API de geolocalización. Se activó el campus universitario de referencia.'
     };
   }
 
@@ -180,7 +182,7 @@ export async function getResilientPosition(options = {}) {
     console.warn('[UniLink Geolocation] Ubicación del sistema/hardware no disponible:', errLow.message);
   }
 
-  // Etapa 3: Fallback controlado al campus universitario UPTC Tunja
+  // Etapa 3: Fallback controlado al campus universitario
   // Ocurre típicamente en Linux/Chromium en escritorio sin chip GPS o con GeoClue apagado
   const preset = options.presetId
     ? UPTC_CAMPUS_PRESETS.find(p => p.id === options.presetId) || UPTC_CAMPUS_PRESETS[0]
@@ -193,7 +195,7 @@ export async function getResilientPosition(options = {}) {
     accuracy: 25,
     isRealGps: false,
     source: 'CAMPUS_FALLBACK',
-    errorNotice: 'El equipo no cuenta con chip GPS activo o el servicio de ubicación del sistema está deshabilitado. Se asignó automáticamente el campus UPTC Tunja.'
+    errorNotice: 'El equipo no cuenta con chip GPS activo o el servicio de ubicación del sistema está deshabilitado. Se asignó automáticamente el campus universitario de referencia.'
   };
 }
 

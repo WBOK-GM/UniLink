@@ -111,7 +111,7 @@ flowchart TD
 | :--- | :--- |
 | `NODE_ENV` | `production` |
 | `PORT` | `10000` |
-| `JWT_SECRET` | `Una_Clave_Secreta_Larga_Y_Segura_UPTC_2026!` |
+| `JWT_SECRET` | `Una_Clave_Secreta_Larga_Y_Segura_UniLink_2026!` |
 | `JWT_EXPIRES_IN` | `7d` |
 | `DATABASE_URL` | *(Pega tu Connection String de Neon con `?sslmode=require`)* |
 | `CLOUDFLARE_R2_ACCOUNT_ID` | *(Tu Account ID de Cloudflare)* |

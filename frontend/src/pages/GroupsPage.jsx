@@ -36,7 +36,7 @@ export default function GroupsPage() {
   const [categoryId, setCategoryId] = useState('');
   const [groupType, setGroupType] = useState('PUBLIC');
   const [maxMembers, setMaxMembers] = useState(30);
-  const [latitude, setLatitude] = useState(5.5530); // UPTC Tunja
+  const [latitude, setLatitude] = useState(5.5530); // Campus Tunja
   const [longitude, setLongitude] = useState(-73.3565);
   const [submitting, setSubmitting] = useState(false);
 
@@ -131,7 +131,7 @@ export default function GroupsPage() {
           <div className="space-y-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-white shadow-2xs">
               <Users className="w-3.5 h-3.5 text-brand-300" />
-              <span>Comunidades de Estudio UPTC</span>
+              <span>Comunidades de Estudio Universitario</span>
             </span>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
               Grupos y Círculos de Estudio
@@ -151,7 +151,13 @@ export default function GroupsPage() {
             </Link>
 
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                if (user?.role === 'GUEST') {
+                  alert('Modo Invitado: Para crear comunidades o grupos de estudio debes registrarte o iniciar sesión.');
+                  return;
+                }
+                setShowCreateModal(true);
+              }}
               className="px-5 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-brand-700 font-extrabold text-xs sm:text-sm shadow-lg shadow-black/15 flex items-center gap-2 transition hover:scale-105 active:scale-95"
             >
               <Plus className="w-4 h-4 text-brand-600" />
@@ -378,7 +384,7 @@ export default function GroupsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                    Latitud Mapa UPTC
+                    Latitud Mapa Campus
                   </label>
                   <input
                     type="number"
@@ -391,7 +397,7 @@ export default function GroupsPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                    Longitud Mapa UPTC
+                    Longitud Mapa Campus
                   </label>
                   <input
                     type="number"
