@@ -42,4 +42,11 @@ Sesion*.pdf
 *.swp
 *.swo
 
+# Deployment guides, reports and credential documents (private)
 despliegue.md
+*despliegue*.md
+GUIA_*.md
+USUARIOS_*.md
+INFORME_*.md
+*informe*.md
+*guia*.md
