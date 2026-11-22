@@ -281,9 +281,14 @@ const memoryStore = {
 
 // Inicialización de conexión PostgreSQL si existe DATABASE_URL
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== '') {
+  const isNeonOrSsl = process.env.DATABASE_URL.includes('sslmode=require') ||
+    process.env.DATABASE_URL.includes('neon.tech') ||
+    process.env.DATABASE_URL.includes('render.com') ||
+    process.env.NODE_ENV === 'production';
+
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL.includes('sslmode=require') ? { rejectUnauthorized: false } : false
+    ssl: isNeonOrSsl ? { rejectUnauthorized: false } : false
   });
 
   pool.query('SELECT NOW()', (err, res) => {

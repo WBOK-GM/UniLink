@@ -2,7 +2,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { memoryStore } = require('../../config/db');
-const { getFileUrl } = require('../../config/storage');
+const { getFileUrl, uploadFileToR2 } = require('../../config/storage');
 const { recordFileAccess } = require('../../services/storageRetentionService');
 
 const getPosts = async (req, res) => {
@@ -230,6 +230,11 @@ const createPost = async (req, res) => {
           file_id: fileId,
           display_order: index + 1
         });
+
+        // Si Cloudflare R2 está configurado, subir el archivo de manera persistente
+        if (file.path && fs.existsSync(file.path)) {
+          await uploadFileToR2(file.path, fileRecord.storage_key, file.mimetype);
+        }
 
         attachments.push({
           id: fileRecord.id,

@@ -292,7 +292,10 @@ export async function runPwaAudit() {
 
   let backendSecAudit = null;
   try {
-    const secRes = await fetch('/api/v1/security/audit');
+    const secApiUrl = typeof window !== 'undefined' && window.__VITE_API_URL__
+      ? `${window.__VITE_API_URL__}/security/audit`
+      : (import.meta.env?.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/security/audit` : '/api/v1/security/audit');
+    const secRes = await fetch(secApiUrl);
     if (secRes.ok) {
       backendSecAudit = await secRes.json();
     }
