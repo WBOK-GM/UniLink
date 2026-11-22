@@ -87,7 +87,7 @@ async function runInit() {
     if (studentUserRes.rows.length === 0) {
       const inserted = await client.query(
         `INSERT INTO users (id, email, password_hash, role, status)
-         VALUES ('u1111111-1111-1111-1111-111111111111', $1, $2, 'STUDENT', 'ACTIVE')
+         VALUES ('11111111-1111-1111-1111-111111111111', $1, $2, 'STUDENT', 'ACTIVE')
          RETURNING id`,
         [studentEmail, passHash]
       );
@@ -95,7 +95,7 @@ async function runInit() {
 
       await client.query(
         `INSERT INTO profiles (id, user_id, full_name, biography, university, academic_program, semester, latitude, longitude)
-         VALUES ('p1111111-1111-1111-1111-111111111111', $1, 'Walter Alfonso', 'Estudiante universitario apasionado por arquitecturas distribuidas e IA.', 'Universidad (Campus Tunja)', 'Ingeniería de Sistemas y Computación', 9, 5.5530, -73.3565)`,
+         VALUES ('11111111-1111-1111-1111-222222222222', $1, 'Walter Alfonso', 'Estudiante universitario apasionado por arquitecturas distribuidas e IA.', 'Universidad (Campus Tunja)', 'Ingeniería de Sistemas y Computación', 9, 5.5530, -73.3565)`,
         [studentId]
       );
       console.log(`  ➕ Usuario Estudiante creado: ${studentEmail} (123456)`);
@@ -110,7 +110,7 @@ async function runInit() {
     if (adminUserRes.rows.length === 0) {
       const inserted = await client.query(
         `INSERT INTO users (id, email, password_hash, role, status)
-         VALUES ('u2222222-2222-2222-2222-222222222222', $1, $2, 'ADMIN', 'ACTIVE')
+         VALUES ('22222222-2222-2222-2222-222222222222', $1, $2, 'ADMIN', 'ACTIVE')
          RETURNING id`,
         [adminEmail, passHash]
       );
@@ -118,7 +118,7 @@ async function runInit() {
 
       await client.query(
         `INSERT INTO profiles (id, user_id, full_name, biography, university, academic_program, semester, latitude, longitude)
-         VALUES ('p2222222-2222-2222-2222-222222222222', $1, 'Administrador General', 'Gestión de infraestructura y consola central UniLink.', 'Equipo de Coordinación UniLink', 'Dirección Académica', 10, 5.5536, -73.3581)`,
+         VALUES ('22222222-2222-2222-2222-333333333333', $1, 'Administrador General', 'Gestión de infraestructura y consola central UniLink.', 'Equipo de Coordinación UniLink', 'Dirección Académica', 10, 5.5536, -73.3581)`,
         [adminId]
       );
       console.log(`  ➕ Usuario Administrador creado: ${adminEmail} (123456)`);
