@@ -16,13 +16,16 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+// Validación estricta de formato RFC 5322 para correo electrónico
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, register, loginWithToken } = useAuth();
 
   const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('estudiante@unilink.edu.co');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [university, setUniversity] = useState('Universidad Pedagógica y Tecnológica de Colombia (UPTC)');
@@ -59,6 +62,19 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError('Por favor ingresa tu correo institucional.');
+      setLoading(false);
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      setError('El formato del correo electrónico es inválido. Debe ser una dirección real (ej: tu.nombre@uptc.edu.co o estudiante@unilink.edu.co).');
+      setLoading(false);
+      return;
+    }
+
     if (isRegister && (!isOnline || !navigator.onLine)) {
       setError('⚠️ Conexión Requerida: El registro de nuevos estudiantes debe validarse directamente en la base de datos central de UniLink en PostgreSQL. Por favor conéctate a internet para crear tu cuenta.');
       setLoading(false);
@@ -68,7 +84,7 @@ export default function LoginPage() {
     try {
       if (isRegister) {
         await register({
-          email,
+          email: normalizedEmail,
           password,
           full_name: fullName,
           university,
@@ -76,26 +92,11 @@ export default function LoginPage() {
           semester: 5
         });
       } else {
-        await login(email, password);
+        await login(normalizedEmail, password);
       }
       navigate('/');
     } catch (err) {
       setError(err.message || 'Error al procesar solicitud.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async (demoEmail, demoPass = '123456') => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setLoading(true);
-    setError('');
-    try {
-      await login(demoEmail, demoPass);
-      navigate('/');
-    } catch (e) {
-      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -138,67 +139,6 @@ export default function LoginPage() {
               : 'Accede a tus recursos compartidos y grupos de estudio.'}
           </p>
         </div>
-
-        {/* Demo Fast Login Shortcuts */}
-        {!isRegister && (
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-brand-50/60 dark:from-slate-800/80 dark:via-slate-800/60 dark:to-slate-800/90 border border-brand-200/80 dark:border-slate-700 space-y-2.5">
-            <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-                <span>Acceso Rápido Demo</span>
-              </span>
-              <span className="text-[10px] text-brand-600 dark:text-brand-400">1 clic</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('estudiante@unilink.edu.co')}
-                className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-750 text-brand-700 dark:text-brand-300 text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-2xs transition truncate text-center"
-              >
-                Estudiante Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('admin@unilink.edu.co')}
-                className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-750 text-purple-700 dark:text-purple-300 text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-2xs transition truncate text-center"
-              >
-                Admin Demo
-              </button>
-            </div>
-
-            {/* Acceso Directo por Token de Acceso */}
-            <div className="pt-1.5 border-t border-slate-200/80 dark:border-slate-700/80">
-              <button
-                type="button"
-                onClick={() => setShowTokenAccess(!showTokenAccess)}
-                className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition flex items-center justify-between w-full"
-              >
-                <span>¿Tienes un Token de Acceso institucional?</span>
-                <span>{showTokenAccess ? '▲ Ocultar' : '▼ Pegar Token'}</span>
-              </button>
-
-              {showTokenAccess && (
-                <form onSubmit={handleDirectTokenSubmit} className="mt-2 space-y-2">
-                  <input
-                    type="text"
-                    value={directTokenInput}
-                    onChange={(e) => setDirectTokenInput(e.target.value)}
-                    placeholder="Pega aquí tu token JWT o clave..."
-                    className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white font-mono"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!directTokenInput.trim()}
-                    className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-xs"
-                  >
-                    Ingresar con Token
-                  </button>
-                </form>
-              )}
-            </div>
-          </div>
-        )}
 
         {error && (
           <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-500/40 text-xs text-rose-700 dark:text-rose-300 font-semibold leading-relaxed">
@@ -269,18 +209,50 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
-              Correo Institucional *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                Correo Institucional *
+              </label>
+              {email.length > 0 && (
+                <span
+                  className={`text-[11px] flex items-center gap-1 font-semibold ${
+                    EMAIL_REGEX.test(email.trim())
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-rose-500'
+                  }`}
+                >
+                  {EMAIL_REGEX.test(email.trim()) ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Formato válido</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>Correo incompleto</span>
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="estudiante@unilink.edu.co"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-500 transition shadow-2xs"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError('');
+                }}
+                placeholder="tu.correo@uptc.edu.co"
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border ${
+                  email.length > 0
+                    ? EMAIL_REGEX.test(email.trim())
+                      ? 'border-emerald-500/60 dark:border-emerald-500/40 focus:border-emerald-500'
+                      : 'border-rose-400 dark:border-rose-500/60 focus:border-rose-500'
+                    : 'border-slate-200 dark:border-slate-700 focus:border-brand-500'
+                } text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none transition shadow-2xs`}
               />
             </div>
           </div>
@@ -340,19 +312,49 @@ export default function LoginPage() {
         </form>
 
         {/* Switch tab */}
-        <div className="text-center pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="text-center pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
           <button
             type="button"
             onClick={() => {
               setIsRegister(!isRegister);
               setError('');
             }}
-            className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-bold transition"
+            className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-bold transition block w-full"
           >
             {isRegister
               ? '¿Ya tienes una cuenta? Inicia sesión aquí'
               : '¿No tienes cuenta todavía? Regístrate gratis'}
           </button>
+
+          {/* Acceso por Token Institucional para pruebas / desarrollo */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowTokenAccess(!showTokenAccess)}
+              className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 hover:text-brand-600 dark:hover:text-brand-400 transition"
+            >
+              {showTokenAccess ? '▲ Ocultar acceso por Token JWT' : '🔐 ¿Ingresar con Token Institucional?'}
+            </button>
+
+            {showTokenAccess && (
+              <form onSubmit={handleDirectTokenSubmit} className="mt-2 text-left space-y-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <input
+                  type="text"
+                  value={directTokenInput}
+                  onChange={(e) => setDirectTokenInput(e.target.value)}
+                  placeholder="Pega aquí tu token JWT..."
+                  className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white font-mono"
+                />
+                <button
+                  type="submit"
+                  disabled={!directTokenInput.trim()}
+                  className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-xs"
+                >
+                  Validar Token
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>

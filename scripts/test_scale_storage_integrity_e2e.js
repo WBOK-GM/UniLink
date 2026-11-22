@@ -59,6 +59,61 @@ async function runTests() {
     const adminToken = adminLoginData.token;
     reportTest('Login Administrador exitoso con rol ADMIN', adminLoginData.success && adminLoginData.user.role === 'ADMIN');
 
+    // 1.1 Validación Estricta de Correo Electrónico (RFC 5322)
+    console.log('\n--- 1.1 Validación Estricta de Formato de Correo (RFC 5322) ---');
+    const invalidLoginRes1 = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'correo_sin_arroba', password: '123456' })
+    });
+    const invalidLoginData1 = await invalidLoginRes1.json();
+    reportTest(
+      'Rechazo de login con correo sin @ (400 Bad Request)',
+      invalidLoginRes1.status === 400 && invalidLoginData1.success === false
+    );
+
+    const invalidLoginRes2 = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'usuario@dominio', password: '123456' })
+    });
+    const invalidLoginData2 = await invalidLoginRes2.json();
+    reportTest(
+      'Rechazo de login con dominio incompleto sin TLD (400 Bad Request)',
+      invalidLoginRes2.status === 400 && invalidLoginData2.success === false
+    );
+
+    const invalidRegRes = await fetch(`${BASE_URL}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'invalido@@uptc..edu',
+        password: 'password123',
+        full_name: 'Estudiante Invalido'
+      })
+    });
+    reportTest(
+      'Rechazo de registro con sintaxis de correo malformada (400 Bad Request)',
+      invalidRegRes.status === 400
+    );
+
+    const validRegRes = await fetch(`${BASE_URL}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'nuevo.valido@uptc.edu.co',
+        password: 'password123',
+        full_name: 'Estudiante Nuevo Valido',
+        university: 'UPTC Tunja',
+        academic_program: 'Ingeniería de Sistemas'
+      })
+    });
+    const validRegData = await validRegRes.json();
+    reportTest(
+      'Aceptación de registro con correo institucional válido RFC 5322 (201 Created)',
+      validRegRes.status === 201 && validRegData.success === true
+    );
+
     // 2. Registro Centralizado con Validación de Unicidad
     console.log('\n--- 2. Registro Centralizado en Base de Datos ---');
     const duplicateRegisterRes = await fetch(`${BASE_URL}/api/v1/auth/register`, {
