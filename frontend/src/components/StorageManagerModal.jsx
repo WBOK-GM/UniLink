@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   HardDrive,
   Trash2,
+  Eye,
   FileText,
   Image as ImageIcon,
   CheckCircle2,
@@ -12,12 +13,19 @@ import {
   Database
 } from 'lucide-react';
 import {
+  canOpenOfflineResource,
+  db,
   getOfflineStorageMetrics,
   deleteResourceOffline,
   clearAllOfflineResources
 } from '../db/db';
 
+import { useAuth } from '../context/AuthContext';
+import FileViewerModal from './FileViewerModal';
+
 export default function StorageManagerModal({ isOpen, onClose }) {
+  const { user } = useAuth();
+  const [viewingResource, setViewingResource] = useState(null);
   const [metrics, setMetrics] = useState({
     fileCount: 0,
     totalBytes: 0,
@@ -43,10 +51,21 @@ export default function StorageManagerModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       loadMetrics();
+    } else {
+      setViewingResource(null);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleOpenItem = async (resourceId) => {
+    const resource = await db.offline_resources.get(resourceId);
+    if (canOpenOfflineResource(resource, user)) setViewingResource(resource);
+  };
+
+  if (viewingResource) {
+    return <FileViewerModal isOpen offlineResource={viewingResource} onClose={() => setViewingResource(null)} />;
+  }
 
   const handleDeleteItem = async (resourceId) => {
     if (!confirm('¿Deseas eliminar este archivo del almacenamiento de tu dispositivo?')) return;
@@ -177,14 +196,27 @@ export default function StorageManagerModal({ isOpen, onClose }) {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteItem(item.resource_id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
-                      title="Eliminar del almacenamiento local"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      {canOpenOfflineResource(item, user) && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenItem(item.resource_id)}
+                          className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:text-indigo-300"
+                          title="Abrir copia guardada"
+                          aria-label="Abrir copia guardada"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteItem(item.resource_id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
+                        title="Eliminar del almacenamiento local"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
