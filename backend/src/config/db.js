@@ -1,3 +1,11 @@
+const path = require('path');
+try {
+  require('dotenv').config();
+} catch (e) {}
+try {
+  require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+} catch (e) {}
+
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 
@@ -288,24 +296,397 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== '') {
 
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: isNeonOrSsl ? { rejectUnauthorized: false } : false
+    ssl: isNeonOrSsl ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000
   });
+}
 
-  pool.query('SELECT NOW()', (err, res) => {
-    if (err) {
-      console.warn('[UniLink DB] No se pudo conectar a PostgreSQL externo. Usando almacén en memoria:', err.message);
-      usePg = false;
-    } else {
-      console.log('[UniLink DB] Conectado exitosamente a PostgreSQL:', res.rows[0].now);
-      usePg = true;
+/**
+ * Hidrata el almacén en memoria (memoryStore) con todos los registros persistentes
+ * guardados en la base de datos PostgreSQL Neon, garantizando tolerancia ante
+ * suspensiones o reinicios de instancias en Render (Free Tier).
+ */
+async function hydrateMemoryStoreFromPg() {
+  if (!pool) return;
+  try {
+    // 1. Usuarios
+    const usersRes = await pool.query('SELECT * FROM users');
+    if (usersRes.rows && usersRes.rows.length > 0) {
+      const pgUsers = usersRes.rows.map(u => ({
+        id: u.id,
+        email: u.email,
+        password_hash: u.password_hash,
+        role: u.role,
+        status: u.status,
+        created_at: new Date(u.created_at),
+        updated_at: new Date(u.updated_at || u.created_at)
+      }));
+      // Preservar usuarios demo en memoria si no estuvieran en PG
+      for (const pu of pgUsers) {
+        const idx = memoryStore.users.findIndex(u => u.id === pu.id || u.email.toLowerCase() === pu.email.toLowerCase());
+        if (idx >= 0) {
+          memoryStore.users[idx] = pu;
+        } else {
+          memoryStore.users.push(pu);
+        }
+      }
     }
-  });
-} else {
-  console.log('[UniLink DB] DATABASE_URL no provista. Operando con almacén en memoria y seed inicial de prueba.');
+
+    // 2. Perfiles
+    const profilesRes = await pool.query('SELECT * FROM profiles');
+    if (profilesRes.rows && profilesRes.rows.length > 0) {
+      const pgProfiles = profilesRes.rows.map(p => ({
+        id: p.id,
+        user_id: p.user_id,
+        full_name: p.full_name,
+        biography: p.biography || '',
+        avatar_file_id: p.avatar_file_id || null,
+        university: p.university || 'Universidad',
+        academic_program: p.academic_program || 'Ingeniería de Sistemas',
+        semester: Number(p.semester) || 1,
+        latitude: Number(p.latitude) || 5.5530,
+        longitude: Number(p.longitude) || -73.3565,
+        location_updated_at: new Date(p.location_updated_at || p.created_at),
+        created_at: new Date(p.created_at),
+        updated_at: new Date(p.updated_at || p.created_at)
+      }));
+      for (const pp of pgProfiles) {
+        const idx = memoryStore.profiles.findIndex(p => p.id === pp.id || p.user_id === pp.user_id);
+        if (idx >= 0) {
+          memoryStore.profiles[idx] = pp;
+        } else {
+          memoryStore.profiles.push(pp);
+        }
+      }
+    }
+
+    // 3. Categorías
+    const catRes = await pool.query('SELECT * FROM categories');
+    if (catRes.rows && catRes.rows.length > 0) {
+      for (const pc of catRes.rows) {
+        const idx = memoryStore.categories.findIndex(c => c.id === pc.id);
+        const catObj = {
+          id: pc.id,
+          name: pc.name,
+          normalized_name: pc.normalized_name,
+          description: pc.description || '',
+          parent_id: pc.parent_id || null,
+          status: pc.status || 'ACTIVE'
+        };
+        if (idx >= 0) {
+          memoryStore.categories[idx] = catObj;
+        } else {
+          memoryStore.categories.push(catObj);
+        }
+      }
+    }
+
+    // 4. Propuestas de categorías
+    const sugRes = await pool.query('SELECT * FROM category_suggestions');
+    if (sugRes.rows && sugRes.rows.length > 0) {
+      memoryStore.category_suggestions = sugRes.rows.map(s => ({
+        id: s.id,
+        user_id: s.user_id,
+        name: s.name,
+        normalized_name: s.normalized_name,
+        parent_id: s.parent_id || null,
+        status: s.status || 'PENDING',
+        reviewed_by: s.reviewed_by || null,
+        created_at: new Date(s.created_at)
+      }));
+    }
+
+    // 5. Grupos de estudio
+    const groupsRes = await pool.query('SELECT * FROM study_groups');
+    if (groupsRes.rows && groupsRes.rows.length > 0) {
+      for (const g of groupsRes.rows) {
+        const idx = memoryStore.study_groups.findIndex(sg => sg.id === g.id);
+        const gObj = {
+          id: g.id,
+          creator_id: g.creator_id,
+          category_id: g.category_id,
+          name: g.name,
+          description: g.description || '',
+          group_type: g.group_type || 'PUBLIC',
+          location_latitude: Number(g.location_latitude),
+          location_longitude: Number(g.location_longitude),
+          max_members: Number(g.max_members) || 50,
+          status: g.status || 'ACTIVE',
+          created_at: new Date(g.created_at),
+          updated_at: new Date(g.updated_at || g.created_at)
+        };
+        if (idx >= 0) memoryStore.study_groups[idx] = gObj;
+        else memoryStore.study_groups.push(gObj);
+      }
+    }
+
+    // 6. Miembros de grupos
+    const membersRes = await pool.query('SELECT * FROM group_members');
+    if (membersRes.rows && membersRes.rows.length > 0) {
+      for (const m of membersRes.rows) {
+        const idx = memoryStore.group_members.findIndex(gm => gm.id === m.id || (gm.group_id === m.group_id && gm.user_id === m.user_id));
+        const mObj = {
+          id: m.id,
+          group_id: m.group_id,
+          user_id: m.user_id,
+          member_role: m.member_role || 'MEMBER',
+          membership_status: m.membership_status || 'ACTIVE',
+          joined_at: new Date(m.joined_at || Date.now())
+        };
+        if (idx >= 0) memoryStore.group_members[idx] = mObj;
+        else memoryStore.group_members.push(mObj);
+      }
+    }
+
+    // 7. Publicaciones
+    const postsRes = await pool.query('SELECT * FROM posts');
+    if (postsRes.rows && postsRes.rows.length > 0) {
+      for (const p of postsRes.rows) {
+        const idx = memoryStore.posts.findIndex(mp => mp.id === p.id);
+        const pObj = {
+          id: p.id,
+          author_id: p.author_id,
+          category_id: p.category_id,
+          group_id: p.group_id || null,
+          post_type: p.post_type || 'RESOURCE',
+          title: p.title,
+          content: p.content,
+          location: p.location || '',
+          status: p.status || 'ACTIVE',
+          copyright_declaration_accepted: p.copyright_declaration_accepted !== false,
+          copyright_policy_version: p.copyright_policy_version || 'v1.0',
+          client_operation_id: p.client_operation_id || null,
+          created_at: new Date(p.created_at),
+          updated_at: new Date(p.updated_at || p.created_at)
+        };
+        if (idx >= 0) memoryStore.posts[idx] = pObj;
+        else memoryStore.posts.push(pObj);
+      }
+    }
+
+    // 8. Reacciones
+    const reactionsRes = await pool.query('SELECT * FROM post_reactions');
+    if (reactionsRes.rows && reactionsRes.rows.length > 0) {
+      for (const r of reactionsRes.rows) {
+        const idx = memoryStore.post_reactions.findIndex(mr => mr.id === r.id || (mr.post_id === r.post_id && mr.user_id === r.user_id));
+        const rObj = {
+          id: r.id,
+          post_id: r.post_id,
+          user_id: r.user_id,
+          reaction_type: r.reaction_type,
+          created_at: new Date(r.created_at),
+          updated_at: new Date(r.updated_at || r.created_at)
+        };
+        if (idx >= 0) memoryStore.post_reactions[idx] = rObj;
+        else memoryStore.post_reactions.push(rObj);
+      }
+    }
+
+    // 9. Encuentros
+    const meetingsRes = await pool.query('SELECT * FROM group_meetings');
+    if (meetingsRes.rows && meetingsRes.rows.length > 0) {
+      for (const gm of meetingsRes.rows) {
+        const idx = memoryStore.group_meetings.findIndex(m => m.id === gm.id);
+        const gmObj = {
+          id: gm.id,
+          group_id: gm.group_id,
+          creator_id: gm.creator_id,
+          title: gm.title,
+          description: gm.description || '',
+          start_datetime: new Date(gm.start_datetime),
+          end_datetime: gm.end_datetime ? new Date(gm.end_datetime) : null,
+          meeting_mode: gm.meeting_mode || 'IN_PERSON',
+          location: gm.location || null,
+          meeting_link: gm.meeting_link || null,
+          max_attendees: gm.max_attendees ? Number(gm.max_attendees) : null,
+          status: gm.status || 'SCHEDULED',
+          created_at: new Date(gm.created_at)
+        };
+        if (idx >= 0) memoryStore.group_meetings[idx] = gmObj;
+        else memoryStore.group_meetings.push(gmObj);
+      }
+    }
+
+    // 10. Asistentes a encuentros
+    const attendeesRes = await pool.query('SELECT * FROM meeting_attendees');
+    if (attendeesRes.rows && attendeesRes.rows.length > 0) {
+      for (const a of attendeesRes.rows) {
+        const idx = memoryStore.meeting_attendees.findIndex(ma => ma.id === a.id || (ma.meeting_id === a.meeting_id && ma.user_id === a.user_id));
+        const aObj = {
+          id: a.id,
+          meeting_id: a.meeting_id,
+          user_id: a.user_id,
+          attendance_status: a.attendance_status || 'CONFIRMED',
+          responded_at: new Date(a.responded_at || Date.now())
+        };
+        if (idx >= 0) memoryStore.meeting_attendees[idx] = aObj;
+        else memoryStore.meeting_attendees.push(aObj);
+      }
+    }
+
+    // 11. Reportes
+    const reportsRes = await pool.query('SELECT * FROM reports');
+    if (reportsRes.rows && reportsRes.rows.length > 0) {
+      for (const rp of reportsRes.rows) {
+        const idx = memoryStore.reports.findIndex(mr => mr.id === rp.id);
+        const rpObj = {
+          id: rp.id,
+          reporter_id: rp.reporter_id,
+          post_id: rp.post_id,
+          reason: rp.reason,
+          description: rp.description || '',
+          status: rp.status || 'PENDING',
+          resolution: rp.resolution || null,
+          reviewed_by: rp.reviewed_by || null,
+          created_at: new Date(rp.created_at),
+          reviewed_at: rp.reviewed_at ? new Date(rp.reviewed_at) : null
+        };
+        if (idx >= 0) memoryStore.reports[idx] = rpObj;
+        else memoryStore.reports.push(rpObj);
+      }
+    }
+
+    console.log(`[UniLink DB] Sincronización exitosa: ${memoryStore.users.length} usuarios, ${memoryStore.posts.length} posts y ${memoryStore.study_groups.length} grupos en memoria.`);
+  } catch (err) {
+    console.warn('[UniLink DB] Error hidratando memoria desde PostgreSQL:', err.message);
+  }
+}
+
+/**
+ * Inicialización completa de la base de datos
+ */
+async function initDatabase() {
+  if (!pool) {
+    console.log('[UniLink DB] DATABASE_URL no provista. Operando con almacén en memoria y seed inicial de prueba.');
+    usePg = false;
+    return false;
+  }
+
+  try {
+    const res = await pool.query('SELECT NOW()');
+    console.log('[UniLink DB] Conectado exitosamente a PostgreSQL (Neon):', res.rows[0].now);
+    usePg = true;
+    await hydrateMemoryStoreFromPg();
+    return true;
+  } catch (err) {
+    console.warn('[UniLink DB] No se pudo conectar a PostgreSQL externo. Usando almacén en memoria:', err.message);
+    usePg = false;
+    return false;
+  }
+}
+
+/**
+ * Persiste un usuario y perfil en PostgreSQL Neon con control de unicidad.
+ */
+async function persistUser(user, profile) {
+  if (!pool) return false;
+  try {
+    await pool.query(
+      `INSERT INTO users (id, email, password_hash, role, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [user.id, user.email, user.password_hash, user.role, user.status, user.created_at, user.updated_at]
+    );
+
+    await pool.query(
+      `INSERT INTO profiles (id, user_id, full_name, biography, university, academic_program, semester, latitude, longitude, location_updated_at, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [
+        profile.id,
+        user.id,
+        profile.full_name,
+        profile.biography || '',
+        profile.university || 'Universidad',
+        profile.academic_program || 'Ingeniería de Sistemas',
+        Number(profile.semester) || 1,
+        Number(profile.latitude) || 5.5530,
+        Number(profile.longitude) || -73.3565,
+        profile.location_updated_at || new Date(),
+        profile.created_at || new Date(),
+        profile.updated_at || new Date()
+      ]
+    );
+    return true;
+  } catch (err) {
+    if (err.code === '23505') {
+      const error = new Error('El correo electrónico ya se encuentra registrado.');
+      error.code = 'DUPLICATE_EMAIL';
+      throw error;
+    }
+    console.warn('[UniLink DB] Error persistiendo usuario en PostgreSQL:', err.message);
+    throw err;
+  }
+}
+
+/**
+ * Consulta un usuario por correo electrónico directamente en PostgreSQL
+ */
+async function queryUserByEmail(email) {
+  if (!pool) return null;
+  try {
+    const normalized = email.toLowerCase().trim();
+    const res = await pool.query(
+      `SELECT u.id, u.email, u.password_hash, u.role, u.status, u.created_at, u.updated_at,
+              p.id as profile_id, p.full_name, p.biography, p.university, p.academic_program,
+              p.semester, p.latitude, p.longitude
+       FROM users u
+       LEFT JOIN profiles p ON p.user_id = u.id
+       WHERE LOWER(u.email) = LOWER($1)`,
+      [normalized]
+    );
+
+    if (res.rows.length === 0) return null;
+
+    const row = res.rows[0];
+    const user = {
+      id: row.id,
+      email: row.email,
+      password_hash: row.password_hash,
+      role: row.role,
+      status: row.status,
+      created_at: new Date(row.created_at),
+      updated_at: new Date(row.updated_at || row.created_at)
+    };
+
+    const profile = {
+      id: row.profile_id,
+      user_id: row.id,
+      full_name: row.full_name,
+      biography: row.biography || '',
+      university: row.university || 'Universidad',
+      academic_program: row.academic_program || 'Ingeniería de Sistemas',
+      semester: Number(row.semester) || 1,
+      latitude: Number(row.latitude) || 5.5530,
+      longitude: Number(row.longitude) || -73.3565
+    };
+
+    // Actualizar memoryStore local
+    const uIdx = memoryStore.users.findIndex(u => u.id === user.id || u.email.toLowerCase() === normalized);
+    if (uIdx >= 0) memoryStore.users[uIdx] = user;
+    else memoryStore.users.push(user);
+
+    const pIdx = memoryStore.profiles.findIndex(p => p.user_id === user.id);
+    if (pIdx >= 0) memoryStore.profiles[pIdx] = profile;
+    else memoryStore.profiles.push(profile);
+
+    return { user, profile };
+  } catch (err) {
+    console.warn('[UniLink DB] Error consultando usuario por correo en PostgreSQL:', err.message);
+    return null;
+  }
+}
+
+// Iniciar en segundo plano sin bloquear importación
+if (pool) {
+  initDatabase().catch(e => console.warn('[UniLink DB] Init diferido:', e.message));
 }
 
 module.exports = {
   pool,
-  usePg,
-  memoryStore
+  get usePg() { return usePg; },
+  memoryStore,
+  initDatabase,
+  hydrateMemoryStoreFromPg,
+  persistUser,
+  queryUserByEmail
 };

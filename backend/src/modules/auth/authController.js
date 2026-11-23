@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const { memoryStore, pool, usePg } = require('../../config/db');
+const { memoryStore, pool, persistUser, queryUserByEmail } = require('../../config/db');
 const { JWT_SECRET } = require('../../middlewares/auth');
 
 // Validación estricta de correo electrónico (RFC 5322 compatible)
@@ -27,8 +27,12 @@ const register = async (req, res) => {
       });
     }
 
-    // RN-01: Correo electrónico único
-    const existingUser = memoryStore.users.find(u => u.email.toLowerCase() === normalizedEmail);
+    // RN-01: Correo electrónico único (en memoria o en PostgreSQL)
+    let existingUser = memoryStore.users.find(u => u.email.toLowerCase() === normalizedEmail);
+    if (!existingUser && queryUserByEmail) {
+      const dbMatch = await queryUserByEmail(normalizedEmail);
+      if (dbMatch) existingUser = dbMatch.user;
+    }
 
     if (existingUser) {
       return res.status(409).json({
@@ -67,6 +71,21 @@ const register = async (req, res) => {
       created_at: new Date(),
       updated_at: new Date()
     };
+
+    // Persistir en PostgreSQL Neon (si hay conexión a base de datos externa)
+    try {
+      if (persistUser) {
+        await persistUser(newUser, newProfile);
+      }
+    } catch (dbErr) {
+      if (dbErr.code === 'DUPLICATE_EMAIL') {
+        return res.status(409).json({
+          success: false,
+          error: 'El correo electrónico ya se encuentra registrado.'
+        });
+      }
+      console.warn('[UniLink Auth] Persistencia en DB secundaria:', dbErr.message);
+    }
 
     memoryStore.users.push(newUser);
     memoryStore.profiles.push(newProfile);
@@ -125,7 +144,15 @@ const login = async (req, res) => {
       });
     }
 
-    const user = memoryStore.users.find(u => u.email.toLowerCase() === normalizedEmail);
+    let user = memoryStore.users.find(u => u.email.toLowerCase() === normalizedEmail);
+
+    // Si no está en memoria, consultar PostgreSQL Neon por si el servidor acaba de arrancar
+    if (!user && queryUserByEmail) {
+      const dbMatch = await queryUserByEmail(normalizedEmail);
+      if (dbMatch) {
+        user = dbMatch.user;
+      }
+    }
 
     if (!user) {
       return res.status(401).json({
@@ -191,7 +218,25 @@ const login = async (req, res) => {
 
 const getMe = async (req, res) => {
   try {
-    const user = memoryStore.users.find(u => u.id === req.user.id);
+    let user = memoryStore.users.find(u => u.id === req.user.id);
+    if (!user && pool) {
+      try {
+        const uRes = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+        if (uRes.rows && uRes.rows.length > 0) {
+          const row = uRes.rows[0];
+          user = {
+            id: row.id,
+            email: row.email,
+            password_hash: row.password_hash,
+            role: row.role,
+            status: row.status,
+            created_at: new Date(row.created_at)
+          };
+          memoryStore.users.push(user);
+        }
+      } catch (e) {}
+    }
+
     if (!user) {
       return res.status(404).json({ success: false, error: 'Usuario no encontrado.' });
     }
