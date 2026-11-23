@@ -21,6 +21,17 @@ import AdminPortal from '../admin/AdminPortal';
 import StorageManagerModal from '../components/StorageManagerModal';
 import { getResilientPosition, UPTC_CAMPUS_PRESETS } from '../utils/geoUtils';
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export default function ProfilePage() {
   const { user, updateUserProfile } = useAuth();
 
@@ -112,27 +123,34 @@ export default function ProfilePage() {
 
       const reg = await navigator.serviceWorker.ready;
       const vapidRes = await api.getVapidPublicKey();
-      const publicKey = vapidRes.publicKey;
+      const applicationServerKey = urlBase64ToUint8Array(vapidRes.publicKey);
 
-      const padding = '='.repeat((4 - (publicKey.length % 4)) % 4);
-      const base64 = (publicKey + padding).replace(/\-/g, '+').replace(/_/g, '/');
-      const rawData = window.atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
+      // Reutilizar la suscripción existente; solo renovarla si la VAPID cambió
+      let subscription = await reg.pushManager.getSubscription();
+      if (subscription && subscription.options && subscription.options.applicationServerKey) {
+        const currentKey = new Uint8Array(subscription.options.applicationServerKey);
+        const sameKey = currentKey.length === applicationServerKey.length &&
+          currentKey.every((byte, index) => byte === applicationServerKey[index]);
+        if (!sameKey) {
+          await subscription.unsubscribe();
+          subscription = null;
+        }
       }
 
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: outputArray
-      });
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey
+        });
+      }
 
+      // Re-registrar siempre en el backend para restaurar suscripciones tras un cold-start
       await api.subscribePush(subscription.toJSON());
       setPushStatus('SUBSCRIBED');
       alert('🔔 ¡Notificaciones push activadas exitosamente!');
     } catch (err) {
       console.error('Error suscribiendo push:', err);
-      alert('Error al activar notificaciones: ' + err.message);
+      alert(`Error al activar notificaciones (${err.name || 'Error'}): ${err.message}`);
     }
   };
 
@@ -366,7 +384,7 @@ export default function ProfilePage() {
               <select
                 onChange={(e) => handleSelectCampusPreset(e.target.value)}
                 defaultValue=""
-                className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer"
+                className="w-full sm:w-auto min-w-0 max-w-full px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer truncate"
               >
                 <option value="" disabled>Seleccionar sede/edificio de referencia...</option>
                 {UPTC_CAMPUS_PRESETS.map((p) => (

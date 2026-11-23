@@ -22,6 +22,7 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
   const { user } = useAuth();
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
+  const [joinRequests, setJoinRequests] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [activeTab, setActiveTab] = useState('TASKS'); // 'TASKS' | 'MEMBERS'
   const [loading, setLoading] = useState(true);
@@ -43,9 +44,18 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
         api.getGroupTasks(groupId).catch(() => ({ tasks: [] }))
       ]);
 
-      if (grpRes?.group) setGroup(grpRes.group);
+      const grp = grpRes?.group || null;
+      if (grp) setGroup(grp);
       if (memRes?.members) setMembers(memRes.members);
       if (taskRes?.tasks) setTasks(taskRes.tasks);
+
+      const privileged = ['OWNER', 'MODERATOR'].includes(grp?.my_membership?.role) || user?.role === 'ADMIN';
+      if (privileged) {
+        const reqRes = await api.getJoinRequests(groupId).catch(() => ({ members: [] }));
+        setJoinRequests(reqRes?.members || []);
+      } else {
+        setJoinRequests([]);
+      }
     } catch (err) {
       console.warn('Error cargando detalles de grupo:', err);
     } finally {
@@ -60,10 +70,18 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
     }
   }, [isOpen, groupId]);
 
+  // Los no-miembros no pueden ver tareas: mostrarles directamente la pestaña de integrantes
+  useEffect(() => {
+    if (group && !(group.my_membership && group.my_membership.status === 'ACTIVE')) {
+      setActiveTab('MEMBERS');
+    }
+  }, [group]);
+
   if (!isOpen || !groupId) return null;
 
   const isMember = group?.my_membership && group.my_membership.status === 'ACTIVE';
   const myRole = group?.my_membership?.role; // 'OWNER' | 'MODERATOR' | 'MEMBER'
+  const canModerate = ['OWNER', 'MODERATOR'].includes(myRole) || user?.role === 'ADMIN';
 
   // Crear Tarea
   const handleCreateTask = async (e) => {
@@ -130,18 +148,32 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
     }
   };
 
+  const handleRespondRequest = async (memberId, action) => {
+    const verb = action === 'APPROVE' ? 'aprobar' : 'rechazar';
+    if (!confirm(`¿Seguro que deseas ${verb} esta solicitud de ingreso?`)) return;
+    try {
+      const res = await api.respondJoinRequest(groupId, memberId, action);
+      if (res.success) {
+        await loadData();
+        if (onGroupUpdated) onGroupUpdated();
+      }
+    } catch (err) {
+      alert(err.message || 'Error al procesar la solicitud.');
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-3xl max-h-[92vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all">
         {/* Header Modal */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20">
+        <div className="flex items-start sm:items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20 shrink-0">
               <Users className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white break-words">
                   {group?.name || 'Grupo de Estudio'}
                 </h3>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -161,39 +193,57 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Sub-header Tabs */}
-        <div className="flex items-center justify-between px-6 py-2.5 bg-slate-100/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold shrink-0">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('TASKS')}
-              className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-                activeTab === 'TASKS'
-                  ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <ListTodo className="w-3.5 h-3.5" />
-              <span>Tareas Grupales ({tasks.length})</span>
-            </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 sm:px-6 py-2.5 bg-slate-100/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto w-full sm:w-auto pb-0.5">
+            {isMember && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('TASKS')}
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+                  activeTab === 'TASKS'
+                    ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <ListTodo className="w-3.5 h-3.5" />
+                <span className="sm:hidden">Tareas ({tasks.length})</span>
+                <span className="hidden sm:inline">Tareas Grupales ({tasks.length})</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setActiveTab('MEMBERS')}
-              className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              className={`shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
                 activeTab === 'MEMBERS'
                   ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Integrantes y Roles ({members.length})</span>
+              <span className="sm:hidden">Integrantes ({members.length})</span>
+              <span className="hidden sm:inline">Integrantes y Roles ({members.length})</span>
             </button>
+            {canModerate && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('REQUESTS')}
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+                  activeTab === 'REQUESTS'
+                    ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Solicitudes ({joinRequests.length})</span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -382,7 +432,7 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
                 </div>
               )}
             </div>
-          ) : (
+          ) : activeTab === 'MEMBERS' ? (
             /* TAB: INTEGRANTES Y ROLES */
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -422,6 +472,54 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
                   );
                 })}
               </div>
+            </div>
+          ) : (
+            /* TAB: SOLICITUDES DE INGRESO */
+            <div className="space-y-3">
+              {joinRequests.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 text-xs rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <UserCheck className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="font-semibold">No hay solicitudes de ingreso pendientes.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Las solicitudes a grupos privados aparecerán aquí.</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {joinRequests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                          {req.full_name?.charAt(0) || 'U'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{req.full_name}</p>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {req.academic_program} • Semestre {req.semester}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleRespondRequest(req.user_id, 'REJECT')}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/50 transition"
+                        >
+                          Rechazar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRespondRequest(req.user_id, 'APPROVE')}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition"
+                        >
+                          Aprobar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

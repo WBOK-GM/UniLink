@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useTheme } from '../context/ThemeContext';
 import StorageManagerModal from './StorageManagerModal';
+import NotificationsBell from './NotificationsBell';
 
 export default function TopHeader({ onOpenAudit }) {
   const location = useLocation();
@@ -86,7 +87,7 @@ export default function TopHeader({ onOpenAudit }) {
         
         {/* Status: En línea con punto verde pulsante (Matches Reference Image) */}
         <div
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl text-xs font-bold border shadow-2xs ${
+          className={`hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-2xl text-xs font-bold border shadow-2xs ${
             isOnline
               ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800'
               : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/40 animate-pulse'
@@ -96,6 +97,14 @@ export default function TopHeader({ onOpenAudit }) {
           <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
           <span className="text-xs font-bold">{isOnline ? 'En línea' : `Offline (${pendingCount})`}</span>
         </div>
+
+        {/* Notificaciones in-app */}
+        {user && (
+          <NotificationsBell
+            buttonClassName="relative p-2 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition shadow-2xs"
+            iconClassName="w-4 h-4"
+          />
+        )}
 
         {/* Theme Toggle Button (Light / Dark) */}
         <button

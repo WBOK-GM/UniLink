@@ -35,12 +35,12 @@ import {
   BarChart3,
   Globe,
   Flame,
-  Bell,
   Sparkles
 } from 'lucide-react';
 import { api } from '../api/client';
 import { db } from '../db/db';
 import PostCard from '../components/PostCard';
+import NotificationsBell from '../components/NotificationsBell';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
@@ -249,7 +249,7 @@ export default function FeedPage({ onOpenAudit }) {
                   { name: 'Inteligencia Artificial', icon: Cpu },
                   { name: 'Redes y Distribuidos', icon: Network },
                   { name: 'Matemáticas y Cálculo', icon: Calculator },
-                  { name: 'Más Categorías', icon: BarChart3, isMore: true },
+                  { name: 'Proponer Materia', icon: BarChart3, isMore: true },
                 ].map((item, idx) => (
                   <button
                     key={idx}
@@ -352,17 +352,12 @@ export default function FeedPage({ onOpenAudit }) {
                 </div>
 
                 {/* Mobile notifications */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => alert('No tienes notificaciones pendientes')}
-                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
-                    title="Notificaciones"
-                  >
-                    <Bell className="w-4 h-4 text-white" />
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-purple-400" />
-                  </button>
-                </div>
+                {user && (
+                  <NotificationsBell
+                    buttonClassName="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
+                    iconClassName="w-4 h-4 text-white"
+                  />
+                )}
               </div>
 
               {/* Title & Tagline */}

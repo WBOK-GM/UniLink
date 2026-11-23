@@ -274,7 +274,7 @@ const joinGroup = async (req, res) => {
       await notifyUser(group.creator_id, {
         title: '👥 Nueva Solicitud de Ingreso',
         message: `${applicantName} solicitó unirse a tu grupo de estudio "${group.name}".`,
-        url: `/groups/${group.id}`,
+        url: '/groups',
         notification_type: 'GROUP_REQUEST',
         reference_type: 'GROUP',
         reference_id: group.id
@@ -299,6 +299,10 @@ const respondJoinRequest = async (req, res) => {
     const { action } = req.body; // 'APPROVE' | 'REJECT'
     const currentUserId = req.user.id;
 
+    if (!['APPROVE', 'REJECT'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'Acción no válida. Usa APPROVE o REJECT.' });
+    }
+
     const group = memoryStore.study_groups.find(g => g.id === id);
     if (!group) return res.status(404).json({ success: false, error: 'Grupo no encontrado.' });
 
@@ -320,6 +324,10 @@ const respondJoinRequest = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Solicitud de membresía no encontrada.' });
     }
 
+    if (membership.membership_status !== 'PENDING') {
+      return res.status(400).json({ success: false, error: 'Esta membresía no tiene una solicitud pendiente de aprobación.' });
+    }
+
     if (action === 'APPROVE') {
       membership.membership_status = 'ACTIVE';
       membership.joined_at = new Date();
@@ -327,7 +335,7 @@ const respondJoinRequest = async (req, res) => {
       await notifyUser(memberId, {
         title: '🎉 Solicitud Aceptada',
         message: `Tu solicitud para unirte al grupo "${group.name}" ha sido aprobada. ¡Ya puedes participar!`,
-        url: `/groups/${group.id}`,
+        url: '/groups',
         notification_type: 'GROUP_APPROVED',
         reference_type: 'GROUP',
         reference_id: group.id
