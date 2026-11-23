@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
@@ -17,10 +17,16 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { db, saveResourceOffline } from '../db/db';
+import { canOpenOfflineResource, db, saveResourceOffline } from '../db/db';
 import { resolveFileUrl } from '../api/client';
 
-export default function FileViewerModal({ file, post, isOpen, onClose }) {
+export default function FileViewerModal({ file: remoteFile, offlineResource, post, isOpen, onClose }) {
+  const file = useMemo(() => offlineResource ? {
+    id: offlineResource.file_id,
+    original_name: offlineResource.file_name,
+    mime_type: offlineResource.local_blob?.type,
+    file_size: offlineResource.local_blob?.size
+  } : remoteFile, [offlineResource, remoteFile]);
   const navigate = useNavigate();
   const { user } = useAuth();
   const [blobUrl, setBlobUrl] = useState(null);
@@ -31,21 +37,31 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
 
   const isAuthor = user && post?.author?.id === user.id;
   const isAdmin = user && user.role === 'ADMIN';
-  const isGated = !user || (!isAdmin && !isAuthor && (user.contributions_count || 0) === 0);
+  const isGated = offlineResource
+    ? !canOpenOfflineResource(offlineResource, user)
+    : !user || (!isAdmin && !isAuthor && (user.contributions_count || 0) === 0);
 
   useEffect(() => {
-    if (!isOpen || !file) {
-      setBlobUrl(null);
-      setLoading(true);
-      setError(null);
-      return;
-    }
+    if (!isOpen) return;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    setBlobUrl(null);
+    setIsSavedInPwa(false);
+    setError(null);
+    if (!isOpen || !file) return;
 
     if (isGated) {
       setLoading(false);
       return;
     }
 
+    const owner = user && { id: user.id, role: user.role };
     let isMounted = true;
     let createdUrl = null;
 
@@ -58,15 +74,17 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
         const defaultMimeType = isPdfDoc ? 'application/pdf' : 'image/png';
 
         // 1. Verificar si el archivo ya reside en IndexedDB (offline-first)
-        const cachedResource = await db.offline_resources
+        const cachedResource = offlineResource || await db.offline_resources
           .where('file_id')
           .equals(file.id || file.storage_key || file.original_name)
+          .and(item => canOpenOfflineResource(item, owner))
           .first();
 
         if (cachedResource && cachedResource.local_blob) {
           const typedBlob = new Blob([cachedResource.local_blob], {
             type: file.mime_type || defaultMimeType
           });
+          if (!isMounted) return;
           createdUrl = URL.createObjectURL(typedBlob);
           if (isMounted) {
             setBlobUrl(createdUrl);
@@ -86,14 +104,16 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
             const blob = new Blob([arrayBuf], { type: file.mime_type || defaultMimeType });
 
             // Guardar automáticamente en el navegador (PWA offline)
+            if (!isMounted) return;
             await saveResourceOffline(
               post?.id || `res-${Date.now()}`,
               file.id || file.storage_key || file.original_name,
               file.original_name,
               blob,
-              'pwa-user'
+              owner.id
             );
 
+            if (!isMounted) return;
             createdUrl = URL.createObjectURL(blob);
             if (isMounted) {
               setBlobUrl(createdUrl);
@@ -121,20 +141,13 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
 
     resolveFileSource();
 
-    // Listener para cerrar con tecla Escape
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
     return () => {
       isMounted = false;
-      window.removeEventListener('keydown', handleKeyDown);
       if (createdUrl && createdUrl.startsWith('blob:')) {
         URL.revokeObjectURL(createdUrl);
       }
     };
-  }, [isOpen, file, post]);
+  }, [isOpen, file, offlineResource, post?.id, isGated, user?.id, user?.role]);
 
   if (!isOpen || !file) return null;
 
@@ -144,6 +157,7 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
 
   // Disparar descarga nativa al sistema de archivos del equipo
   const handleDownloadToDevice = async () => {
+    if (isGated || (!blobUrl && !activeFileUrl)) return;
     try {
       setIsDownloading(true);
       let downloadSource = blobUrl;
@@ -164,7 +178,7 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
       a.remove();
     } catch (e) {
       console.warn('Error al descargar archivo al equipo:', e);
-      window.open(file.url, '_blank');
+      if (activeFileUrl) window.open(activeFileUrl, '_blank');
     } finally {
       setIsDownloading(false);
     }
@@ -229,7 +243,7 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={handleDownloadToDevice}
-                  disabled={isDownloading}
+                  disabled={isDownloading || loading || (!blobUrl && !activeFileUrl)}
                   className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm disabled:opacity-50"
                   title="Descargar archivo a tu equipo"
                 >
