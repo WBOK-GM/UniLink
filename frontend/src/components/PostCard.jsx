@@ -15,7 +15,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../api/client';
+import { api, resolveFileUrl } from '../api/client';
 import { db, saveResourceOffline, deleteResourceOffline, isResourceSavedOffline } from '../db/db';
 import AudioPlayer from './AudioPlayer';
 import LocationViewModal from './LocationViewModal';
@@ -87,8 +87,9 @@ export default function PostCard({ post, onPostUpdated }) {
         setIsOfflineSaved(false);
       } else {
         let blob;
-        if (mainAttachment.url) {
-          const response = await fetch(mainAttachment.url);
+        const mainUrl = resolveFileUrl(mainAttachment.url);
+        if (mainUrl) {
+          const response = await fetch(mainUrl);
           if (response.ok) {
             blob = await response.blob();
           }
@@ -115,8 +116,9 @@ export default function PostCard({ post, onPostUpdated }) {
     try {
       setSavingFileId(file.id);
       let blob;
-      if (file.url) {
-        const response = await fetch(file.url);
+      const downloadTargetUrl = resolveFileUrl(file.url);
+      if (downloadTargetUrl) {
+        const response = await fetch(downloadTargetUrl);
         if (response.ok) {
           blob = await response.blob();
         }

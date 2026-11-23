@@ -1,5 +1,17 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
+export function resolveFileUrl(url) {
+  if (!url) return '';
+  const backendBase = API_BASE.replace(/\/api\/v1\/?$/, '');
+  if (url.startsWith('http://localhost:5000')) {
+    return url.replace('http://localhost:5000', backendBase);
+  }
+  if (url.startsWith('/')) {
+    return `${backendBase}${url}`;
+  }
+  return url;
+}
+
 export const getAuthToken = () => localStorage.getItem('unilink_token');
 export const setAuthToken = (token) => localStorage.setItem('unilink_token', token);
 export const removeAuthToken = () => localStorage.removeItem('unilink_token');
@@ -54,7 +66,19 @@ export const api = {
   suggestCategory: (payload) => request('/categories/suggest', { method: 'POST', body: JSON.stringify(payload) }),
 
   // Posts
-  getPosts: (params = '') => request(`/posts${params ? `?${params}` : ''}`),
+  getPosts: async (params = '') => {
+    const data = await request(`/posts${params ? `?${params}` : ''}`);
+    if (data && Array.isArray(data.posts)) {
+      data.posts.forEach(post => {
+        if (Array.isArray(post.attachments)) {
+          post.attachments.forEach(att => {
+            if (att.url) att.url = resolveFileUrl(att.url);
+          });
+        }
+      });
+    }
+    return data;
+  },
   createPost: (formData) => request('/posts', { method: 'POST', body: formData }),
   reactToPost: (id, reaction_type) => request(`/posts/${id}/react`, { method: 'POST', body: JSON.stringify({ reaction_type }) }),
   deactivatePost: (id) => request(`/posts/${id}`, { method: 'DELETE' }),

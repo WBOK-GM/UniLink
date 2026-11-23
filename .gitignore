@@ -26,6 +26,7 @@ coverage/
 # Local uploads storage fallback
 backend/uploads/*
 !backend/uploads/.gitkeep
+!backend/uploads/sample-*
 
 # Operating System files
 .DS_Store
@@ -35,6 +36,7 @@ Thumbs.db
 [Ss]esion*.pdf
 Sesion*.pdf
 *.pdf
+!backend/uploads/sample-*.pdf
 *.docx
 *.doc
 *informe*

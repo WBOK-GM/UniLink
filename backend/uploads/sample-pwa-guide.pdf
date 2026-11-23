@@ -1,0 +1,110 @@
+%PDF-1.4
+1 0 obj
+<< /Title (Guia Completa de Service Workers y Cache PWA)
+   /Author (Walter Alfonso)
+   /Subject (PWA Offline First)
+   /Creator (UniLink Academic Platform - UPTC)
+   /Producer (UniLink PDF Engine 1.4) >>
+endobj
+2 0 obj
+<< /Type /Catalog /Pages 3 0 R >>
+endobj
+3 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+4 0 obj
+<< /Type /Page
+   /Parent 3 0 R
+   /MediaBox [0 0 612 792]
+   /Contents 5 0 R
+   /Resources << /Font << /F1 8 0 R /F2 9 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 1872 >>
+stream
+BT
+/F1 16 Tf 50 740 Td (UNIVERSIDAD PEDAGOGICA Y TECNOLOGICA DE COLOMBIA) Tj
+/F1 12 Tf 0 -22 Td (FACULTAD DE INGENIERIA - ESCUELA DE INGENIERIA DE SISTEMAS) Tj
+/F2 10 Tf 0 -18 Td (Asignatura: Programacion Web Avanzada (PWA) - Noveno Semestre) Tj
+/F2 10 Tf 0 -14 Td (Autor: Walter Alfonso - Plataforma Colaborativa UniLink) Tj
+/F1 14 Tf 0 -32 Td (GUIA COMPLETA: SERVICE WORKERS Y ESTRATEGIAS DE CACHE) Tj
+/F2 11 Tf 0 -20 Td (1. Introduccion a la Arquitectura Offline-First) Tj
+/F2 10 Tf 0 -16 Td (Una Progressive Web App (PWA) de nivel profesional no depende de una conexion) Tj
+/F2 10 Tf 0 -14 Td (continua a internet. Mediante Service Workers, interceptamos todas las peticiones) Tj
+/F2 10 Tf 0 -14 Td (HTTP de la aplicacion y aplicamos politicas de almacenamiento en cache local.) Tj
+/F1 12 Tf 0 -24 Td (2. Ciclo de Vida del Service Worker) Tj
+/F2 10 Tf 0 -16 Td (a) Registro (navigator.serviceWorker.register('/sw.js')) Tj
+/F2 10 Tf 0 -14 Td (b) Instalacion (install): Precacheo de App Shell critico (HTML, CSS, JS, Logos) Tj
+/F2 10 Tf 0 -14 Td (c) Activacion (activate): Limpieza automatica de caches obsoletas Tj
+/F2 10 Tf 0 -14 Td (d) Intercepcion (fetch): Despacho inteligente segun la estrategia definida Tj
+/F1 12 Tf 0 -24 Td (3. Comparativa de Estrategias de Cache) Tj
+/F1 10 Tf 0 -16 Td (Estrategia 1: Cache First (Cache Falling Back to Network)) Tj
+/F2 10 Tf 0 -14 Td (Ideal para assets estaticos, fuentes, iconos de la UPTC y estilos inmutables.) Tj
+/F1 10 Tf 0 -16 Td (Estrategia 2: Network First (Network Falling Back to Cache)) Tj
+/F2 10 Tf 0 -14 Td (Recomendada para publicaciones academicas, mensajes y novedades del feed.) Tj
+/F1 10 Tf 0 -16 Td (Estrategia 3: Stale While Revalidate) Tj
+/F2 10 Tf 0 -14 Td (Sirve la copia en cache de inmediato y refresca en segundo plano.) Tj
+/F2 9 Tf 0 -45 Td (Pagina 1 de 2 - Documento Oficial de Estudio UPTC) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page
+   /Parent 3 0 R
+   /MediaBox [0 0 612 792]
+   /Contents 7 0 R
+   /Resources << /Font << /F1 8 0 R /F2 9 0 R >> >> >>
+endobj
+7 0 obj
+<< /Length 1841 >>
+stream
+BT
+/F1 16 Tf 50 740 Td (UNIVERSIDAD PEDAGOGICA Y TECNOLOGICA DE COLOMBIA) Tj
+/F1 12 Tf 0 -22 Td (UNILINK PWA - ALMACENAMIENTO ESTRUCTURADO Y SINCRONIZACION) Tj
+/F1 12 Tf 0 -30 Td (4. Persistencia Local con IndexedDB y Dexie.js) Tj
+/F2 10 Tf 0 -16 Td (Para datos no relacionales de gran volumen, como archivos PDF adjuntos, notas) Tj
+/F2 10 Tf 0 -14 Td (de voz y publicaciones pendientes, IndexedDB ofrece almacenamiento ilimitado) Tj
+/F2 10 Tf 0 -14 Td (en disco del dispositivo del estudiante, sin las limitaciones de 5MB de LocalStorage.) Tj
+/F1 11 Tf 0 -20 Td (Esquema de Base de Datos Dexie en UniLink:) Tj
+/F2 10 Tf 0 -16 Td (- offline_posts: ++local_id, client_operation_id, sync_status, created_at) Tj
+/F2 10 Tf 0 -14 Td (- offline_resources: resource_id, file_id, file_name, local_blob, saved_at) Tj
+/F2 10 Tf 0 -14 Td (- cached_feed: id, category_id, created_at) Tj
+/F1 12 Tf 0 -26 Td (5. Background Sync y Recuperacion de Conexion) Tj
+/F2 10 Tf 0 -16 Td (Cuando el estudiante crea una publicacion en las aulas de la UPTC sin internet,) Tj
+/F2 10 Tf 0 -14 Td (el evento 'sync' o 'online' recupera los registros pendientes y los transmite con) Tj
+/F2 10 Tf 0 -14 Td (un identificador de operacion UUID (client_operation_id) garantizando idempotencia.) Tj
+/F1 12 Tf 0 -26 Td (6. Politica de Seguridad y Content Security Policy (CSP)) Tj
+/F2 10 Tf 0 -16 Td (UniLink implementa directivas estrictas de seguridad (Sesion 22):) Tj
+/F2 10 Tf 0 -14 Td (- Prevencion de XSS mediante escape y desinfeccion de HTML) Tj
+/F2 10 Tf 0 -14 Td (- Limitador de tasa (Rate Limiting) contra ataques de fuerza bruta) Tj
+/F2 10 Tf 0 -14 Td (- Cabeceras HSTS, X-Content-Type-Options y proteccion framing) Tj
+/F1 11 Tf 0 -24 Td (Calificacion de Auditoria PWA: 100% (Grado A+)) Tj
+/F2 9 Tf 0 -45 Td (Pagina 2 de 2 - Documento Oficial de Estudio UPTC) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000229 00000 n 
+0000000278 00000 n 
+0000000341 00000 n 
+0000000489 00000 n 
+0000002412 00000 n 
+0000002560 00000 n 
+0000004452 00000 n 
+0000004527 00000 n 
+trailer
+<< /Size 10
+   /Root 2 0 R
+   /Info 1 0 R >>
+startxref
+4597
+%%EOF

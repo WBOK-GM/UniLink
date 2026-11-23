@@ -1,0 +1,68 @@
+%PDF-1.4
+1 0 obj
+<< /Title (Apuntes y Ejercicios de Calculo Diferencial)
+   /Author (Facultad de Ingenieria)
+   /Subject (Calculo y Matematicas)
+   /Creator (UniLink Academic Platform - UPTC)
+   /Producer (UniLink PDF Engine 1.4) >>
+endobj
+2 0 obj
+<< /Type /Catalog /Pages 3 0 R >>
+endobj
+3 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+4 0 obj
+<< /Type /Page
+   /Parent 3 0 R
+   /MediaBox [0 0 612 792]
+   /Contents 5 0 R
+   /Resources << /Font << /F1 6 0 R /F2 7 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 1316 >>
+stream
+BT
+/F1 16 Tf 50 740 Td (UNIVERSIDAD PEDAGOGICA Y TECNOLOGICA DE COLOMBIA) Tj
+/F1 12 Tf 0 -22 Td (FACULTAD DE INGENIERIA - DEPARTAMENTO DE MATEMATICAS Y FISICA) Tj
+/F1 14 Tf 0 -30 Td (APUNTES Y EJERCICIOS RESUELTOS DE CALCULO DIFERENCIAL) Tj
+/F2 10 Tf 0 -20 Td (Semestre Academico - UPTC Tunja) Tj
+/F1 12 Tf 0 -24 Td (1. Reglas Fundamentales de Derivacion) Tj
+/F2 10 Tf 0 -16 Td (a) Regla de la Potencia: d/dx [x^n] = n * x^(n-1)) Tj
+/F2 10 Tf 0 -14 Td (b) Regla del Producto: d/dx [u * v] = u' * v + u * v') Tj
+/F2 10 Tf 0 -14 Td (c) Regla del Cociente: d/dx [u / v] = (u' * v - u * v') / (v^2)) Tj
+/F2 10 Tf 0 -14 Td (d) Regla de la Cadena: d/dx [f(g(x))] = f'(g(x)) * g'(x)) Tj
+/F1 12 Tf 0 -24 Td (2. Aplicaciones en Optimizacion) Tj
+/F2 10 Tf 0 -16 Td (Para hallar maximos y minimos locales de una funcion f(x):) Tj
+/F2 10 Tf 0 -14 Td (1. Calcular primera derivada f'(x) e igualar a 0 para puntos criticos.) Tj
+/F2 10 Tf 0 -14 Td (2. Evaluar segunda derivada: f''(c) > 0 indica minimo, f''(c) < 0 maximo.) Tj
+/F1 12 Tf 0 -24 Td (3. Teorema Fundamental del Calculo) Tj
+/F2 10 Tf 0 -16 Td (Si f es continua en [a, b] y F es una antiderivada de f en [a, b], entonces:) Tj
+/F2 10 Tf 0 -14 Td (Integral de a a b de f(x) dx = F(b) - F(a)) Tj
+/F2 9 Tf 0 -45 Td (Apuntes Academicos - Comunidad Estudiantil UniLink) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000240 00000 n 
+0000000289 00000 n 
+0000000346 00000 n 
+0000000494 00000 n 
+0000001861 00000 n 
+0000001936 00000 n 
+trailer
+<< /Size 8
+   /Root 2 0 R
+   /Info 1 0 R >>
+startxref
+2006
+%%EOF
