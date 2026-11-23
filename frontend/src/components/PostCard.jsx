@@ -49,6 +49,11 @@ export default function PostCard({ post, onPostUpdated, compact = false }) {
   const [myReaction, setMyReaction] = useState(post.my_reaction || null);
   const [isReacting, setIsReacting] = useState(false);
   const [authorVoteWarning, setAuthorVoteWarning] = useState(false);
+  const [averageRating, setAverageRating] = useState(post.average_rating ?? null);
+  const [ratingsCount, setRatingsCount] = useState(post.ratings_count || 0);
+  const [myRating, setMyRating] = useState(post.my_rating || null);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [isRating, setIsRating] = useState(false);
 
   const isAuthor = user && user.id === post.author?.id;
   const isGated = !user || (user.role !== 'ADMIN' && !isAuthor && (user.contributions_count || 0) === 0);
@@ -152,6 +157,36 @@ export default function PostCard({ post, onPostUpdated, compact = false }) {
       setDislikesCount(post.dislikes_count || 0);
     } finally {
       setIsReacting(false);
+    }
+  };
+
+  const handleRate = async (value) => {
+    if (!user) {
+      setShowGatingModal(true);
+      return;
+    }
+
+    // RN-04: El autor no puede calificar su propio recurso
+    if (isAuthor) {
+      setAuthorVoteWarning(true);
+      setTimeout(() => setAuthorVoteWarning(false), 3500);
+      if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+      return;
+    }
+
+    if (isRating) return;
+
+    try {
+      setIsRating(true);
+      if (navigator.vibrate) navigator.vibrate([20, 15]);
+      const res = await api.ratePost(post.id, myRating === value ? 0 : value);
+      setMyRating(res.my_rating ?? null);
+      setAverageRating(res.average_rating ?? null);
+      setRatingsCount(res.ratings_count || 0);
+    } catch (err) {
+      console.warn('Error registrando calificación:', err);
+    } finally {
+      setIsRating(false);
     }
   };
 
@@ -429,28 +464,31 @@ export default function PostCard({ post, onPostUpdated, compact = false }) {
             <div className={`flex items-center flex-wrap ${compact ? 'gap-1' : 'gap-2'}`}>
               {/* Estrellas 1 a 5 */}
               <div className={`flex items-center ${compact ? 'gap-0.5 px-1.5' : 'gap-1 px-2.5'} py-1 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60`}>
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-0.5" onMouseLeave={() => setHoverRating(0)}>
                   {[1, 2, 3, 4, 5].map((starNum) => {
-                    const avg = post.average_rating || 5.0;
-                    const isFilled = starNum <= Math.round(avg);
+                    const displayRating = hoverRating || myRating || (averageRating != null ? Math.round(averageRating) : 0);
+                    const isFilled = starNum <= displayRating;
+                    const isMine = myRating === starNum;
                     return (
                       <button
                         key={starNum}
                         type="button"
-                        onClick={() => handleReaction(starNum >= 3 ? 'LIKE' : 'DISLIKE')}
-                        className={`${compact ? 'p-0' : 'p-0.5'} text-amber-400 hover:scale-125 transition-transform cursor-pointer`}
-                        title={`Calificar con ${starNum} estrellas (RN-04/05)`}
+                        onClick={() => handleRate(starNum)}
+                        onMouseEnter={() => setHoverRating(starNum)}
+                        disabled={isRating}
+                        className={`${compact ? 'p-0' : 'p-0.5'} text-amber-400 hover:scale-125 transition-transform cursor-pointer disabled:opacity-60`}
+                        title={myRating === starNum ? `Quitar tu calificación de ${starNum} estrellas` : `Calificar con ${starNum} estrellas (RN-04/05)`}
                       >
-                        <Star className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isFilled ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
+                        <Star className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isFilled ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'} ${isMine ? 'drop-shadow-[0_0_3px_rgba(251,191,36,0.8)]' : ''}`} />
                       </button>
                     );
                   })}
                 </div>
                 <span className="font-extrabold text-slate-800 dark:text-slate-200 text-[10px] ml-0.5">
-                  {(post.average_rating || 5.0).toFixed(1)}
+                  {averageRating != null ? averageRating.toFixed(1) : '—'}
                 </span>
                 <span className="text-[9px] text-slate-400">
-                  ({post.ratings_count || (likesCount + dislikesCount)})
+                  ({ratingsCount})
                 </span>
               </div>
 
