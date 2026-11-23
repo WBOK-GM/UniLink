@@ -13,9 +13,11 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  UserCheck
+  UserCheck,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api/client';
 
 // Validación estricta de formato RFC 5322 para correo electrónico
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -32,6 +34,7 @@ export default function LoginPage() {
   const [university, setUniversity] = useState('Universidad');
   const [academicProgram, setAcademicProgram] = useState('Ingeniería de Sistemas');
   const [loading, setLoading] = useState(false);
+  const [coldStartActive, setColdStartActive] = useState(false);
   const [error, setError] = useState('');
   const [showTokenAccess, setShowTokenAccess] = useState(false);
   const [directTokenInput, setDirectTokenInput] = useState('');
@@ -42,6 +45,12 @@ export default function LoginPage() {
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+
+    // Pre-calentar backend Render en segundo plano mientras el usuario digita sus credenciales
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      api.pingHealth().catch(() => {});
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -62,21 +71,30 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setColdStartActive(false);
+
+    // Si la petición tarda más de 2 segundos, Render está despertando desde reposo
+    const coldTimer = setTimeout(() => {
+      setColdStartActive(true);
+    }, 2000);
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
+      clearTimeout(coldTimer);
       setError('Por favor ingresa tu correo institucional.');
       setLoading(false);
       return;
     }
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
+      clearTimeout(coldTimer);
       setError('El formato del correo electrónico es inválido. Debe ser una dirección real (ej: tu.nombre@universidad.edu.co o estudiante@unilink.edu.co).');
       setLoading(false);
       return;
     }
 
     if (isRegister && (!isOnline || !navigator.onLine)) {
+      clearTimeout(coldTimer);
       setError('⚠️ Conexión Requerida: El registro de nuevos estudiantes debe validarse directamente en la base de datos central de UniLink en PostgreSQL. Por favor conéctate a internet para crear tu cuenta.');
       setLoading(false);
       return;
@@ -99,7 +117,9 @@ export default function LoginPage() {
     } catch (err) {
       setError(err.message || 'Error al procesar solicitud.');
     } finally {
+      clearTimeout(coldTimer);
       setLoading(false);
+      setColdStartActive(false);
     }
   };
 
@@ -299,16 +319,39 @@ export default function LoginPage() {
             )}
           </div>
 
+          {/* Alerta de Despertar de Servidor (Render Cold-Start) */}
+          {loading && coldStartActive && (
+            <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/80 flex items-center gap-3 animate-fadeIn shadow-xs">
+              <div className="relative shrink-0">
+                <div className="w-7 h-7 rounded-full border-2 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 animate-spin" />
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600 absolute inset-0 m-auto" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                  Despertando servidor en la nube...
+                </p>
+                <p className="text-[11px] text-indigo-700 dark:text-indigo-400 leading-snug">
+                  El backend estaba en reposo por inactividad. Esto tomará unos segundos la primera vez. Gracias por tu paciencia.
+                </p>
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading || (isRegister && !isOnline)}
-            className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-extrabold text-sm shadow-lg shadow-brand-600/30 transition hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-extrabold text-sm shadow-lg shadow-brand-600/30 transition hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
           >
-            {loading
-              ? 'Procesando...'
-              : isRegister
-              ? (!isOnline ? 'Registro no disponible sin conexión' : 'Completar Registro')
-              : 'Iniciar Sesión'}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>{coldStartActive ? 'Conectando con el servidor...' : 'Procesando...'}</span>
+              </>
+            ) : isRegister ? (
+              !isOnline ? 'Registro no disponible sin conexión' : 'Completar Registro'
+            ) : (
+              'Iniciar Sesión'
+            )}
           </button>
         </form>
 
