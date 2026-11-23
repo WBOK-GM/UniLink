@@ -6,14 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#4f46e5" />
     <meta name="description" content="UniLink - Plataforma PWA de Colaboración y Comunidad Académica Universitaria." />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- Content Security Policy Defense-in-Depth (Sesión 22: Seguridad en PWA) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: http://localhost:* http://127.0.0.1:* https://*.tile.openstreetmap.org https://unpkg.com https://*.r2.dev https://*.onrender.com https:; connect-src 'self' http://localhost:* ws://localhost:* https://*.onrender.com https://*.vercel.app https://*.tile.openstreetmap.org https://*.r2.dev https:; media-src 'self' data: blob: https:; frame-src 'self' blob: data: http://localhost:* http://127.0.0.1:* https://*.onrender.com https:; object-src 'self' blob: data: http://localhost:* http://127.0.0.1:* https://*.onrender.com https:; base-uri 'self';" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
     <!-- Leaflet Map CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <!-- Inter Font -->
+    <!-- Fonts: Inter & Caveat (Handwriting) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <title>UniLink | Colaboración y Comunidad Académica PWA</title>
   </head>
   <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen selection:bg-indigo-500 selection:text-white antialiased font-sans transition-colors duration-200">

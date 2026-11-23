@@ -29,11 +29,11 @@ const memoryStore = {
       id: 'p1111111-1111-1111-1111-111111111111',
       user_id: 'u1111111-1111-1111-1111-111111111111',
       full_name: 'Walter Alfonso',
-      biography: 'Estudiante de la UPTC apasionado por las PWAs, arquitecturas distribuidas e IA.',
-      university: 'Universidad Pedagógica y Tecnológica de Colombia (UPTC)',
+      biography: 'Estudiante universitario apasionado por las PWAs, arquitecturas distribuidas e IA.',
+      university: 'Universidad (Campus Tunja)',
       academic_program: 'Ingeniería de Sistemas y Computación',
       semester: 9,
-      latitude: 5.5530, // Coordenadas privadas UPTC Sede Central Tunja
+      latitude: 5.5530, // Coordenadas privadas Campus Central Tunja
       longitude: -73.3565,
       location_updated_at: new Date(),
       created_at: new Date()
@@ -42,8 +42,8 @@ const memoryStore = {
       id: 'p2222222-2222-2222-2222-222222222222',
       user_id: 'u2222222-2222-2222-2222-222222222222',
       full_name: 'Administrador General',
-      biography: 'Moderación y gestión de la plataforma comunitaria UPTC.',
-      university: 'UPTC Staff / Dirección Académica',
+      biography: 'Moderación y gestión de la plataforma comunitaria UniLink.',
+      university: 'Equipo de Coordinación UniLink',
       academic_program: 'Dirección Académica',
       semester: 10,
       latitude: 5.5536,
@@ -71,7 +71,7 @@ const memoryStore = {
       title: 'Guía Completa de Service Workers y Estrategias de Caché PWA',
       content: 'Comparto este resumen detallado con ejemplos de Cache First, Network First y Background Sync con IndexedDB para el proyecto de noveno semestre.',
       status: 'ACTIVE',
-      location: 'Facultad de Ingeniería - Salón 302 (UPTC Tunja) (5.55250, -73.35530)',
+      location: 'Facultad de Ingeniería - Salón 302 (Campus Tunja) (5.55250, -73.35530)',
       copyright_declaration_accepted: true,
       copyright_policy_version: 'v1.0',
       client_operation_id: 'op-initial-001',
@@ -86,28 +86,91 @@ const memoryStore = {
       title: 'Resumen Taller Docker Compose y Traefik Reverse Proxy',
       content: 'Notas de clase y diagramas de arquitectura para balanceo de carga con contenedores en Linux.',
       status: 'ACTIVE',
-      location: 'Biblioteca Central Jorge Palacios Preciado (UPTC Tunja) (5.55360, -73.35810)',
+      location: 'Biblioteca Central Jorge Palacios Preciado (Campus Tunja) (5.55360, -73.35810)',
       copyright_declaration_accepted: true,
       copyright_policy_version: 'v1.0',
       client_operation_id: 'op-initial-002',
       created_at: new Date(Date.now() - 3600000 * 20)
+    },
+    {
+      id: 'post-003',
+      author_id: 'u1111111-1111-1111-1111-111111111111',
+      category_id: 'c5',
+      group_id: null,
+      post_type: 'RESOURCE',
+      title: 'Apuntes y Ejercicios Resueltos de Cálculo Diferencial e Integral',
+      content: 'Formulario con reglas de derivación, aplicaciones en optimización y teoremas fundamentales del cálculo para preparar el examen parcial.',
+      status: 'ACTIVE',
+      location: 'Edificio Central - Sala de Estudio (Campus Tunja) (5.55280, -73.35620)',
+      copyright_declaration_accepted: true,
+      copyright_policy_version: 'v1.0',
+      client_operation_id: 'op-initial-003',
+      created_at: new Date(Date.now() - 3600000 * 48)
     }
   ],
   files: [
     {
       id: 'f1',
       uploader_id: 'u1111111-1111-1111-1111-111111111111',
-      original_name: 'resumen_pwa_offline.pdf',
+      original_name: 'Guia_Service_Workers_Cache_PWA.pdf',
       storage_key: 'sample-pwa-guide.pdf',
       mime_type: 'application/pdf',
-      file_size: 1024 * 450,
+      file_size: 4881,
       file_type: 'DOCUMENT',
+      checksum: 'sha256:a1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef',
       status: 'AVAILABLE',
+      access_count: 5,
+      last_accessed_at: new Date(),
+      created_at: new Date()
+    },
+    {
+      id: 'f2',
+      uploader_id: 'u2222222-2222-2222-2222-222222222222',
+      original_name: 'Arquitectura_Docker_Traefik.png',
+      storage_key: 'sample-docker-traefik.png',
+      mime_type: 'image/png',
+      file_size: 1024 * 75,
+      file_type: 'IMAGE',
+      checksum: 'sha256:b2c3d4e5f6a178901234567890abcdef1234567890abcdef1234567890abcdef',
+      status: 'AVAILABLE',
+      access_count: 8,
+      last_accessed_at: new Date(),
+      created_at: new Date()
+    },
+    {
+      id: 'f3',
+      uploader_id: 'u2222222-2222-2222-2222-222222222222',
+      original_name: 'Guia_Despliegue_Docker_Compose.pdf',
+      storage_key: 'sample-docker-guia.pdf',
+      mime_type: 'application/pdf',
+      file_size: 2365,
+      file_type: 'DOCUMENT',
+      checksum: 'sha256:c3d4e5f6a1b278901234567890abcdef1234567890abcdef1234567890abcdef',
+      status: 'AVAILABLE',
+      access_count: 3,
+      last_accessed_at: new Date(),
+      created_at: new Date()
+    },
+    {
+      id: 'f4',
+      uploader_id: 'u1111111-1111-1111-1111-111111111111',
+      original_name: 'Apuntes_Calculo_Diferencial.pdf',
+      storage_key: 'sample-calculo-apuntes.pdf',
+      mime_type: 'application/pdf',
+      file_size: 2248,
+      file_type: 'DOCUMENT',
+      checksum: 'sha256:d4e5f6a1b2c378901234567890abcdef1234567890abcdef1234567890abcdef',
+      status: 'AVAILABLE',
+      access_count: 12,
+      last_accessed_at: new Date(),
       created_at: new Date()
     }
   ],
   post_files: [
-    { id: 'pf1', post_id: 'post-001', file_id: 'f1', display_order: 1 }
+    { id: 'pf1', post_id: 'post-001', file_id: 'f1', display_order: 1 },
+    { id: 'pf2', post_id: 'post-002', file_id: 'f2', display_order: 1 },
+    { id: 'pf3', post_id: 'post-002', file_id: 'f3', display_order: 2 },
+    { id: 'pf4', post_id: 'post-003', file_id: 'f4', display_order: 1 }
   ],
   post_reactions: [
     { id: 'pr1', post_id: 'post-001', user_id: 'u2222222-2222-2222-2222-222222222222', reaction_type: 'LIKE', created_at: new Date() }
@@ -117,10 +180,10 @@ const memoryStore = {
       id: 'g-001',
       creator_id: 'u1111111-1111-1111-1111-111111111111',
       category_id: 'c6',
-      name: 'Grupo de Estudio PWA & Aplicaciones Móviles (UPTC)',
-      description: 'Espacio colaborativo para resolver talleres de Service Workers, IndexedDB y preparar el proyecto final en la Facultad de Ingeniería UPTC.',
+      name: 'Grupo de Estudio PWA & Aplicaciones Móviles',
+      description: 'Espacio colaborativo para resolver talleres de Service Workers, IndexedDB y preparar el proyecto final en la Facultad de Ingeniería.',
       group_type: 'PUBLIC',
-      location_latitude: 5.5525, // Facultad de Ingeniería UPTC Tunja
+      location_latitude: 5.5525, // Facultad de Ingeniería Campus Tunja
       location_longitude: -73.3553,
       max_members: 30,
       status: 'ACTIVE',
@@ -130,10 +193,10 @@ const memoryStore = {
       id: 'g-002',
       creator_id: 'u2222222-2222-2222-2222-222222222222',
       category_id: 'c3',
-      name: 'Semillero de Inteligencia Artificial y Agentes (UPTC)',
-      description: 'Grupo avanzado en Biblioteca Central UPTC para discusión de papers de LLMs, arquitecturas MCP y agentes autónomos. Requiere solicitud previa.',
+      name: 'Semillero de Inteligencia Artificial y Agentes',
+      description: 'Grupo avanzado en Biblioteca Central para discusión de papers de LLMs, arquitecturas MCP y agentes autónomos. Requiere solicitud previa.',
       group_type: 'PRIVATE',
-      location_latitude: 5.5536, // Biblioteca Central UPTC Tunja
+      location_latitude: 5.5536, // Biblioteca Central Campus Tunja
       location_longitude: -73.3581,
       max_members: 15,
       status: 'ACTIVE',
@@ -164,6 +227,41 @@ const memoryStore = {
   meeting_attendees: [
     { id: 'ma1', meeting_id: 'm-001', user_id: 'u1111111-1111-1111-1111-111111111111', attendance_status: 'CONFIRMED', responded_at: new Date() }
   ],
+  group_tasks: [
+    {
+      id: 'gt-001',
+      group_id: 'g-001',
+      creator_id: 'u1111111-1111-1111-1111-111111111111',
+      title: 'Implementar Service Worker y Cache Storage PWA',
+      description: 'Estrategia network-first con fallback a caché y precaching de assets.',
+      assigned_to: 'u1111111-1111-1111-1111-111111111111',
+      status: 'DONE',
+      due_date: new Date(Date.now() + 86400000 * 3),
+      created_at: new Date()
+    },
+    {
+      id: 'gt-002',
+      group_id: 'g-001',
+      creator_id: 'u1111111-1111-1111-1111-111111111111',
+      title: 'Configurar sincronización en segundo plano con IndexedDB',
+      description: 'Cola de publicaciones locales con cola Dexie.',
+      assigned_to: 'u1111111-1111-1111-1111-111111111111',
+      status: 'IN_PROGRESS',
+      due_date: new Date(Date.now() + 86400000 * 5),
+      created_at: new Date()
+    },
+    {
+      id: 'gt-003',
+      group_id: 'g-001',
+      creator_id: 'u1111111-1111-1111-1111-111111111111',
+      title: 'Preparar diapositivas de sustentación de proyecto',
+      description: 'Documentar arquitectura offline-first y seguridad CSP.',
+      assigned_to: null,
+      status: 'TODO',
+      due_date: new Date(Date.now() + 86400000 * 7),
+      created_at: new Date()
+    }
+  ],
   notifications: [
     {
       id: 'n1',
@@ -183,9 +281,14 @@ const memoryStore = {
 
 // Inicialización de conexión PostgreSQL si existe DATABASE_URL
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== '') {
+  const isNeonOrSsl = process.env.DATABASE_URL.includes('sslmode=require') ||
+    process.env.DATABASE_URL.includes('neon.tech') ||
+    process.env.DATABASE_URL.includes('render.com') ||
+    process.env.NODE_ENV === 'production';
+
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL.includes('sslmode=require') ? { rejectUnauthorized: false } : false
+    ssl: isNeonOrSsl ? { rejectUnauthorized: false } : false
   });
 
   pool.query('SELECT NOW()', (err, res) => {

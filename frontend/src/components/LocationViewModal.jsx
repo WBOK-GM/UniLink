@@ -2,66 +2,68 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { MapPin, X, ExternalLink, Navigation, Compass, Building2, CheckCircle2 } from 'lucide-react';
 
-// Diccionario de referencias reales UPTC Sede Central Tunja (Boyacá, Colombia)
-export const UPTC_LANDMARKS = {
+// Diccionario de referencias reales del campus universitario
+export const CAMPUS_LANDMARKS = {
   BIBLIOTECA: {
-    name: 'Biblioteca Central Jorge Palacios Preciado (UPTC)',
+    name: 'Biblioteca Central Jorge Palacios Preciado',
     building: 'Biblioteca Central',
-    campus: 'UPTC - Sede Central Tunja, Boyacá',
+    campus: 'Campus Universitario - Tunja, Boyacá',
     lat: 5.5536,
     lng: -73.3581,
     altitude: '2.705 m s. n. m.'
   },
   INGENIERIA: {
-    name: 'Facultad de Ingeniería (UPTC)',
+    name: 'Facultad de Ingeniería',
     building: 'Edificio de Ingeniería',
-    campus: 'UPTC - Sede Central Tunja, Boyacá',
+    campus: 'Campus Universitario - Tunja, Boyacá',
     lat: 5.5525,
     lng: -73.3553,
     altitude: '2.698 m s. n. m.'
   },
   CENTRAL: {
-    name: 'Edificio Central y Rectoría (UPTC)',
+    name: 'Edificio Central y Aulas',
     building: 'Edificio Central / Administrativo',
-    campus: 'UPTC - Sede Central Tunja, Boyacá',
+    campus: 'Campus Universitario - Tunja, Boyacá',
     lat: 5.5530,
     lng: -73.3565,
     altitude: '2.700 m s. n. m.'
   },
   LABORATORIOS: {
-    name: 'Laboratorios de Ciencias e Ingeniería (UPTC)',
+    name: 'Laboratorios de Ciencias e Ingeniería',
     building: 'Edificio de Laboratorios y CTI',
-    campus: 'UPTC - Sede Central Tunja, Boyacá',
+    campus: 'Campus Universitario - Tunja, Boyacá',
     lat: 5.5520,
     lng: -73.3548,
     altitude: '2.695 m s. n. m.'
   },
   PLAZA: {
-    name: 'Plaza Camilo Torres (UPTC)',
+    name: 'Plaza Camilo Torres y Zonas Verdes',
     building: 'Plaza Central y Zonas Deportivas',
-    campus: 'UPTC - Sede Central Tunja, Boyacá',
+    campus: 'Campus Universitario - Tunja, Boyacá',
     lat: 5.5540,
     lng: -73.3570,
     altitude: '2.702 m s. n. m.'
   },
   CAFETERIA: {
-    name: 'Restaurante y Cafetería Central (UPTC)',
+    name: 'Restaurante y Cafetería Central',
     building: 'Restaurante Universitario',
-    campus: 'UPTC - Sede Central Tunja, Boyacá',
+    campus: 'Campus Universitario - Tunja, Boyacá',
     lat: 5.5532,
     lng: -73.3575,
     altitude: '2.703 m s. n. m.'
   }
 };
 
+export const UPTC_LANDMARKS = CAMPUS_LANDMARKS;
+
 /**
- * Función auxiliar para resolver ubicación real UPTC a partir de cualquier texto o coordenadas
+ * Función auxiliar para resolver ubicación a partir de cualquier texto o coordenadas
  */
-export function resolveUptcLocation(locationStr) {
+export function resolveCampusLocation(locationStr) {
   if (!locationStr) {
     return {
-      title: 'UPTC Sede Central',
-      building: 'Campus Universitario UPTC',
+      title: 'Campus Central',
+      building: 'Campus Universitario',
       campus: 'Tunja, Boyacá, Colombia',
       lat: 5.5530,
       lng: -73.3565,
@@ -76,50 +78,52 @@ export function resolveUptcLocation(locationStr) {
     const lng = parseFloat(coordsMatch[2]);
     const rawTitle = locationStr.replace(/\(-?\d+\.\d+,\s*-?\d+\.\d+\)/, '').trim();
     return {
-      title: rawTitle || 'Ubicación UPTC',
-      building: rawTitle || 'Instalación UPTC',
-      campus: 'UPTC - Sede Central Tunja, Boyacá',
+      title: rawTitle || 'Ubicación Campus',
+      building: rawTitle || 'Instalación Universitaria',
+      campus: 'Campus Universitario Tunja',
       lat,
       lng,
       altitude: '2.700 m s. n. m.'
     };
   }
 
-  // 2. Mapear por palabras clave de la UPTC
+  // 2. Mapear por palabras clave
   const lower = locationStr.toLowerCase();
   if (lower.includes('biblioteca') || lower.includes('palacios')) {
-    return { ...UPTC_LANDMARKS.BIBLIOTECA, title: locationStr };
+    return { ...CAMPUS_LANDMARKS.BIBLIOTECA, title: locationStr };
   }
   if (lower.includes('ingenier') || lower.includes('302') || lower.includes('aula') || lower.includes('sistemas')) {
-    return { ...UPTC_LANDMARKS.INGENIERIA, title: locationStr };
+    return { ...CAMPUS_LANDMARKS.INGENIERIA, title: locationStr };
   }
   if (lower.includes('laboratorio') || lower.includes('cti') || lower.includes('taller')) {
-    return { ...UPTC_LANDMARKS.LABORATORIOS, title: locationStr };
+    return { ...CAMPUS_LANDMARKS.LABORATORIOS, title: locationStr };
   }
   if (lower.includes('plaza') || lower.includes('camilo') || lower.includes('verde')) {
-    return { ...UPTC_LANDMARKS.PLAZA, title: locationStr };
+    return { ...CAMPUS_LANDMARKS.PLAZA, title: locationStr };
   }
   if (lower.includes('cafeter') || lower.includes('restaurante') || lower.includes('comedor')) {
-    return { ...UPTC_LANDMARKS.CAFETERIA, title: locationStr };
+    return { ...CAMPUS_LANDMARKS.CAFETERIA, title: locationStr };
   }
 
-  // Fallback centrado en UPTC Sede Central
+  // Fallback centrado en Campus Central
   return {
     title: locationStr,
     building: locationStr,
-    campus: 'UPTC - Sede Central Tunja, Boyacá',
+    campus: 'Campus Universitario Tunja',
     lat: 5.5530,
     lng: -73.3565,
     altitude: '2.700 m s. n. m.'
   };
 }
 
+export const resolveUptcLocation = resolveCampusLocation;
+
 export default function LocationViewModal({ isOpen, onClose, locationStr }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
-  const loc = resolveUptcLocation(locationStr);
+  const loc = resolveCampusLocation(locationStr);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -128,11 +132,15 @@ export default function LocationViewModal({ isOpen, onClose, locationStr }) {
       if (!mapContainerRef.current) return;
 
       const pinIcon = L.divIcon({
-        className: 'uptc-view-pin',
+        className: 'unilink-view-pin',
         html: `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
             <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; width: 40px; height: 40px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(79, 70, 229, 0.6); border: 3px solid #ffffff;">
-              <span style="transform: rotate(45deg); font-size: 18px;">📍</span>
+              <span style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+              </span>
             </div>
             <div style="width: 16px; height: 6px; background: rgba(0,0,0,0.3); border-radius: 50%; margin-top: 4px; filter: blur(2px);"></div>
           </div>
@@ -147,7 +155,7 @@ export default function LocationViewModal({ isOpen, onClose, locationStr }) {
         }).setView([loc.lat, loc.lng], 17);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors | UPTC Tunja'
+          attribution: '&copy; OpenStreetMap contributors | UniLink Campus'
         }).addTo(map);
 
         const marker = L.marker([loc.lat, loc.lng], { icon: pinIcon }).addTo(map);
@@ -210,7 +218,7 @@ export default function LocationViewModal({ isOpen, onClose, locationStr }) {
                   {loc.title}
                 </h3>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  UPTC Tunja
+                  Campus Abierto
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -238,7 +246,7 @@ export default function LocationViewModal({ isOpen, onClose, locationStr }) {
             {/* Overlay badge with location summary */}
             <div className="absolute top-3 left-3 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-md text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Ubicación real UPTC Sede Central</span>
+              <span>Punto de Referencia del Campus</span>
             </div>
           </div>
 
@@ -254,7 +262,7 @@ export default function LocationViewModal({ isOpen, onClose, locationStr }) {
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block">Sede Universitaria</span>
               <span className="font-semibold text-slate-800 dark:text-slate-200">
-                UPTC - Tunja (Boyacá)
+                Campus Universitario (Tunja)
               </span>
             </div>
 

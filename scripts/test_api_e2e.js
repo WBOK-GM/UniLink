@@ -5,8 +5,9 @@ async function runTests() {
   console.log('🧪 Iniciando Pruebas E2E de Endpoints UniLink...\n');
 
   const server = http.createServer(app);
-  await new Promise((resolve) => server.listen(5099, resolve));
-  const baseUrl = 'http://localhost:5099/api/v1';
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+  const baseUrl = `http://localhost:${port}/api/v1`;
 
   async function apiCall(endpoint, options = {}) {
     const res = await fetch(`${baseUrl}${endpoint}`, {
@@ -35,7 +36,7 @@ async function runTests() {
 
   try {
     // 1. Health check
-    const health = await (await fetch('http://localhost:5099/health')).json();
+    const health = await (await fetch(`http://localhost:${port}/health`)).json();
     assert('Health Check Responde Healthy', health.status === 'healthy');
 
     // 2. Auth Login Demo Estudiante
@@ -111,7 +112,9 @@ async function runTests() {
   } catch (error) {
     console.error('Error durante ejecución de pruebas:', error);
   } finally {
-    server.close();
+    server.close(() => {
+      process.exit(failed > 0 ? 1 : 0);
+    });
   }
 }
 

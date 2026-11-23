@@ -4,6 +4,9 @@ const { v4: uuidv4 } = require('uuid');
 const { memoryStore, pool, usePg } = require('../../config/db');
 const { JWT_SECRET } = require('../../middlewares/auth');
 
+// Validación estricta de correo electrónico (RFC 5322 compatible)
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const register = async (req, res) => {
   try {
     const { email, password, full_name, university, academic_program, semester, latitude, longitude } = req.body;
@@ -15,8 +18,16 @@ const register = async (req, res) => {
       });
     }
 
-    // RN-01: Correo electrónico único
+    // Validación de formato sintáctico de correo
     const normalizedEmail = email.toLowerCase().trim();
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'El formato del correo electrónico es inválido. Debe ser una dirección real (ej. usuario@dominio.edu.co).'
+      });
+    }
+
+    // RN-01: Correo electrónico único
     const existingUser = memoryStore.users.find(u => u.email.toLowerCase() === normalizedEmail);
 
     if (existingUser) {
@@ -104,6 +115,14 @@ const login = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'El formato del correo electrónico es inválido. Debe ser una dirección real (ej. usuario@dominio.edu.co).'
+      });
+    }
+
     const user = memoryStore.users.find(u => u.email.toLowerCase() === normalizedEmail);
 
     if (!user) {

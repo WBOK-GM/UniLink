@@ -1,16 +1,22 @@
 import React, { useState, useRef } from 'react';
-import { Mic, Square, Trash2, CheckCircle2 } from 'lucide-react';
+import { Mic, Square, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AudioRecorder({ onAudioRecorded }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioUrl, setAudioUrl] = useState(null);
+  const [micError, setMicError] = useState(null);
   const mediaRecorderRef = useRef(null);
   const timerRef = useRef(null);
   const audioChunksRef = useRef([]);
 
   const startRecording = async () => {
+    setMicError(null);
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Navegador sin soporte de API de audio.');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
@@ -40,12 +46,21 @@ export default function AudioRecorder({ onAudioRecorded }) {
       setIsRecording(true);
       setRecordingTime(0);
 
+      // Retroalimentación háptica leve
+      if ('vibrate' in navigator) {
+        try { navigator.vibrate(40); } catch (e) {}
+      }
+
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
     } catch (err) {
       console.warn('Micrófono no disponible o denegado:', err.message);
-      alert('No se pudo acceder al micrófono. Verifica los permisos de tu navegador.');
+      setMicError(
+        err.name === 'NotAllowedError'
+          ? 'Permiso de micrófono bloqueado en tu navegador. Actívalo en la configuración del sitio.'
+          : 'No se detectó ningún micrófono conectado en tu equipo.'
+      );
     }
   };
 
@@ -85,27 +100,36 @@ export default function AudioRecorder({ onAudioRecorded }) {
       </div>
 
       {!audioUrl ? (
-        <div className="flex items-center gap-3">
-          {!isRecording ? (
-            <button
-              type="button"
-              onClick={startRecording}
-              className="px-3.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-600/20 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-600/30 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold flex items-center gap-2 transition"
-            >
-              <Mic className="w-3.5 h-3.5" />
-              <span>Iniciar Grabación</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={stopRecording}
-              className="px-3.5 py-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-500 text-xs font-semibold flex items-center gap-2 transition animate-pulse"
-            >
-              <Square className="w-3.5 h-3.5" />
-              <span>Detener ({formatTime(recordingTime)})</span>
-            </button>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            {!isRecording ? (
+              <button
+                type="button"
+                onClick={startRecording}
+                className="px-3.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-600/20 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-600/30 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold flex items-center gap-2 transition"
+              >
+                <Mic className="w-3.5 h-3.5" />
+                <span>Iniciar Grabación</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="px-3.5 py-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-500 text-xs font-semibold flex items-center gap-2 transition animate-pulse"
+              >
+                <Square className="w-3.5 h-3.5" />
+                <span>Detener ({formatTime(recordingTime)})</span>
+              </button>
+            )}
+            <span className="text-[11px] text-slate-500">Útil para dudas rápidas o explicaciones habladas.</span>
+          </div>
+
+          {micError && (
+            <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 animate-fadeIn">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{micError}</span>
+            </div>
           )}
-          <span className="text-[11px] text-slate-500">Útil para dudas rápidas o explicaciones habladas.</span>
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3 p-2 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 shadow-sm">

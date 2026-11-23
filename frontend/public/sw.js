@@ -39,6 +39,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // REGLA ZERO-FOOTPRINT ADMIN:
+  // Nunca guardar en caché de disco chunks o recursos administrativos
+  if (url.pathname.includes('admin') || url.pathname.includes('Admin') || url.pathname.includes('security')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

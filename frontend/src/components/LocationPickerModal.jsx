@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { MapPin, Navigation, X, Check, Search, Building2, BookOpen, Coffee, Compass } from 'lucide-react';
+import { getResilientPosition } from '../utils/geoUtils';
 
 export default function LocationPickerModal({
   isOpen,
@@ -17,7 +18,7 @@ export default function LocationPickerModal({
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
-  // Lugares universitarios de referencia real UPTC Tunja
+  // Lugares universitarios de referencia real Campus Tunja
   const campusPresets = [
     { name: 'Biblioteca Central (Jorge Palacios Preciado)', lat: 5.5536, lng: -73.3581, icon: BookOpen },
     { name: 'Facultad de Ingeniería (Aulas 302 / Sistemas)', lat: 5.5525, lng: -73.3553, icon: Building2 },
@@ -27,14 +28,18 @@ export default function LocationPickerModal({
     { name: 'Restaurante y Cafetería Central', lat: 5.5532, lng: -73.3575, icon: Coffee },
   ];
 
-  // Crear icono de marcador personalizado de alta estética
+  // Crear icono de marcador personalizado de alta estética con SVG nativo
   const createPinIcon = () => {
     return L.divIcon({
       className: 'unilink-picker-pin',
       html: `
         <div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
           <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; width: 36px; height: 36px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.5); border: 2.5px solid #ffffff;">
-            <span style="transform: rotate(45deg); font-size: 15px;">📍</span>
+            <span style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </span>
           </div>
           <div style="width: 14px; height: 5px; background: rgba(0,0,0,0.3); border-radius: 50%; margin-top: 3px; filter: blur(1.5px);"></div>
         </div>
@@ -68,7 +73,7 @@ export default function LocationPickerModal({
         }).setView([targetLat, targetLng], 16);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors | UPTC Tunja'
+          attribution: '&copy; OpenStreetMap contributors | UniLink Campus'
         }).addTo(map);
 
         // Añadir marcador inicial
@@ -138,36 +143,26 @@ export default function LocationPickerModal({
     }
   };
 
-  // Obtener GPS del dispositivo
-  const handleGetDeviceLocation = () => {
-    if (!('geolocation' in navigator)) {
-      alert('Tu dispositivo o navegador no soporta geolocalización GPS.');
-      return;
-    }
-
+  // Obtener GPS del dispositivo con estrategia resiliente
+  const handleGetDeviceLocation = async () => {
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setSelectedCoords(coords);
-        if (!placeName) {
-          setPlaceName('Mi ubicación GPS actual');
-        }
+    try {
+      const pos = await getResilientPosition();
+      const coords = { lat: pos.lat, lng: pos.lng };
+      setSelectedCoords(coords);
+      setPlaceName(pos.placeName);
 
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView([coords.lat, coords.lng], 16);
-          if (markerRef.current) {
-            markerRef.current.setLatLng([coords.lat, coords.lng]);
-          }
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.setView([coords.lat, coords.lng], 16);
+        if (markerRef.current) {
+          markerRef.current.setLatLng([coords.lat, coords.lng]);
         }
-        setLocating(false);
-      },
-      (err) => {
-        alert('No se pudo obtener el GPS: ' + err.message);
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+      }
+    } catch (err) {
+      console.warn('Error al obtener ubicación:', err);
+    } finally {
+      setLocating(false);
+    }
   };
 
   // Confirmar selección y devolver al padre
@@ -240,7 +235,7 @@ export default function LocationPickerModal({
           {/* Quick presets buttons */}
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
-              Lugares comunes del campus UPTC Tunja:
+              Lugares comunes del campus universitario:
             </span>
             <div className="flex flex-wrap gap-1.5">
               {campusPresets.map((preset, idx) => {

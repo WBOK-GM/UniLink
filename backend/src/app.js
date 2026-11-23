@@ -2,6 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { uploadsDir } = require('./config/storage');
+const {
+  securityHeaders,
+  apiRateLimiter,
+  authRateLimiter,
+  sanitizeInput
+} = require('./middlewares/security');
 
 const authRoutes = require('./modules/auth/authRoutes');
 const userRoutes = require('./modules/users/userRoutes');
@@ -11,23 +17,40 @@ const groupRoutes = require('./modules/groups/groupRoutes');
 const meetingRoutes = require('./modules/meetings/meetingRoutes');
 const notificationRoutes = require('./modules/notifications/notificationRoutes');
 const reportRoutes = require('./modules/reports/reportRoutes');
+const securityRoutes = require('./modules/security/securityRoutes');
 
 const app = express();
 
-// Middlewares globales
+// 1. Cabeceras de Seguridad y Content Security Policy (Sesión 22)
+app.use(securityHeaders);
+
+// 2. Limitador de tasa global para la API
+app.use(apiRateLimiter);
+
+// 3. Middlewares de análisis de cuerpo y desinfección
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servidor de archivos estáticos para subidas locales (Fallback)
-app.use('/uploads', express.static(uploadsDir));
+// 4. Sanitización y desinfección de entradas contra inyecciones XSS
+app.use(sanitizeInput);
+
+// Servidor de archivos estáticos para subidas locales con soporte de visualización en marco (PWA In-App Viewer)
+app.use('/uploads', (req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "default-src 'self' blob: data: http://localhost:* http://127.0.0.1:*; frame-ancestors 'self' http://localhost:* http://127.0.0.1:*; object-src 'self' blob: data: http://localhost:* http://127.0.0.1:*;");
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Disposition', 'inline');
+  next();
+}, express.static(uploadsDir));
 
 // Rutas de API v1
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authRateLimiter, authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/posts', postRoutes);
@@ -35,6 +58,7 @@ app.use('/api/v1/groups', groupRoutes);
 app.use('/api/v1/meetings', meetingRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/security', securityRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -1,78 +1,148 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  ThumbsUp,
-  ThumbsDown,
   FileText,
   Download,
   MapPin,
   Clock,
-  ShieldCheck,
+  MoreVertical,
   Flag,
   Trash2,
   BookmarkCheck,
-  ExternalLink
+  ExternalLink,
+  Mic,
+  Image as ImageIcon,
+  Eye,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import { saveResourceOffline } from '../db/db';
+import { db, saveResourceOffline, deleteResourceOffline, isResourceSavedOffline } from '../db/db';
 import AudioPlayer from './AudioPlayer';
 import LocationViewModal from './LocationViewModal';
+import FileViewerModal from './FileViewerModal';
 
 export default function PostCard({ post, onPostUpdated }) {
   const { user } = useAuth();
-  const [likes, setLikes] = useState(post.likes_count || 0);
-  const [dislikes, setDislikes] = useState(post.dislikes_count || 0);
-  const [myReaction, setMyReaction] = useState(post.my_reaction || null);
-  const [isReacting, setIsReacting] = useState(false);
   const [downloadSaved, setDownloadSaved] = useState({});
+  const [savingFileId, setSavingFileId] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [reportReason, setReportReason] = useState('Derechos de autor');
+  const [expandedContent, setExpandedContent] = useState(false);
+  const [viewingFile, setViewingFile] = useState(null);
+  const [localThumbUrl, setLocalThumbUrl] = useState(null);
+  const [imgError, setImgError] = useState(false);
+  const [isOfflineSaved, setIsOfflineSaved] = useState(false);
 
   const isAuthor = user && user.id === post.author?.id;
+  const isLongContent = (post.content || '').length > 220;
 
-  const handleReaction = async (type) => {
-    if (!user) {
-      alert('Debes iniciar sesión para valorar publicaciones.');
-      return;
-    }
-    if (isAuthor) {
-      alert('El autor no puede valorar su propia publicación (RN-04).');
-      return;
-    }
-    if (isReacting) return;
+  // Primer archivo adjunto para el preview visual izquierdo
+  const mainAttachment = post.attachments && post.attachments.length > 0 ? post.attachments[0] : null;
 
+  useEffect(() => {
+    let isMounted = true;
+    isResourceSavedOffline(post.id).then((saved) => {
+      if (isMounted) setIsOfflineSaved(saved);
+    }).catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [post.id]);
+
+  useEffect(() => {
+    let isMounted = true;
+    let url = null;
+    if (mainAttachment) {
+      db.offline_resources
+        .where('file_id')
+        .equals(mainAttachment.id || mainAttachment.storage_key || mainAttachment.original_name)
+        .first()
+        .then((res) => {
+          if (isMounted && res && res.local_blob) {
+            const mime = res.local_blob.type || mainAttachment.mime_type || 'image/png';
+            const blob = new Blob([res.local_blob], { type: mime });
+            url = URL.createObjectURL(blob);
+            setLocalThumbUrl(url);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+      if (url && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [mainAttachment]);
+
+  const handleToggleOfflineReady = async (e) => {
+    e.stopPropagation();
+    if (!mainAttachment) return;
     try {
-      setIsReacting(true);
-      const newType = myReaction === type ? 'NONE' : type;
-
-      // Optimistic update
-      if (myReaction === 'LIKE') setLikes(prev => Math.max(0, prev - 1));
-      if (myReaction === 'DISLIKE') setDislikes(prev => Math.max(0, prev - 1));
-
-      if (newType === 'LIKE') setLikes(prev => prev + 1);
-      if (newType === 'DISLIKE') setDislikes(prev => prev + 1);
-
-      setMyReaction(newType === 'NONE' ? null : newType);
-
-      await api.reactToPost(post.id, newType);
+      setSavingFileId(mainAttachment.id);
+      if (isOfflineSaved) {
+        await deleteResourceOffline(post.id);
+        setIsOfflineSaved(false);
+      } else {
+        let blob;
+        if (mainAttachment.url) {
+          const response = await fetch(mainAttachment.url);
+          if (response.ok) {
+            blob = await response.blob();
+          }
+        }
+        if (blob) {
+          await saveResourceOffline(
+            post.id,
+            mainAttachment.id || mainAttachment.storage_key || mainAttachment.original_name,
+            mainAttachment.original_name,
+            blob,
+            user?.id || 'guest'
+          );
+          setIsOfflineSaved(true);
+        }
+      }
     } catch (err) {
-      console.error('Error al reaccionar:', err);
+      console.warn('Error alternando disponibilidad offline:', err);
     } finally {
-      setIsReacting(false);
+      setSavingFileId(null);
     }
   };
 
   const handleSaveOffline = async (file) => {
     try {
-      const response = await fetch(file.url);
-      const blob = await response.blob();
-      await saveResourceOffline(post.id, file.id, file.original_name, blob, user?.id || 'guest');
+      setSavingFileId(file.id);
+      let blob;
+      if (file.url) {
+        const response = await fetch(file.url);
+        if (response.ok) {
+          blob = await response.blob();
+        }
+      }
+
+      if (blob) {
+        // 1. Guardar en almacenamiento de la PWA (IndexedDB / Disco navegador)
+        await saveResourceOffline(post.id, file.id || file.storage_key || file.original_name, file.original_name, blob, user?.id || 'guest');
+
+        // 2. Disparar descarga física al equipo del usuario
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = file.original_name || 'documento_unilink.pdf';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+      }
+
       setDownloadSaved(prev => ({ ...prev, [file.id]: true }));
-      alert(`✅ "${file.original_name}" guardado en el almacenamiento local para consulta offline.`);
     } catch (e) {
-      console.warn('Error guardando offline:', e);
-      window.open(file.url, '_blank');
+      console.warn('Error guardando/descargando:', e);
+      if (file.url) window.open(file.url, '_blank');
+    } finally {
+      setSavingFileId(null);
     }
   };
 
@@ -90,13 +160,14 @@ export default function PostCard({ post, onPostUpdated }) {
     try {
       await api.createReport({ post_id: post.id, reason: reportReason });
       setShowReportModal(false);
-      alert('Reporte enviado al equipo de moderación.');
+      alert('Reporte enviado al equipo de moderación académica.');
     } catch (e) {
       alert(e.message);
     }
   };
 
   const formatRelativeTime = (isoString) => {
+    if (!isoString) return 'Hace 4 horas';
     const diffMs = Date.now() - new Date(isoString).getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     if (diffHours < 1) return 'Hace unos momentos';
@@ -107,234 +178,349 @@ export default function PostCard({ post, onPostUpdated }) {
   };
 
   return (
-    <article className="rounded-2xl glass-panel p-5 sm:p-6 transition-all duration-200 hover:shadow-md border border-slate-200/90 dark:border-slate-800">
-      {/* Header: Author + Meta */}
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-bold flex items-center justify-center text-sm shadow-md shadow-brand-500/20">
-            {post.author?.full_name ? post.author.full_name.charAt(0) : 'U'}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-slate-800 dark:text-white text-sm sm:text-base">
-                {post.author?.full_name || 'Estudiante'}
-              </span>
-              {post.author?.university && (
-                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                  {post.author.university}
+    <article className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 hover:shadow-md transition-all duration-200 shadow-2xs relative">
+      
+      {/* Contenedor Horizontal Principal (Matches Reference Image) */}
+      <div className="flex flex-col sm:flex-row items-start gap-5">
+        
+        {/* Left Side: Thumbnail Preview Box (Click to View in PWA) */}
+        <div
+          onClick={() => mainAttachment && setViewingFile(mainAttachment)}
+          className={`w-full sm:w-44 h-40 sm:h-36 rounded-2xl overflow-hidden shrink-0 shadow-md relative group flex items-center justify-center bg-indigo-900 ${
+            mainAttachment ? 'cursor-pointer' : ''
+          }`}
+          title={mainAttachment ? 'Clic para ver en la app' : ''}
+        >
+          {mainAttachment && (mainAttachment.file_type === 'IMAGE' || mainAttachment.mime_type?.startsWith('image/')) ? (
+            !imgError ? (
+              <img
+                src={localThumbUrl || mainAttachment.url}
+                alt={post.title}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4338ca] flex flex-col items-center justify-center p-3 text-center text-white">
+                <ImageIcon className="w-8 h-8 text-indigo-300 mb-1" />
+                <span className="text-[11px] font-bold text-white line-clamp-2 px-1">
+                  {post.title}
                 </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              <span>{post.author?.academic_program || 'Comunidad UniLink'}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1 font-medium">
-                <Clock className="w-3 h-3 text-slate-400" />
-                {formatRelativeTime(post.created_at)}
+                <span className="text-[9px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full mt-1">
+                  Diagrama / Imagen
+                </span>
+              </div>
+            )
+          ) : mainAttachment && (mainAttachment.file_type === 'AUDIO' || mainAttachment.mime_type?.startsWith('audio/')) ? (
+            <div className="w-full h-full bg-gradient-to-br from-[#2a1b70] via-[#4f37b8] to-[#6d44d4] flex flex-col items-center justify-center p-3 text-center text-white">
+              <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center mb-2">
+                <Mic className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
+                Audio
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Category Pill */}
-        {post.category && (
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/25 shrink-0">
-            {post.category.name}
-          </span>
-        )}
-      </div>
-
-      {/* Post Title & Content */}
-      <div className="mb-4">
-        <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-2 leading-snug">
-          {post.title}
-        </h3>
-        <p className="text-slate-700 dark:text-slate-300 text-sm whitespace-pre-line leading-relaxed">
-          {post.content}
-        </p>
-
-        {post.location && (
-          <button
-            type="button"
-            onClick={() => setShowLocationModal(true)}
-            title="Ver ubicación UPTC interactiva dentro de la aplicación"
-            className="inline-flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300 font-semibold mt-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/40 dark:hover:bg-brand-900/50 px-2.5 py-1 rounded-lg border border-brand-200 dark:border-brand-800/40 transition hover:scale-[1.02] shadow-2xs group cursor-pointer"
-          >
-            <MapPin className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition" />
-            <span>{post.location}</span>
-            <span className="text-[10px] uppercase font-bold text-brand-500 bg-white dark:bg-slate-800 px-1 rounded border border-brand-200 dark:border-brand-700/60 ml-0.5">
-              Ver mapa
-            </span>
-          </button>
-        )}
-      </div>
-
-      {/* Attachments Section */}
-      {post.attachments && post.attachments.length > 0 && (
-        <div className="space-y-3 mb-4 pt-1">
-          {post.attachments.map((file) => {
-            if (file.file_type === 'AUDIO' || file.mime_type?.startsWith('audio/')) {
-              return <AudioPlayer key={file.id} src={file.url} title={file.original_name} />;
-            }
-
-            if (file.file_type === 'IMAGE' || file.mime_type?.startsWith('image/')) {
-              return (
-                <div key={file.id} className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-900/60 max-h-80 shadow-inner">
-                  <img
-                    src={file.url}
-                    alt={file.original_name}
-                    className="w-full h-full object-cover hover:scale-[1.01] transition-transform duration-200"
-                    loading="lazy"
-                  />
-                </div>
-              );
-            }
-
-            // Documents (PDF, Word, etc.)
-            return (
-              <div
-                key={file.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 transition"
+          ) : (
+            /* Miniatura vectorial PDF de alta estética con ondas SVG y centrado geométrico perfecto */
+            <div className="w-full h-full bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4338ca] flex flex-col items-center justify-center p-3 text-center text-white relative overflow-hidden select-none">
+              {/* Ondas vectoriales fluidas en fondo */}
+              <svg
+                className="absolute inset-0 w-full h-full opacity-25 pointer-events-none"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{file.original_name}</p>
-                    <p className="text-[11px] text-slate-500">Documento académico verificado</p>
-                  </div>
-                </div>
+                <path d="M0,60 C30,40 60,80 100,55 L100,100 L0,100 Z" fill="#6366f1" />
+                <path d="M0,75 C40,65 70,85 100,70 L100,100 L0,100 Z" fill="#4338ca" />
+              </svg>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleSaveOffline(file)}
-                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition shadow-sm"
-                    title="Guardar copia en el dispositivo para leer sin conexión"
-                  >
-                    {downloadSaved[file.id] ? (
-                      <>
-                        <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-emerald-700 dark:text-emerald-400 hidden sm:inline">Guardado</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-                        <span className="hidden sm:inline">Guardar Offline</span>
-                      </>
-                    )}
-                  </button>
-
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition"
-                    title="Abrir / Descargar"
-                  >
-                    <Download className="w-4 h-4" />
-                  </a>
+              {/* Icono de documento PDF centrado con badge */}
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <div className="w-13 h-13 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/25 shadow-lg shadow-black/20 mb-1.5 group-hover:scale-105 transition-transform">
+                  <FileText className="w-6 h-6 text-white" />
                 </div>
+                <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 backdrop-blur-sm text-white px-2.5 py-0.5 rounded-full border border-white/20 shadow-xs">
+                  PDF
+                </span>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Footer: Reactions, Copyright badge & Controls */}
-      <div className="flex items-center justify-between pt-3 border-t border-slate-200/90 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400 flex-wrap gap-2">
-        {/* Like & Dislike */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleReaction('LIKE')}
-            disabled={isAuthor}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
-              myReaction === 'LIKE'
-                ? 'bg-brand-50 dark:bg-brand-600/25 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-500/40 shadow-sm'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700/60'
-            } ${isAuthor ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={isAuthor ? 'No puedes votar tu publicación' : 'Me gusta'}
-          >
-            <ThumbsUp className={`w-4 h-4 ${myReaction === 'LIKE' ? 'text-brand-600 dark:text-brand-400 fill-brand-600 dark:fill-brand-400' : ''}`} />
-            <span>{likes}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleReaction('DISLIKE')}
-            disabled={isAuthor}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
-              myReaction === 'DISLIKE'
-                ? 'bg-rose-50 dark:bg-rose-600/25 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40 shadow-sm'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700/60'
-            } ${isAuthor ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={isAuthor ? 'No puedes votar tu publicación' : 'No me gusta'}
-          >
-            <ThumbsDown className={`w-4 h-4 ${myReaction === 'DISLIKE' ? 'text-rose-600 dark:text-rose-400 fill-rose-600 dark:fill-rose-400' : ''}`} />
-            <span>{dislikes}</span>
-          </button>
-        </div>
-
-        {/* Right side: Copyright & Deactivate */}
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400/80 font-semibold hidden sm:flex">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Autoría declarada</span>
-          </span>
-
-          <button
-            type="button"
-            onClick={() => setShowReportModal(true)}
-            className="p-1.5 text-slate-400 hover:text-amber-500 transition"
-            title="Reportar publicación"
-          >
-            <Flag className="w-3.5 h-3.5" />
-          </button>
-
-          {isAuthor && (
-            <button
-              type="button"
-              onClick={handleDeactivate}
-              className="p-1.5 text-slate-400 hover:text-rose-500 transition"
-              title="Desactivar mi publicación"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+          {/* Hover Overlay: Ver en la App */}
+          {mainAttachment && (
+            <div className="absolute inset-0 bg-indigo-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 text-white font-bold text-xs backdrop-blur-xs p-2 text-center">
+              <Eye className="w-5 h-5 text-white" />
+              <span>Ver en la App</span>
+            </div>
           )}
         </div>
+
+        {/* Right Side: Post Details & Controls */}
+        <div className="flex-1 min-w-0 space-y-2 w-full">
+          
+          {/* Header Row: Subject Badge */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/40">
+              {post.category?.name || 'Facultad de Ingeniería'}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-snug">
+            {post.title}
+          </h3>
+
+          {/* Excerpt Description */}
+          <div className="relative">
+            <p className={`text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed ${
+              isLongContent && !expandedContent ? 'line-clamp-2' : ''
+            }`}>
+              {post.content}
+            </p>
+            {isLongContent && (
+              <button
+                type="button"
+                onClick={() => setExpandedContent(!expandedContent)}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline mt-0.5 inline-block"
+              >
+                {expandedContent ? 'Mostrar menos' : 'Leer más'}
+              </button>
+            )}
+          </div>
+
+          {/* Multi-Attachments Chip Tray (Permite ver y guardar cualquier archivo adjunto en la PWA) */}
+          {post.attachments && post.attachments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {post.attachments.map((att, idx) => {
+                const isPdfAtt = att.mime_type?.includes('pdf') || att.original_name?.endsWith('.pdf');
+                const isImgAtt = att.file_type === 'IMAGE' || att.mime_type?.startsWith('image/');
+                return (
+                  <button
+                    key={att.id || idx}
+                    type="button"
+                    onClick={() => setViewingFile(att)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-950/50 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200/70 dark:border-slate-700 text-[11px] font-semibold transition"
+                    title={`Clic para ver ${att.original_name} en la app`}
+                  >
+                    {isPdfAtt ? (
+                      <FileText className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    ) : isImgAtt ? (
+                      <ImageIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    )}
+                    <span className="truncate max-w-[130px] sm:max-w-[180px]">{att.original_name}</span>
+                    <Eye className="w-3 h-3 text-slate-400 hover:text-indigo-600 ml-0.5 shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Audio Player Integrado si el recurso es audio */}
+          {mainAttachment && (mainAttachment.file_type === 'AUDIO' || mainAttachment.mime_type?.startsWith('audio/')) && (
+            <div className="pt-1">
+              <AudioPlayer src={mainAttachment.url} title={mainAttachment.original_name} />
+            </div>
+          )}
+
+          {/* Footer Row: Author + Time + PDF Size + Download Button + Menu */}
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            
+            {/* Author + Time + File Size Badge */}
+            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+              <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                {post.author?.full_name ? post.author.full_name.charAt(0) : 'W'}
+              </div>
+              <span className="text-slate-900 dark:text-white font-extrabold truncate">
+                {post.author?.full_name || 'Walter Alfonso'}
+              </span>
+
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{formatRelativeTime(post.created_at)}</span>
+              </div>
+
+              {/* Pill: Dinámico según archivo adjunto */}
+              {mainAttachment && (
+                <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[11px] border border-slate-200/60 dark:border-slate-700">
+                  {mainAttachment.file_type === 'IMAGE' || mainAttachment.mime_type?.startsWith('image/')
+                    ? 'PNG • 75 KB'
+                    : mainAttachment.mime_type?.includes('pdf') || mainAttachment.original_name?.endsWith('.pdf')
+                    ? `PDF • ${mainAttachment.file_size ? (mainAttachment.file_size > 1024 * 1024 ? (mainAttachment.file_size / (1024 * 1024)).toFixed(1) + ' MB' : (mainAttachment.file_size / 1024).toFixed(1) + ' KB') : '1.2 MB'}`
+                    : 'Documento'}
+                </span>
+              )}
+
+              {post.location && (
+                <button
+                  type="button"
+                  onClick={() => setShowLocationModal(true)}
+                  className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1"
+                >
+                  <MapPin className="w-3 h-3" />
+                  <span className="truncate max-w-[110px]">{post.location}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Actions: View in App + Download / Save Pill Button + Menu Button */}
+            <div className="flex items-center gap-2 shrink-0">
+              
+              {/* Botón Ver en la App */}
+              {mainAttachment && (
+                <button
+                  type="button"
+                  onClick={() => setViewingFile(mainAttachment)}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs"
+                  title="Abrir y leer directamente en la aplicación"
+                >
+                  <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Ver</span>
+                </button>
+              )}
+
+              {/* Casilla interactiva: Guardar para ver sin conexión (Ahorro de almacenamiento) */}
+              {mainAttachment && (
+                <button
+                  type="button"
+                  onClick={handleToggleOfflineReady}
+                  disabled={savingFileId === mainAttachment.id}
+                  className={`px-2.5 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition shadow-2xs select-none ${
+                    isOfflineSaved
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                  }`}
+                  title={
+                    isOfflineSaved
+                      ? 'Archivo disponible sin conexión en tu dispositivo. Clic para desmarcar y liberar espacio.'
+                      : 'Guardar este archivo en tu equipo para consultarlo sin internet.'
+                  }
+                >
+                  <span className={`w-2 h-2 rounded-full ${isOfflineSaved ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                  <span>{isOfflineSaved ? '✓ Offline' : 'Ver sin conexión'}</span>
+                </button>
+              )}
+
+              {/* Botón Descargar y Guardar en PWA */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (mainAttachment) handleSaveOffline(mainAttachment);
+                  else alert(`Descargando copia del recurso "${post.title}"`);
+                }}
+                disabled={mainAttachment && savingFileId === mainAttachment.id}
+                className="px-3.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs"
+                title="Guardar en el almacenamiento del navegador (PWA) y descargar copia física"
+              >
+                {mainAttachment && downloadSaved[mainAttachment.id] ? (
+                  <>
+                    <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-600 font-bold">Guardado</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>{mainAttachment && savingFileId === mainAttachment.id ? 'Guardando...' : 'Descargar'}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Menú de Opciones Tres Puntos ⋮ */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  title="Más opciones"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+
+                {showOptionsMenu && (
+                  <div className="absolute right-0 bottom-full mb-2 w-48 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1.5 z-30 animate-fadeIn text-xs">
+                    {mainAttachment && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowOptionsMenu(false);
+                          setViewingFile(mainAttachment);
+                        }}
+                        className="w-full flex items-center gap-2 px-3.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-left"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>Ver en la app</span>
+                      </button>
+                    )}
+
+                    {mainAttachment && (
+                      <a
+                        href={mainAttachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShowOptionsMenu(false)}
+                        className="flex items-center gap-2 px-3.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Abrir en pestaña</span>
+                      </a>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        setShowReportModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-left"
+                    >
+                      <Flag className="w-3.5 h-3.5" />
+                      <span>Reportar recurso</span>
+                    </button>
+
+                    {isAuthor && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowOptionsMenu(false);
+                          handleDeactivate();
+                        }}
+                        className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-left font-bold"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Desactivar</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
       {/* Report Modal */}
       {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-700 shadow-2xl">
-            <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">Reportar contenido</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Indica la razón por la que consideras que esta publicación incumple las normas:</p>
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <h4 className="text-base font-black text-slate-900 dark:text-white mb-2">Reportar Contenido</h4>
+            <p className="text-xs text-slate-500 mb-4">Indica la razón por la que consideras que esta publicación incumple las normas:</p>
             <select
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 mb-4"
+              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm mb-4"
             >
               <option value="Derechos de autor">Infracción de derechos de autor</option>
-              <option value="Contenido ofensivo">Contenido ofensivo o discriminatorio</option>
+              <option value="Contenido ofensivo">Contenido ofensivo</option>
               <option value="Spam">Spam o publicidad</option>
               <option value="Información engañosa">Información académica engañosa</option>
             </select>
-
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
-              >
+              <button onClick={() => setShowReportModal(false)} className="px-4 py-2 text-xs font-semibold text-slate-500">
                 Cancelar
               </button>
-              <button
-                onClick={handleSendReport}
-                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30"
-              >
+              <button onClick={handleSendReport} className="px-5 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white">
                 Enviar reporte
               </button>
             </div>
@@ -342,12 +528,22 @@ export default function PostCard({ post, onPostUpdated }) {
         </div>
       )}
 
-      {/* In-App Interactive UPTC Location Viewer */}
+      {/* Campus Map Modal */}
       <LocationViewModal
         isOpen={showLocationModal}
         onClose={() => setShowLocationModal(false)}
         locationStr={post.location}
       />
+
+      {/* In-App File Viewer Modal (PDFs e Imágenes dentro de la PWA) */}
+      {viewingFile && (
+        <FileViewerModal
+          file={viewingFile}
+          post={post}
+          isOpen={!!viewingFile}
+          onClose={() => setViewingFile(null)}
+        />
+      )}
     </article>
   );
 }

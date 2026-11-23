@@ -9,7 +9,11 @@
     "dev:frontend": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build:frontend": "npm run build --prefix frontend",
-    "build": "npm run build:frontend"
+    "build": "npm run build:frontend",
+    "start": "node backend/src/server.js",
+    "db:init": "node scripts/init_db.js",
+    "test": "node scripts/test_api_e2e.js",
+    "audit": "node scripts/audit_pwa_security.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

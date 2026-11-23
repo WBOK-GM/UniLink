@@ -1,0 +1,64 @@
+# ====================================================================
+# UniLink - Orquestación Docker Compose para Despliegue en Servidor
+# Arquitectura: Multi-Arquitectura Nativa (ARM64 / Ampere A1 & x86_64)
+# Optimizado para: Oracle Cloud Infrastructure (OCI) Free Tier (< 300MB RAM)
+# ====================================================================
+
+version: '3.8'
+
+services:
+  # 1. Base de Datos Central PostgreSQL (Esquema Normalizado 15 Tablas)
+  db:
+    image: postgres:16-alpine
+    container_name: unilink_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: unilink_db
+      POSTGRES_USER: unilink_admin
+      POSTGRES_PASSWORD: unilink_arm64_secure_pass_2026
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
+    ports:
+      - "5432:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unilink_admin -d unilink_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Servidor Central API REST UniLink (Node.js Alpine en ARM64)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: unilink_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      CLIENT_URL: http://localhost:5173
+      DATABASE_URL: postgresql://unilink_admin:unilink_arm64_secure_pass_2026@db:5432/unilink_db
+      JWT_SECRET: unilink_super_secret_jwt_key_2026_academics
+      JWT_EXPIRES_IN: 7d
+    volumes:
+      - uploads_data:/app/backend/uploads
+    ports:
+      - "5000:5000"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+volumes:
+  postgres_data:
+    name: unilink_postgres_data
+  uploads_data:
+    name: unilink_uploads_data

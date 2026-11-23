@@ -5,10 +5,10 @@ node_modules/
 
 # Environment variables & local credentials
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
 *.pem
 
 # Logs
@@ -31,8 +31,27 @@ backend/uploads/*
 .DS_Store
 Thumbs.db
 
+# Academic guides, reports and session documents
+[Ss]esion*.pdf
+Sesion*.pdf
+*.pdf
+*.docx
+*.doc
+*informe*
+*INFORME*
+*report*.json
+
 # IDEs
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# Deployment guides, reports and credential documents (private)
+despliegue.md
+*despliegue*.md
+GUIA_*.md
+USUARIOS_*.md
+INFORME_*.md
+*informe*.md
+*guia*.md

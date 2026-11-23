@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   FileText,
   Image as ImageIcon,
+  Camera,
   Mic,
   MapPin,
   Map,
@@ -12,7 +13,8 @@ import {
   AlertCircle,
   ShieldCheck,
   ArrowLeft,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { api } from '../api/client';
 import { queueOfflinePost } from '../db/db';
@@ -20,6 +22,9 @@ import { useAuth } from '../context/AuthContext';
 import AudioRecorder from '../components/AudioRecorder';
 import CopyrightModal from '../components/CopyrightModal';
 import LocationPickerModal from '../components/LocationPickerModal';
+import CameraCaptureModal from '../components/CameraCaptureModal';
+import { getResilientPosition } from '../utils/geoUtils';
+import { calculateFileSha256 } from '../utils/cryptoUtils';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
@@ -32,6 +37,8 @@ export default function CreatePostPage() {
   const [locationText, setLocationText] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [postType, setPostType] = useState('RESOURCE');
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -40,7 +47,6 @@ export default function CreatePostPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
-  const [showLocationModal, setShowLocationModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,7 +66,15 @@ export default function CreatePostPage() {
   const handleFileChange = (e) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-      setAttachedFiles((prev) => [...prev, ...filesArray]);
+      const validFiles = [];
+      for (const file of filesArray) {
+        if (file.size > 25 * 1024 * 1024) {
+          alert(`El archivo "${file.name}" supera el límite de 25MB permitido por la plataforma.`);
+          continue;
+        }
+        validFiles.push(file);
+      }
+      setAttachedFiles((prev) => [...prev, ...validFiles]);
     }
   };
 
@@ -108,7 +122,7 @@ export default function CreatePostPage() {
       return;
     }
 
-    // 2. MODO ONLINE: Envío HTTP a la API REST
+    // 2. MODO ONLINE: Envío HTTP a la API REST con Integridad Criptográfica (SHA-256)
     try {
       const formData = new FormData();
       formData.append('title', title);
@@ -120,14 +134,23 @@ export default function CreatePostPage() {
       formData.append('client_operation_id', clientOpId);
       formData.append('copyright_declaration_accepted', 'true');
 
-      // Archivos adjuntos
-      attachedFiles.forEach((file) => {
+      // Archivos adjuntos con Checksum SHA-256 anti-corrupción
+      for (let i = 0; i < attachedFiles.length; i++) {
+        const file = attachedFiles[i];
         formData.append('attachments', file);
-      });
+        const checksum = await calculateFileSha256(file);
+        if (checksum) {
+          formData.append(`file_checksum_${i}`, checksum);
+        }
+      }
 
       // Audio grabado
       if (recordedAudio) {
         formData.append('attachments', recordedAudio);
+        const audioChecksum = await calculateFileSha256(recordedAudio);
+        if (audioChecksum) {
+          formData.append(`file_checksum_${attachedFiles.length}`, audioChecksum);
+        }
       }
 
       const res = await api.createPost(formData);
@@ -155,22 +178,54 @@ export default function CreatePostPage() {
     }
   };
 
+  if (user?.role === 'GUEST') {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-12">
+        <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-4 shadow-xl">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 dark:text-white">
+            Modo Invitado (Solo Lectura)
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            Estás explorando UniLink en modo visitante. Para compartir tus propios apuntes, resúmenes, archivos o grabaciones de cátedra con la comunidad, por favor crea tu cuenta o inicia sesión.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+            <button
+              onClick={() => navigate('/login')}
+              className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md shadow-brand-600/30 transition"
+            >
+              Crear Cuenta / Iniciar Sesión
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition"
+            >
+              Volver al Feed
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24">
+    <div className="max-w-3xl mx-auto pb-20">
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white mb-4 transition"
+        className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white mb-4 transition"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Volver al inicio</span>
       </button>
 
-      <div className="rounded-2xl glass-panel p-6 sm:p-8 border border-slate-200/90 dark:border-slate-700/80 shadow-sm dark:shadow-2xl space-y-6">
+      <div className="rounded-3xl bg-white dark:bg-slate-900 p-6 sm:p-9 border border-slate-200/90 dark:border-slate-800 shadow-xl space-y-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Compartir Recurso Académico</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">Compartir Recurso Académico</h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Sube apuntes, resúmenes, grabaciones de clase o talleres para la comunidad estudiantil.
+            Sube apuntes, resúmenes, grabaciones de clase o talleres para la comunidad estudiantil universitaria.
           </p>
         </div>
 
@@ -249,9 +304,23 @@ export default function CreatePostPage() {
 
           {/* File Attachments Dropzone */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Adjuntar Archivos (PDF, Word, Imágenes de apuntes)
-            </label>
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Adjuntar Archivos (PDF, Word, Imágenes de apuntes)
+              </label>
+
+              {/* Botón Tomar Foto con Cámara PWA */}
+              <button
+                type="button"
+                onClick={() => setShowCameraModal(true)}
+                className="px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 text-xs font-bold flex items-center gap-1.5 transition shadow-2xs"
+                title="Tomar foto con cámara web o del celular"
+              >
+                <Camera className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>Tomar Foto con Cámara</span>
+              </button>
+            </div>
+
             <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 rounded-xl p-4 text-center cursor-pointer transition bg-slate-50/80 dark:bg-slate-900/40 relative">
               <input
                 type="file"
@@ -267,25 +336,61 @@ export default function CreatePostPage() {
               <p className="text-[11px] text-slate-500 mt-1">Soporta PDFs, documentos Word, imágenes y audios hasta 25MB</p>
             </div>
 
-            {/* Attached files chips */}
+            {/* Attached files preview cards */}
             {attachedFiles.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {attachedFiles.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 shadow-sm"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
-                    <span className="truncate max-w-[160px] font-medium">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(idx)}
-                      className="p-0.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
+                {attachedFiles.map((file, idx) => {
+                  const isImage = file.type?.startsWith('image/');
+                  const isPdf = file.type === 'application/pdf' || file.name?.toLowerCase().endsWith('.pdf');
+                  const sizeFormatted = file.size > 1024 * 1024
+                    ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                    : `${(file.size / 1024).toFixed(0)} KB`;
+
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-2xs"
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {isImage ? (
+                          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={file.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : isPdf ? (
+                          <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-800/40">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800/40">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {isImage ? 'Imagen' : isPdf ? 'Documento PDF' : 'Archivo'} • {sizeFormatted}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeFile(idx)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition shrink-0"
+                        title="Eliminar archivo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -308,29 +413,22 @@ export default function CreatePostPage() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!('geolocation' in navigator)) {
-                      alert('Geolocalización no soportada.');
-                      return;
+                  onClick={async () => {
+                    try {
+                      const pos = await getResilientPosition();
+                      const loc = {
+                        latitude: pos.lat,
+                        longitude: pos.lng,
+                        placeName: pos.placeName,
+                        formatted: `${pos.placeName} (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`
+                      };
+                      setSelectedLocation(loc);
+                      setLocationText(loc.formatted);
+                    } catch (err) {
+                      setShowLocationModal(true);
                     }
-                    navigator.geolocation.getCurrentPosition(
-                      (pos) => {
-                        const lat = pos.coords.latitude;
-                        const lng = pos.coords.longitude;
-                        const loc = {
-                          latitude: lat,
-                          longitude: lng,
-                          placeName: 'Mi GPS actual',
-                          formatted: `Mi ubicación GPS (${lat.toFixed(5)}, ${lng.toFixed(5)})`
-                        };
-                        setSelectedLocation(loc);
-                        setLocationText(loc.formatted);
-                      },
-                      (err) => alert('No se pudo obtener GPS: ' + err.message),
-                      { enableHighAccuracy: true }
-                    );
                   }}
-                  title="Usar GPS actual"
+                  title="Detectar ubicación GPS / Campus Universitario"
                   className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
                 >
                   <Navigation className="w-4 h-4" />
@@ -433,6 +531,15 @@ export default function CreatePostPage() {
         onSelectLocation={(loc) => {
           setSelectedLocation(loc);
           setLocationText(loc.formatted);
+        }}
+      />
+
+      {/* Camera Capture Modal PWA */}
+      <CameraCaptureModal
+        isOpen={showCameraModal}
+        onClose={() => setShowCameraModal(false)}
+        onPhotoCaptured={(photoFile) => {
+          setAttachedFiles((prev) => [...prev, photoFile]);
         }}
       />
     </div>
