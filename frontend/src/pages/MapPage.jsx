@@ -261,10 +261,10 @@ export default function MapPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 pb-20">
-      {/* Volver a Grupos (solo mobile) */}
+      {/* Volver a Grupos */}
       <Link
         to="/groups"
-        className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs active:scale-95 transition"
+        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs active:scale-95 transition"
       >
         <ArrowLeft className="w-4 h-4 text-brand-600 dark:text-brand-400" />
         <span>Volver a Grupos</span>

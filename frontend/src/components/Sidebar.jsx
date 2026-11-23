@@ -22,11 +22,11 @@ export default function Sidebar({ onOpenAudit, onInstallApp, isInstallable }) {
   const navItems = [
     { to: '/', label: 'Inicio', icon: Home },
     { to: '/?view=search&format=DOCUMENT', label: 'Recursos', icon: BookOpen },
+    { to: '/create-post', label: 'Compartir', icon: Upload },
     { to: '/groups', label: 'Grupos', icon: Users },
     { to: '/meetings', label: 'Encuentros', icon: Calendar },
     ...(user?.role === 'ADMIN' ? [{ type: 'audit', label: 'Consola Servidor', icon: ShieldCheck, badge: 'A+' }] : []),
     ...(isInstallable ? [{ type: 'install', label: 'Instalar App', icon: Download }] : []),
-    { to: '/create-post', label: 'Compartir', icon: Upload },
     { to: user ? '/profile' : '/login', label: user ? 'Mi Perfil' : 'Ingresar', icon: user ? User : LogIn }
   ];
 
