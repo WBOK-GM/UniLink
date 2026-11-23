@@ -33,26 +33,51 @@ export async function request(endpoint, options = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
+  let res;
   try {
-    const res = await fetch(url, { ...options, headers });
-    const data = await res.json().catch(() => ({}));
+    res = await fetch(url, { ...options, headers });
+  } catch (error) {
+    const networkError = error instanceof Error
+      ? error
+      : new Error(String(error));
 
-    if (!res.ok) {
-      const error = new Error(data.error || `Error ${res.status}: ${res.statusText}`);
-      error.status = res.status;
-      error.isServerResponse = true; // El servidor SÍ respondió
-      error.data = data;
-      throw error;
+    if (
+      (typeof navigator !== 'undefined' && !navigator.onLine) ||
+      networkError instanceof TypeError ||
+      networkError.name === 'AbortError' ||
+      /Failed to fetch|NetworkError/i.test(networkError.message)
+    ) {
+      networkError.isOffline = true;
     }
 
-    return data;
+    throw networkError;
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const error = new Error(data.error || `Error ${res.status}: ${res.statusText}`);
+    error.status = res.status;
+    error.isServerResponse = true;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
   } catch (error) {
     // Si no hay red o falló la conexión por completo (servidor en reposo o sin internet)
     if (!navigator.onLine || error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.name === 'AbortError') {
       error.isOffline = true;
     }
-    throw error;
+    throw networkError;
   }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Error ${res.status}: ${res.statusText}`);
+  }
+
+  return data;
 }
 
 export const api = {

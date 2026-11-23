@@ -1,5 +1,11 @@
 const http = require('http');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const app = require('../backend/src/app');
+const { uploadsDir } = require('../backend/src/config/storage');
+
+let testUploadPath = null;
 
 async function runTests() {
   console.log('🧪 Iniciando Pruebas E2E de Endpoints UniLink...\n');
@@ -46,8 +52,16 @@ async function runTests() {
     });
     assert('Login de estudiante demo exitoso', loginRes.ok && !!loginRes.body.token);
     assert('Métricas de aportes y acceso condicionado incluidas', loginRes.body.user?.contributions_count !== undefined);
+    const initialContributionCount = loginRes.body.user?.contributions_count || 0;
     const token = loginRes.body.token;
     const authHeaders = { Authorization: `Bearer ${token}` };
+
+    let profileRequestsSucceeded = true;
+    for (let i = 0; i < 16; i++) {
+      const profileRes = await apiCall('/auth/me', { headers: authHeaders });
+      if (!profileRes.ok) profileRequestsSucceeded = false;
+    }
+    assert('Las consultas del perfil no consumen el límite de inicio de sesión', profileRequestsSucceeded);
 
     // 2.1 Login Administrador Demo
     const adminLoginRes = await apiCall('/auth/login', {
@@ -62,6 +76,19 @@ async function runTests() {
     const catRes = await apiCall('/categories');
     assert('Catálogo de categorías responde', catRes.ok && catRes.body.categories?.length > 0);
 
+    const shortTextPostRes = await apiCall('/posts', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        title: 'Prueba de texto corto',
+        content: 'Texto demasiado breve.',
+        category_id: 'c1',
+        client_operation_id: `test-e2e-short-${Date.now()}`,
+        copyright_declaration_accepted: true
+      })
+    });
+    assert('Las publicaciones solo de texto exigen 255 caracteres', shortTextPostRes.status === 400);
+
     // 4. Create Post (Online)
     const opId = 'test-e2e-op-' + Date.now();
     const newPostRes = await apiCall('/posts', {
@@ -69,14 +96,61 @@ async function runTests() {
       headers: authHeaders,
       body: JSON.stringify({
         title: 'Prueba Automatizada E2E de Apunte',
-        content: 'Contenido verificado mediante script de prueba.',
+        content: 'Este contenido de prueba valida que una publicación compuesta únicamente por texto tenga una explicación académica suficientemente desarrollada. '.repeat(3),
         category_id: 'c1',
         client_operation_id: opId,
         copyright_declaration_accepted: true
       })
     });
     assert('Creación de publicación exitosa con autoría RN-30', newPostRes.ok && !!newPostRes.body.post);
+    assert(
+      'La publicación devuelve el acceso actualizado sin otra consulta',
+      newPostRes.body.contribution_access?.contributions_count > initialContributionCount &&
+        newPostRes.body.contribution_access?.can_access_downloads === true
+    );
     const createdPostId = newPostRes.body.post?.id;
+
+    const audioData = Buffer.from('UniLink E2E audio payload');
+    const audioForm = new FormData();
+    audioForm.append('title', 'Prueba automatizada de audio');
+    audioForm.append('content', 'Validación de carga de archivo de audio.');
+    audioForm.append('category_id', 'c1');
+    audioForm.append('client_operation_id', `test-e2e-audio-${Date.now()}`);
+    audioForm.append('copyright_declaration_accepted', 'true');
+    audioForm.append(
+      'attachments',
+      new Blob([audioData], { type: 'audio/webm' }),
+      'test-audio.webm'
+    );
+    audioForm.append('file_checksum_0', crypto.createHash('sha256').update(audioData).digest('hex'));
+    const audioResponse = await fetch(`${baseUrl}/posts`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: audioForm
+    });
+    const audioPostRes = {
+      ok: audioResponse.ok,
+      body: await audioResponse.json().catch(() => ({}))
+    };
+    const audioAttachment = audioPostRes.body.post?.attachments?.[0];
+    if (audioAttachment?.url) {
+      testUploadPath = path.join(uploadsDir, path.basename(new URL(audioAttachment.url).pathname));
+    }
+    assert(
+      'La carga multipart valida el checksum y registra el audio reproducible',
+      audioPostRes.ok &&
+        audioAttachment?.file_type === 'AUDIO' &&
+        audioAttachment?.mime_type === 'audio/webm' &&
+        !!audioAttachment?.url
+    );
+
+    const refreshedUserRes = await apiCall('/auth/me', { headers: authHeaders });
+    assert(
+      'El primer aporte actualiza el acceso condicionado',
+      refreshedUserRes.ok &&
+        refreshedUserRes.body.user?.contributions_count > initialContributionCount &&
+        refreshedUserRes.body.user?.can_access_downloads === true
+    );
 
     // 5. Idempotencia de sincronización offline (RN-17)
     const duplicateRes = await apiCall('/posts', {
@@ -293,6 +367,14 @@ async function runTests() {
   } catch (error) {
     console.error('Error durante ejecución de pruebas:', error);
   } finally {
+    if (testUploadPath && fs.existsSync(testUploadPath)) {
+      try {
+        fs.unlinkSync(testUploadPath);
+      } catch (error) {
+        console.error('No se pudo limpiar el archivo de audio de prueba:', error.message);
+        failed++;
+      }
+    }
     server.close(() => {
       process.exit(failed > 0 ? 1 : 0);
     });

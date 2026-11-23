@@ -13,7 +13,6 @@ import {
   X,
   Compass,
   ArrowRight,
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -24,7 +23,6 @@ import {
   Cpu,
   Network,
   Calculator,
-  Download,
   Clock,
   ThumbsUp,
   ThumbsDown,
@@ -37,9 +35,7 @@ import {
   BarChart3,
   Globe,
   Flame,
-  MoreVertical,
   Bell,
-  Play,
   Sparkles
 } from 'lucide-react';
 import { api } from '../api/client';
@@ -147,46 +143,6 @@ export default function FeedPage({ onOpenAudit }) {
     if (n.includes('matem') || n.includes('cálculo') || n.includes('fisic')) return Calculator;
     if (n.includes('web') || n.includes('pwa')) return Globe;
     return BookOpen;
-  };
-
-  // Demo fallback items for recent resources matching mobile screenshot 2
-  const recentDisplayList = filteredPosts.length > 0 ? filteredPosts : [
-    {
-      id: 'demo-1',
-      title: 'Resumen PWA - Service Workers',
-      category: { name: 'Ingeniería' },
-      file_type: 'PDF',
-      likes_count: 5,
-      time: 'Hace 2 días',
-      downloads: '1.2k'
-    },
-    {
-      id: 'demo-2',
-      title: 'Clase de Redes (Video)',
-      category: { name: 'Ingeniería' },
-      file_type: 'AUDIO',
-      likes_count: 4,
-      time: 'Hace 3 días',
-      downloads: '856'
-    },
-    {
-      id: 'demo-3',
-      title: 'Apuntes de Cálculo',
-      category: { name: 'Matemáticas' },
-      file_type: 'DOCUMENT',
-      likes_count: 3,
-      time: 'Hace 1 semana',
-      downloads: '742'
-    }
-  ];
-
-  const featuredPost = posts.length > 0 ? posts[0] : {
-    id: 'featured-default',
-    title: 'Guía Completa de Service Workers y Estrategias de Caché PWA',
-    category: { name: 'Facultad de Ingeniería' },
-    content: 'Comparto este resumen detallado con ejemplos de Cache First, Network First y Background Sync con IndexedDB para el proyecto de noveno semestre.',
-    author: { full_name: 'Walter Alfonso' },
-    created_at: new Date().toISOString()
   };
 
   return (
@@ -337,53 +293,22 @@ export default function FeedPage({ onOpenAudit }) {
               </div>
 
               {/* Items List */}
-              <div className="space-y-2">
-                {recentDisplayList.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3 hover:border-indigo-200 transition"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-700 to-indigo-500 text-white flex items-center justify-center shrink-0 font-black text-xs shadow-2xs">
-                        {item.file_type === 'AUDIO' ? (
-                          <Play className="w-4 h-4 fill-white ml-0.5" />
-                        ) : item.file_type === 'DOCUMENT' ? (
-                          <FileText className="w-4 h-4 text-white" />
-                        ) : (
-                          <span className="text-[10px] font-black uppercase tracking-wider">PDF</span>
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <span className="inline-block px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black mb-0.5">
-                          {item.category?.name || 'Ingeniería'}
-                        </span>
-                        <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
-                          {item.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
-                          <span className="flex items-center gap-0.5">
-                            <Download className="w-3 h-3 text-slate-400" />
-                            <span>{item.downloads || (item.likes_count ? `${item.likes_count * 150 + 350}` : '1.2k')}</span>
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-0.5">
-                            <Clock className="w-3 h-3 text-slate-400" />
-                            <span>{item.time || 'Hace 2 días'}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => alert(`Opciones para "${item.title}"`)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg shrink-0"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+              <div className="space-y-3">
+                {filteredPosts.length > 0 ? (
+                  filteredPosts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onPostUpdated={loadData}
+                      compact
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-6 text-center">
+                    <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">No hay recursos recientes para mostrar.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -395,17 +320,17 @@ export default function FeedPage({ onOpenAudit }) {
             
             {/* Hero Section Container with Building Photo & Header */}
             <div
-              className="rounded-3xl text-white relative overflow-hidden px-5 pt-4 pb-10 shadow-xl"
+              className="rounded-3xl text-white relative overflow-hidden px-5 pt-4 pb-10 shadow-xl min-h-[210px]"
               style={{
                 background: 'linear-gradient(145deg, #100b2b 0%, #1e1250 45%, #2a186c 75%, #3b1d82 100%)'
               }}
             >
               {/* Campus Building blended on the right */}
-              <div className="absolute right-0 top-10 bottom-0 w-1/2 pointer-events-none select-none flex items-end justify-end overflow-hidden">
+              <div className="absolute right-0 inset-y-0 w-3/4 pointer-events-none select-none overflow-hidden">
                 <img
                   src="/images/uptc_hero_facade.png"
                   alt="Campus Universitario"
-                  className="w-full h-auto max-h-[195px] object-cover object-left opacity-90"
+                  className="w-full h-full object-cover object-left opacity-90"
                 />
               </div>
 
@@ -415,7 +340,7 @@ export default function FeedPage({ onOpenAudit }) {
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center p-1 bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
                     <img
-                      src="/images/uptc_crest_official.png"
+                      src="/images/uptc_eagle_crest.png"
                       alt="Emblema UniLink"
                       className="w-full h-full object-contain"
                     />
@@ -426,25 +351,17 @@ export default function FeedPage({ onOpenAudit }) {
                   </div>
                 </div>
 
-                {/* Right controls: Bell Notification + Avatar */}
+                {/* Mobile notifications */}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => alert('No tienes notificaciones pendientes')}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
                     title="Notificaciones"
                   >
                     <Bell className="w-4 h-4 text-white" />
                     <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-purple-400" />
                   </button>
-
-                  <Link
-                    to={user ? "/profile" : "/login"}
-                    className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center border-2 border-white/30 shadow-md"
-                    title={user ? "Mi Perfil" : "Iniciar Sesión"}
-                  >
-                    {user?.profile?.full_name ? user.profile.full_name.charAt(0) : 'W'}
-                  </Link>
                 </div>
               </div>
 
@@ -585,51 +502,19 @@ export default function FeedPage({ onOpenAudit }) {
                 </button>
               </div>
 
-              {/* Featured Horizontal Card */}
-              <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-3.5">
-                <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-md relative">
-                  <img
-                    src="/images/pdf_thumb_waves.png"
-                    alt="Miniatura PDF"
-                    className="w-full h-full object-cover"
-                  />
+              {posts.length > 0 ? (
+                <PostCard
+                  post={posts[0]}
+                  onPostUpdated={loadData}
+                  compact
+                />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-6 text-center">
+                  <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Aún no hay recursos destacados.</p>
                 </div>
+              )}
 
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <span className="inline-block px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
-                    {featuredPost.category?.name || 'Facultad de Ingeniería'}
-                  </span>
-                  
-                  <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug line-clamp-2">
-                    {featuredPost.title}
-                  </h4>
-
-                  <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <div className="w-5 h-5 rounded-full bg-indigo-600 text-white font-black flex items-center justify-center text-[9px] shrink-0">
-                        {featuredPost.author?.full_name ? featuredPost.author.full_name.charAt(0) : 'W'}
-                      </div>
-                      <span className="truncate">{featuredPost.author?.full_name || 'Walter Alfonso'} • Hace 4 h</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => alert(`Descargando "${featuredPost.title}"`)}
-                      className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 hover:bg-indigo-100 transition"
-                      title="Descargar recurso"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Carousel Pagination Dots */}
-              <div className="flex items-center justify-center gap-1.5 pt-1">
-                <span className="w-5 h-1.5 rounded-full bg-indigo-600" />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-              </div>
             </div>
 
           </div>
@@ -658,26 +543,6 @@ export default function FeedPage({ onOpenAudit }) {
               alt="Campus Universitario"
               className="w-full h-full object-cover object-left"
             />
-          </div>
-
-          {/* Top Right Carousel Navigation Controls (< >) */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => alert('Slide anterior')}
-              className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white transition active:scale-95"
-              title="Anterior"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => alert('Siguiente slide')}
-              className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white transition active:scale-95"
-              title="Siguiente"
-            >
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
           </div>
 
           {/* Banner Left Content */}

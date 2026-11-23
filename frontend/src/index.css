@@ -38,6 +38,11 @@
   background: #475569;
 }
 
+/* Mobile safe-area helper */
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
 /* Glassmorphism helpers for Light & Dark */
 .glass-panel {
   background: rgba(255, 255, 255, 0.95);
@@ -142,4 +147,13 @@
 }
 .animate-pulse-subtle {
   animation: pulseSubtle 3s infinite ease-in-out;
+}
+
+@keyframes menuPoppin {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-menu-in {
+  animation: menuPoppin 0.16s ease-out;
+  transform-origin: bottom right;
 }

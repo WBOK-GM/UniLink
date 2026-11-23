@@ -16,7 +16,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   Star,
-  Lock
+  Lock,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api, resolveFileUrl } from '../api/client';
@@ -26,7 +27,7 @@ import LocationViewModal from './LocationViewModal';
 import FileViewerModal from './FileViewerModal';
 import GatingUnlockModal from './GatingUnlockModal';
 
-export default function PostCard({ post, onPostUpdated }) {
+export default function PostCard({ post, onPostUpdated, compact = false }) {
   const { user } = useAuth();
   const [downloadSaved, setDownloadSaved] = useState({});
   const [savingFileId, setSavingFileId] = useState(null);
@@ -36,6 +37,7 @@ export default function PostCard({ post, onPostUpdated }) {
   const [reportReason, setReportReason] = useState('Derechos de autor');
   const [expandedContent, setExpandedContent] = useState(false);
   const [viewingFile, setViewingFile] = useState(null);
+  const [showTextModal, setShowTextModal] = useState(false);
   const [localThumbUrl, setLocalThumbUrl] = useState(null);
   const [imgError, setImgError] = useState(false);
   const [isOfflineSaved, setIsOfflineSaved] = useState(false);
@@ -54,6 +56,7 @@ export default function PostCard({ post, onPostUpdated }) {
 
   // Primer archivo adjunto para el preview visual izquierdo
   const mainAttachment = post.attachments && post.attachments.length > 0 ? post.attachments[0] : null;
+  const isTextOnly = !mainAttachment;
 
   useEffect(() => {
     let isMounted = true;
@@ -263,20 +266,27 @@ export default function PostCard({ post, onPostUpdated }) {
   };
 
   return (
-    <article className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 hover:shadow-md transition-all duration-200 shadow-2xs relative">
+    <article className={`rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 ${compact ? 'p-3' : 'p-5 sm:p-6'} hover:shadow-md transition-all duration-200 shadow-2xs relative`}>
       
       {/* Contenedor Horizontal Principal (Matches Reference Image) */}
-      <div className="flex flex-col sm:flex-row items-start gap-5">
+      <div className={`flex items-start ${compact ? 'flex-row gap-3' : 'flex-col sm:flex-row gap-5'}`}>
         
         {/* Left Side: Thumbnail Preview Box (Click to View in PWA) */}
-        <div
-          onClick={() => mainAttachment && setViewingFile(mainAttachment)}
-          className={`w-full sm:w-44 h-40 sm:h-36 rounded-2xl overflow-hidden shrink-0 shadow-md relative group flex items-center justify-center bg-indigo-900 ${
-            mainAttachment ? 'cursor-pointer' : ''
-          }`}
-          title={mainAttachment ? 'Clic para ver en la app' : ''}
+        <button
+          type="button"
+          onClick={() => mainAttachment ? setViewingFile(mainAttachment) : setShowTextModal(true)}
+          className={`${compact ? 'w-[72px] h-[72px]' : 'w-full sm:w-44 h-40 sm:h-36'} rounded-2xl overflow-hidden shrink-0 shadow-md relative group flex items-center justify-center bg-indigo-900`}
+          title={mainAttachment ? 'Clic para ver en la app' : 'Clic para leer el texto completo'}
+          aria-label={mainAttachment ? `Ver archivo de ${post.title}` : `Leer publicación ${post.title}`}
         >
-          {mainAttachment && (mainAttachment.file_type === 'IMAGE' || mainAttachment.mime_type?.startsWith('image/')) ? (
+          {!mainAttachment ? (
+            <div className="w-full h-full bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4338ca] flex flex-col items-center justify-center p-2 text-center text-white">
+              <FileText className={`${compact ? 'w-5 h-5' : 'w-7 h-7'} text-indigo-200 mb-1`} />
+              <span className="text-[9px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
+                Texto
+              </span>
+            </div>
+          ) : mainAttachment.file_type === 'IMAGE' || mainAttachment.mime_type?.startsWith('image/') ? (
             !imgError ? (
               <img
                 src={localThumbUrl || mainAttachment.url}
@@ -295,7 +305,7 @@ export default function PostCard({ post, onPostUpdated }) {
                 </span>
               </div>
             )
-          ) : mainAttachment && (mainAttachment.file_type === 'AUDIO' || mainAttachment.mime_type?.startsWith('audio/')) ? (
+          ) : mainAttachment.file_type === 'AUDIO' || mainAttachment.mime_type?.startsWith('audio/') ? (
             <div className="w-full h-full bg-gradient-to-br from-[#2a1b70] via-[#4f37b8] to-[#6d44d4] flex flex-col items-center justify-center p-3 text-center text-white">
               <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center mb-2">
                 <Mic className="w-6 h-6 text-white" />
@@ -330,16 +340,16 @@ export default function PostCard({ post, onPostUpdated }) {
           )}
 
           {/* Hover Overlay: Ver en la App */}
-          {mainAttachment && (
+          {(mainAttachment || isTextOnly) && (
             <div className="absolute inset-0 bg-indigo-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 text-white font-bold text-xs backdrop-blur-xs p-2 text-center">
               <Eye className="w-5 h-5 text-white" />
-              <span>Ver en la App</span>
+              <span>{mainAttachment ? 'Ver en la App' : 'Leer texto completo'}</span>
             </div>
           )}
-        </div>
+        </button>
 
         {/* Right Side: Post Details & Controls */}
-        <div className="flex-1 min-w-0 space-y-2 w-full">
+        <div className={`flex-1 min-w-0 space-y-2 ${compact ? '' : 'w-full'}`}>
           
           {/* Header Row: Subject Badge */}
           <div className="flex items-center justify-between gap-2">
@@ -349,17 +359,24 @@ export default function PostCard({ post, onPostUpdated }) {
           </div>
 
           {/* Title */}
-          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-snug">
+          <h3 className={`${compact ? 'text-sm' : 'text-base sm:text-lg'} font-black text-slate-900 dark:text-white tracking-tight leading-snug`}>
             {post.title}
           </h3>
 
           {/* Excerpt Description */}
           <div className="relative">
-            <p className={`text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed ${
-              isLongContent && !expandedContent ? 'line-clamp-2' : ''
-            }`}>
-              {post.content}
-            </p>
+            <button
+              type="button"
+              onClick={() => setShowTextModal(true)}
+              className="w-full text-left"
+              aria-label={`Leer contenido completo de ${post.title}`}
+            >
+              <p className={`${compact ? 'text-[11px]' : 'text-xs sm:text-sm'} text-slate-600 dark:text-slate-300 leading-relaxed ${
+                isLongContent && !expandedContent ? 'line-clamp-2' : ''
+              }`}>
+                {post.content}
+              </p>
+            </button>
             {isLongContent && (
               <button
                 type="button"
@@ -408,10 +425,10 @@ export default function PostCard({ post, onPostUpdated }) {
           )}
 
           {/* Fila de Calificación Académica Interactiva (Estrellas 1-5 y Votos Útil/No Útil) */}
-          <div className="pt-2 flex flex-wrap items-center justify-between gap-2.5 text-xs">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className={`pt-2 flex flex-wrap items-center justify-between ${compact ? 'gap-1.5' : 'gap-2.5'} text-xs`}>
+            <div className={`flex items-center flex-wrap ${compact ? 'gap-1' : 'gap-2'}`}>
               {/* Estrellas 1 a 5 */}
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
+              <div className={`flex items-center ${compact ? 'gap-0.5 px-1.5' : 'gap-1 px-2.5'} py-1 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60`}>
                 <div className="flex items-center gap-0.5">
                   {[1, 2, 3, 4, 5].map((starNum) => {
                     const avg = post.average_rating || 5.0;
@@ -421,18 +438,18 @@ export default function PostCard({ post, onPostUpdated }) {
                         key={starNum}
                         type="button"
                         onClick={() => handleReaction(starNum >= 3 ? 'LIKE' : 'DISLIKE')}
-                        className="p-0.5 text-amber-400 hover:scale-125 transition-transform cursor-pointer"
+                        className={`${compact ? 'p-0' : 'p-0.5'} text-amber-400 hover:scale-125 transition-transform cursor-pointer`}
                         title={`Calificar con ${starNum} estrellas (RN-04/05)`}
                       >
-                        <Star className={`w-3.5 h-3.5 ${isFilled ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
+                        <Star className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isFilled ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
                       </button>
                     );
                   })}
                 </div>
-                <span className="font-extrabold text-slate-800 dark:text-slate-200 text-[11px] ml-1">
+                <span className="font-extrabold text-slate-800 dark:text-slate-200 text-[10px] ml-0.5">
                   {(post.average_rating || 5.0).toFixed(1)}
                 </span>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[9px] text-slate-400">
                   ({post.ratings_count || (likesCount + dislikesCount)})
                 </span>
               </div>
@@ -442,14 +459,14 @@ export default function PostCard({ post, onPostUpdated }) {
                 type="button"
                 onClick={() => handleReaction('LIKE')}
                 disabled={isReacting}
-                className={`px-2.5 py-1 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                className={`${compact ? 'px-2 py-1 text-[10px] gap-1' : 'px-2.5 py-1 text-xs gap-1.5'} rounded-xl border font-bold flex items-center transition active:scale-95 cursor-pointer ${
                   myReaction === 'LIKE'
                     ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 shadow-2xs'
                     : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-300'
                 }`}
                 title="Marcar como apunte útil o relevante"
               >
-                <ThumbsUp className={`w-3.5 h-3.5 ${myReaction === 'LIKE' ? 'fill-emerald-500 text-emerald-500' : ''}`} />
+                <ThumbsUp className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${myReaction === 'LIKE' ? 'fill-emerald-500 text-emerald-500' : ''}`} />
                 <span>{likesCount}</span>
               </button>
 
@@ -458,14 +475,14 @@ export default function PostCard({ post, onPostUpdated }) {
                 type="button"
                 onClick={() => handleReaction('DISLIKE')}
                 disabled={isReacting}
-                className={`px-2.5 py-1 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                className={`${compact ? 'px-2 py-1 text-[10px] gap-1' : 'px-2.5 py-1 text-xs gap-1.5'} rounded-xl border font-bold flex items-center transition active:scale-95 cursor-pointer ${
                   myReaction === 'DISLIKE'
                     ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 shadow-2xs'
                     : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-rose-300'
                 }`}
                 title="Marcar como no relevante o mejorable"
               >
-                <ThumbsDown className={`w-3.5 h-3.5 ${myReaction === 'DISLIKE' ? 'fill-rose-500 text-rose-500' : ''}`} />
+                <ThumbsDown className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${myReaction === 'DISLIKE' ? 'fill-rose-500 text-rose-500' : ''}`} />
                 <span>{dislikesCount}</span>
               </button>
             </div>
@@ -479,25 +496,25 @@ export default function PostCard({ post, onPostUpdated }) {
           </div>
 
           {/* Footer Row: Author + Time + PDF Size + Download Button + Menu */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className={`border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between ${compact ? 'pt-2 gap-2' : 'pt-3 gap-3'} text-xs`}>
             
             {/* Author + Time + File Size Badge */}
-            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-              <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
+            <div className={`flex items-center flex-wrap min-w-0 ${compact ? 'gap-x-1.5 gap-y-1' : 'gap-2.5'}`}>
+              <div className={`${compact ? 'w-6 h-6 text-[10px]' : 'w-7 h-7 text-xs'} rounded-full bg-indigo-600 text-white font-black flex items-center justify-center shrink-0 shadow-2xs`}>
                 {post.author?.full_name ? post.author.full_name.charAt(0) : 'W'}
               </div>
-              <span className="text-slate-900 dark:text-white font-extrabold truncate">
+              <span className={`text-slate-900 dark:text-white font-extrabold truncate ${compact ? 'max-w-[100px] text-[10px]' : ''}`}>
                 {post.author?.full_name || 'Walter Alfonso'}
               </span>
 
-              <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <div className={`flex items-center ${compact ? 'gap-1 text-[10px]' : 'gap-1.5 text-xs'} text-slate-400`}>
+                <Clock className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-slate-400 shrink-0`} />
                 <span>{formatRelativeTime(post.created_at)}</span>
               </div>
 
               {/* Pill: Dinámico según archivo adjunto */}
               {mainAttachment && (
-                <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[11px] border border-slate-200/60 dark:border-slate-700">
+                <span className={`${compact ? 'hidden' : ''} px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[11px] border border-slate-200/60 dark:border-slate-700`}>
                   {mainAttachment.file_type === 'IMAGE' || mainAttachment.mime_type?.startsWith('image/')
                     ? 'PNG • 75 KB'
                     : mainAttachment.mime_type?.includes('pdf') || mainAttachment.original_name?.endsWith('.pdf')
@@ -519,18 +536,18 @@ export default function PostCard({ post, onPostUpdated }) {
             </div>
 
             {/* Actions: View in App + Download / Save Pill Button + Menu Button */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className={`flex items-center shrink-0 ${compact ? 'gap-0.5' : 'gap-2'}`}>
               
               {/* Botón Ver en la App */}
               {mainAttachment && (
                 <button
                   type="button"
                   onClick={() => setViewingFile(mainAttachment)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs"
+                  className={`${compact ? 'p-1.5' : 'px-3 py-1.5'} rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center ${compact ? '' : 'gap-1.5'} transition shadow-2xs`}
                   title="Abrir y leer directamente en la aplicación"
                 >
                   <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  <span>Ver</span>
+                  <span className={compact ? 'sr-only' : ''}>Ver</span>
                 </button>
               )}
 
@@ -540,7 +557,7 @@ export default function PostCard({ post, onPostUpdated }) {
                   type="button"
                   onClick={handleToggleOfflineReady}
                   disabled={savingFileId === mainAttachment.id}
-                  className={`px-2.5 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition shadow-2xs select-none ${
+                  className={`${compact ? 'p-1.5' : 'px-2.5 py-1.5'} rounded-xl border font-bold text-xs flex items-center ${compact ? 'gap-1' : 'gap-1.5'} transition shadow-2xs select-none ${
                     isOfflineSaved
                       ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                       : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
@@ -552,7 +569,7 @@ export default function PostCard({ post, onPostUpdated }) {
                   }
                 >
                   <span className={`w-2 h-2 rounded-full ${isOfflineSaved ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`} />
-                  <span>{isOfflineSaved ? '✓ Offline' : 'Ver sin conexión'}</span>
+                  <span className={compact ? 'sr-only' : ''}>{isOfflineSaved ? '✓ Offline' : 'Ver sin conexión'}</span>
                 </button>
               )}
 
@@ -568,7 +585,7 @@ export default function PostCard({ post, onPostUpdated }) {
                   else alert(`Descargando copia del recurso "${post.title}"`);
                 }}
                 disabled={mainAttachment && savingFileId === mainAttachment.id}
-                className={`px-3.5 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition shadow-2xs ${
+                className={`${compact ? 'p-1.5' : 'px-3.5 py-1.5'} rounded-xl border font-bold text-xs flex items-center ${compact ? '' : 'gap-1.5'} transition shadow-2xs ${
                   isGated
                     ? 'border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100/70'
                     : 'border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300'
@@ -578,17 +595,17 @@ export default function PostCard({ post, onPostUpdated }) {
                 {isGated ? (
                   <>
                     <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                    <span>Bloqueado</span>
+                    <span className={compact ? 'sr-only' : ''}>Bloqueado</span>
                   </>
                 ) : mainAttachment && downloadSaved[mainAttachment.id] ? (
                   <>
                     <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="text-emerald-600 font-bold">Guardado</span>
+                    <span className={`${compact ? 'sr-only' : ''} text-emerald-600 font-bold`}>Guardado</span>
                   </>
                 ) : (
                   <>
                     <Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>{mainAttachment && savingFileId === mainAttachment.id ? 'Guardando...' : 'Descargar'}</span>
+                    <span className={compact ? 'sr-only' : ''}>{mainAttachment && savingFileId === mainAttachment.id ? 'Guardando...' : 'Descargar'}</span>
                   </>
                 )}
               </button>
@@ -668,6 +685,45 @@ export default function PostCard({ post, onPostUpdated }) {
         </div>
 
       </div>
+
+      {showTextModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm"
+          onClick={() => setShowTextModal(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`post-text-title-${post.id}`}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+          >
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 id={`post-text-title-${post.id}`} className="text-base font-black text-slate-900 dark:text-white">
+                  {post.title}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {post.author?.full_name || 'Walter Alfonso'} · {formatRelativeTime(post.created_at)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTextModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Cerrar texto"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <p className="text-sm leading-7 text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                {post.content}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Report Modal */}
       {showReportModal && (

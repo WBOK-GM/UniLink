@@ -5,7 +5,6 @@ const { uploadsDir } = require('./config/storage');
 const {
   securityHeaders,
   apiRateLimiter,
-  authRateLimiter,
   sanitizeInput
 } = require('./middlewares/security');
 
@@ -81,7 +80,7 @@ app.use('/uploads', (req, res, next) => {
 }, express.static(uploadsDir));
 
 // Rutas de API v1
-app.use('/api/v1/auth', authRateLimiter, authRoutes);
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/posts', postRoutes);
