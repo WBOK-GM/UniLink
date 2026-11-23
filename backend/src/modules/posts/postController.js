@@ -1,9 +1,8 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const { memoryStore, persistPostRating, deletePostRating } = require('../../config/db');
-const { getFileUrl, uploadFileToR2 } = require('../../config/storage');
-const { recordFileAccess } = require('../../services/storageRetentionService');
+const { pool, memoryStore, persistPost, updatePostStatus, persistPostRating, deletePostRating } = require('../../config/db');
+const { getFileUrl, uploadFileToR2, deleteFileFromR2 } = require('../../config/storage');
 const { notifyUser } = require('../notifications/notificationController');
 
 const getContributionAccess = (user) => {
@@ -126,6 +125,9 @@ const getPosts = async (req, res) => {
 };
 
 const createPost = async (req, res) => {
+  const files = req.files || [];
+  const uploadedKeys = [];
+  let preserveAttachments = false;
   try {
     const {
       title,
@@ -142,8 +144,11 @@ const createPost = async (req, res) => {
 
     // RN-17: Idempotencia para sincronización offline
     const opId = client_operation_id || uuidv4();
-    const existingPost = memoryStore.posts.find(p => p.client_operation_id === opId);
-    if (existingPost) {
+    const findExistingPost = () => memoryStore.posts.find(post => post.client_operation_id === opId);
+    const respondToDuplicate = (existingPost) => {
+      if (existingPost.author_id !== author_id) {
+        return res.status(409).json({ success: false, error: 'El identificador de publicación ya está en uso.' });
+      }
       return res.status(200).json({
         success: true,
         alreadyProcessed: true,
@@ -151,16 +156,25 @@ const createPost = async (req, res) => {
         contribution_access: getContributionAccess(req.user),
         post: existingPost
       });
+    };
+
+    const existingPost = findExistingPost();
+    if (existingPost) return respondToDuplicate(existingPost);
+    if (!pool && process.env.NODE_ENV === 'production') {
+      return res.status(503).json({ success: false, error: 'El almacenamiento de publicaciones no está disponible.' });
+    }
+    if (files.length && process.env.RENDER_EXTERNAL_URL && !process.env.CLOUDFLARE_R2_PUBLIC_DOMAIN) {
+      return res.status(503).json({ success: false, error: 'El almacenamiento permanente de archivos no está configurado.' });
     }
 
-    if (!title || !content || !category_id) {
+    if (typeof title !== 'string' || !title.trim() || typeof content !== 'string' || !content.trim() || !category_id) {
       return res.status(400).json({
         success: false,
         error: 'El título, contenido y categoría son obligatorios.'
       });
     }
 
-    if ((!req.files || req.files.length === 0) && content.trim().length < 255) {
+    if (files.length === 0 && content.trim().length < 255) {
       return res.status(400).json({
         success: false,
         error: 'Las publicaciones solo de texto deben tener al menos 255 caracteres.'
@@ -173,6 +187,12 @@ const createPost = async (req, res) => {
         success: false,
         error: 'Debes aceptar la declaración de propiedad intelectual y autorizaciones para publicar.'
       });
+    }
+
+    const category = memoryStore.categories.find(item => item.id === category_id);
+    if (!category || title.trim().length > 200 || (location && (typeof location !== 'string' || location.length > 200)) ||
+        (post_type && !['RESOURCE', 'GENERAL'].includes(post_type)) || typeof opId !== 'string') {
+      return res.status(400).json({ success: false, error: 'Los datos de la publicación no son válidos.' });
     }
 
     // Si pertenece a un grupo privado, verificar membresía activa (RN-24)
@@ -206,80 +226,68 @@ const createPost = async (req, res) => {
       updated_at: new Date()
     };
 
-    memoryStore.posts.push(newPost);
-
-    // Si se adjuntaron archivos mediante Multer
-    const attachments = [];
-    if (req.files && req.files.length > 0) {
-      for (let index = 0; index < req.files.length; index++) {
-        const file = req.files[index];
-        let fileType = 'DOCUMENT';
-        if (file.mimetype.startsWith('image/')) fileType = 'IMAGE';
-        else if (file.mimetype.startsWith('audio/')) fileType = 'AUDIO';
-
-        // 1. Cálculo y Verificación de Integridad Criptográfica Anti-Corrupción (SHA-256)
-        let calculatedHash = null;
-        if (file.path && fs.existsSync(file.path)) {
-          const fileBuffer = fs.readFileSync(file.path);
-          calculatedHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-
-          // Validar contra el checksum enviado por el cliente si fue provisto
-          const clientChecksum = req.body[`file_checksum_${index}`] || req.body[`checksum_${index}`];
-          if (clientChecksum && clientChecksum.trim() !== '') {
-            const cleanClientHash = clientChecksum.replace(/^sha256:/i, '').trim().toLowerCase();
-            if (cleanClientHash !== calculatedHash.toLowerCase()) {
-              // El archivo llegó corrupto o fue alterado durante la transferencia
-              try { fs.unlinkSync(file.path); } catch (e) {}
-              return res.status(400).json({
-                success: false,
-                error: `Integridad comprometida: El archivo "${file.originalname}" está corrupto (Fallo de verificación SHA-256).`,
-                expectedChecksum: cleanClientHash,
-                receivedChecksum: calculatedHash
-              });
-            }
-          }
+    const fileRecords = [];
+    const links = [];
+    for (const [index, file] of files.entries()) {
+      const fileBuffer = await fs.promises.readFile(file.path);
+      const calculatedHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      const clientChecksum = req.body[`file_checksum_${index}`] || req.body[`checksum_${index}`];
+      if (clientChecksum) {
+        const cleanClientHash = String(clientChecksum).replace(/^sha256:/i, '').trim().toLowerCase();
+        if (cleanClientHash && cleanClientHash !== calculatedHash) {
+          return res.status(400).json({
+            success: false,
+            error: `Integridad comprometida: El archivo "${file.originalname}" está corrupto (Fallo de verificación SHA-256).`,
+            expectedChecksum: cleanClientHash,
+            receivedChecksum: calculatedHash
+          });
         }
+      }
 
-        const fileId = uuidv4();
-        const fileRecord = {
-          id: fileId,
-          uploader_id: author_id,
-          original_name: file.originalname,
-          storage_key: file.filename,
-          mime_type: file.mimetype,
-          file_size: file.size,
-          file_type: fileType,
-          checksum: calculatedHash ? `sha256:${calculatedHash}` : null,
-          status: 'AVAILABLE',
-          access_count: 1,
-          last_accessed_at: new Date(),
-          created_at: new Date()
-        };
+      const fileRecord = {
+        id: uuidv4(),
+        uploader_id: author_id,
+        original_name: file.originalname,
+        storage_key: file.filename,
+        mime_type: file.mimetype,
+        file_size: file.size,
+        file_type: file.mimetype.startsWith('image/') ? 'IMAGE'
+          : file.mimetype.startsWith('audio/') ? 'AUDIO' : 'DOCUMENT',
+        checksum: `sha256:${calculatedHash}`,
+        status: 'AVAILABLE',
+        access_count: 1,
+        last_accessed_at: new Date(),
+        created_at: new Date()
+      };
+      fileRecords.push(fileRecord);
+      links.push({ id: uuidv4(), post_id: postId, file_id: fileRecord.id, display_order: index + 1 });
+    }
 
-        memoryStore.files.push(fileRecord);
-        memoryStore.post_files.push({
-          id: uuidv4(),
-          post_id: postId,
-          file_id: fileId,
-          display_order: index + 1
-        });
-
-        // Si Cloudflare R2 está configurado, subir el archivo de manera persistente
-        if (file.path && fs.existsSync(file.path)) {
-          await uploadFileToR2(file.path, fileRecord.storage_key, file.mimetype);
-        }
-
-        attachments.push({
-          id: fileRecord.id,
-          original_name: fileRecord.original_name,
-          url: getFileUrl(fileRecord.storage_key),
-          mime_type: fileRecord.mime_type,
-          file_type: fileRecord.file_type,
-          checksum: fileRecord.checksum,
-          file_size: fileRecord.file_size
-        });
+    for (const file of files) {
+      const upload = await uploadFileToR2(file.path, file.filename, file.mimetype);
+      if (upload.mode === 'r2') uploadedKeys.push(file.filename);
+      if (!upload.success || (process.env.RENDER_EXTERNAL_URL && upload.mode !== 'r2')) {
+        return res.status(503).json({ success: false, error: 'No se pudo guardar el archivo de forma permanente.' });
       }
     }
+
+    const duplicate = pool ? await persistPost(newPost, fileRecords, links, category) : findExistingPost();
+    if (duplicate) return respondToDuplicate(duplicate);
+
+    memoryStore.posts.push(newPost);
+    memoryStore.files.push(...fileRecords);
+    memoryStore.post_files.push(...links);
+    preserveAttachments = true;
+
+    const attachments = fileRecords.map(file => ({
+      id: file.id,
+      original_name: file.original_name,
+      url: getFileUrl(file.storage_key),
+      mime_type: file.mime_type,
+      file_type: file.file_type,
+      checksum: file.checksum,
+      file_size: file.file_size
+    }));
 
     return res.status(201).json({
       success: true,
@@ -291,8 +299,19 @@ const createPost = async (req, res) => {
       }
     });
   } catch (error) {
+    preserveAttachments ||= error.preserveAttachments === true;
     console.error('Error en createPost:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'No se pudo guardar la publicación.' });
+  } finally {
+    if (!preserveAttachments) {
+      const cleanup = await Promise.allSettled([
+        ...files.map(file => fs.promises.rm(file.path, { force: true })),
+        ...uploadedKeys.map(deleteFileFromR2)
+      ]);
+      for (const result of cleanup) {
+        if (result.status === 'rejected') console.warn('No se pudo limpiar un adjunto:', result.reason.message);
+      }
+    }
   }
 };
 
@@ -456,8 +475,7 @@ const deactivatePost = async (req, res) => {
       });
     }
 
-    post.status = 'INACTIVE';
-    post.updated_at = new Date();
+    await updatePostStatus(post, 'INACTIVE');
 
     return res.json({ success: true, message: 'Publicación desactivada correctamente.' });
   } catch (error) {
@@ -484,8 +502,7 @@ const reactivatePost = async (req, res) => {
       });
     }
 
-    post.status = 'ACTIVE';
-    post.updated_at = new Date();
+    await updatePostStatus(post, 'ACTIVE');
 
     return res.json({
       success: true,

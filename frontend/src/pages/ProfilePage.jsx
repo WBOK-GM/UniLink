@@ -49,6 +49,7 @@ export default function ProfilePage() {
   const [longitude, setLongitude] = useState(-73.3565);
   const [saving, setSaving] = useState(false);
   const [pushStatus, setPushStatus] = useState('DEFAULT');
+  const [pushBusy, setPushBusy] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showStorageModal, setShowStorageModal] = useState(false);
 
@@ -112,28 +113,39 @@ export default function ProfilePage() {
     }
   };
 
-  const handleEnablePush = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Tu navegador no soporta la API de Web Push.');
+  const handlePush = async ({ test = false } = {}) => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      alert('Web Push no está disponible. En iPhone o iPad, abre UniLink desde la pantalla de inicio.');
       return;
     }
 
+    setPushBusy(true);
+    let subscription;
     try {
-      const permission = await Notification.requestPermission();
+      const permission = test ? Notification.permission : await Notification.requestPermission();
       if (permission !== 'granted') {
-        alert('Permiso de notificaciones denegado.');
-        setPushStatus('DENIED');
+        setPushStatus('DEFAULT');
+        alert(permission === 'denied'
+          ? 'Permite las notificaciones de UniLink en la configuración del navegador.'
+          : 'Pulsa Habilitar Notificaciones Push para conceder el permiso.');
         return;
       }
 
-      const reg = await navigator.serviceWorker.ready;
-      const vapidRes = await api.getVapidPublicKey();
-      const applicationServerKey = urlBase64ToUint8Array(vapidRes.publicKey);
+      setPushStatus('DEFAULT');
+      await navigator.serviceWorker.register('/sw.js');
+      let readyTimeout;
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => {
+          readyTimeout = setTimeout(() => reject(new Error('UniLink no pudo activar su service worker. Recarga la página e inténtalo de nuevo.')), 10000);
+        })
+      ]).finally(() => clearTimeout(readyTimeout));
 
-      // Reutilizar la suscripción existente; solo renovarla si la VAPID cambió
-      let subscription = await reg.pushManager.getSubscription();
-      if (subscription && subscription.options && subscription.options.applicationServerKey) {
-        const currentKey = new Uint8Array(subscription.options.applicationServerKey);
+      const { publicKey } = await api.getVapidPublicKey();
+      const applicationServerKey = urlBase64ToUint8Array(publicKey);
+      subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        const currentKey = new Uint8Array(subscription.options?.applicationServerKey || []);
         const sameKey = currentKey.length === applicationServerKey.length &&
           currentKey.every((byte, index) => byte === applicationServerKey[index]);
         if (!sameKey) {
@@ -143,28 +155,29 @@ export default function ProfilePage() {
       }
 
       if (!subscription) {
-        subscription = await reg.pushManager.subscribe({
+        subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey
         });
       }
 
-      // Re-registrar siempre en el backend para restaurar suscripciones tras un cold-start
       await api.subscribePush(subscription.toJSON());
       setPushStatus('SUBSCRIBED');
-      alert('🔔 ¡Notificaciones push activadas exitosamente!');
-    } catch (err) {
-      console.error('Error suscribiendo push:', err);
-      alert(`Error al activar notificaciones (${err.name || 'Error'}): ${err.message}`);
-    }
-  };
-
-  const handleTestPush = async () => {
-    try {
-      const res = await api.testPush();
-      alert(res.message);
-    } catch (e) {
-      alert(e.message);
+      if (test) {
+        const result = await api.testPush(subscription.endpoint);
+        alert(result.message);
+      } else {
+        alert('🔔 ¡Notificaciones push activadas exitosamente!');
+      }
+    } catch (error) {
+      if (test && error.status === 410 && subscription) {
+        await subscription.unsubscribe().catch(() => {});
+        setPushStatus('DEFAULT');
+      }
+      console.error('Error de Web Push:', error);
+      alert(error.message);
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -515,15 +528,17 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3 pt-1">
             <button
               type="button"
-              onClick={handleEnablePush}
-              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md shadow-brand-600/25 transition"
+              onClick={() => handlePush()}
+              disabled={pushBusy}
+              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md shadow-brand-600/25 transition disabled:opacity-60"
             >
               Habilitar Notificaciones Push
             </button>
 
             <button
               type="button"
-              onClick={handleTestPush}
+              onClick={() => handlePush({ test: true })}
+              disabled={pushBusy}
               className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700 transition shadow-2xs"
             >
               Probar Notificación

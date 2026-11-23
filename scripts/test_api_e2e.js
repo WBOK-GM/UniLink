@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const app = require('../backend/src/app');
 const { uploadsDir } = require('../backend/src/config/storage');
+const { webpush } = require('../backend/src/config/vapid');
 
 let testUploadPath = null;
 
@@ -361,11 +362,59 @@ async function runTests() {
     const vapidRes = await apiCall('/notifications/vapid-public-key');
     assert('Clave pública VAPID provista para suscripción Web Push', vapidRes.ok && !!vapidRes.body.publicKey);
 
+    const pushEndpoint = 'https://push.example.test/unilink';
+    const deviceKey = crypto.createECDH('prime256v1');
+    const registration = await apiCall('/notifications/subscribe', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        subscription: {
+          endpoint: pushEndpoint,
+          keys: {
+            p256dh: deviceKey.generateKeys().toString('base64url'),
+            auth: crypto.randomBytes(16).toString('base64url')
+          }
+        }
+      })
+    });
+    assert('Registra una suscripción Web Push válida', registration.status === 201);
+
+    const requestTestPush = (headers) => apiCall('/notifications/test-push', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ endpoint: pushEndpoint })
+    });
+    const sendNotification = webpush.sendNotification;
+    let sentEndpoint;
+    try {
+      webpush.sendNotification = async ({ endpoint }) => { sentEndpoint = endpoint; };
+      const otherDevice = await requestTestPush(adminHeaders);
+      assert('La prueba no envía a una suscripción de otro usuario', otherDevice.status === 409 && !sentEndpoint);
+      const delivered = await requestTestPush(authHeaders);
+      assert('La prueba envía al dispositivo registrado', delivered.ok && sentEndpoint === pushEndpoint);
+
+      webpush.sendNotification = async () => {
+        throw Object.assign(new Error('Fallo del proveedor simulado'), { statusCode: 503 });
+      };
+      const failedDelivery = await requestTestPush(authHeaders);
+      assert('Un error del proveedor hace fallar la prueba', failedDelivery.status === 502);
+
+      webpush.sendNotification = async () => {
+        throw Object.assign(new Error('Suscripción expirada simulada'), { statusCode: 410 });
+      };
+      const expired = await requestTestPush(authHeaders);
+      const removed = await requestTestPush(authHeaders);
+      assert('La prueba distingue una suscripción expirada y la elimina', expired.status === 410 && removed.status === 409);
+    } finally {
+      webpush.sendNotification = sendNotification;
+    }
+
     console.log(`\n=========================================`);
     console.log(`Resultados: ${passed} Pasadas, ${failed} Fallidas`);
     console.log(`=========================================\n`);
   } catch (error) {
     console.error('Error durante ejecución de pruebas:', error);
+    failed++;
   } finally {
     if (testUploadPath && fs.existsSync(testUploadPath)) {
       try {

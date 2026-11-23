@@ -7,10 +7,11 @@ try {
 } catch (e) {}
 
 const { Pool } = require('pg');
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4, v5: uuidv5, validate: isUuid } = require('uuid');
 
 let pool = null;
 let usePg = false;
+let databaseInitialization;
 
 // Datos en memoria / seed inicial para modo desacoplado (cuando no hay DATABASE_URL configurada)
 const memoryStore = {
@@ -440,32 +441,6 @@ async function hydrateMemoryStoreFromPg() {
       }
     }
 
-    // 7. Publicaciones
-    const postsRes = await pool.query('SELECT * FROM posts');
-    if (postsRes.rows && postsRes.rows.length > 0) {
-      for (const p of postsRes.rows) {
-        const idx = memoryStore.posts.findIndex(mp => mp.id === p.id);
-        const pObj = {
-          id: p.id,
-          author_id: p.author_id,
-          category_id: p.category_id,
-          group_id: p.group_id || null,
-          post_type: p.post_type || 'RESOURCE',
-          title: p.title,
-          content: p.content,
-          location: p.location || '',
-          status: p.status || 'ACTIVE',
-          copyright_declaration_accepted: p.copyright_declaration_accepted !== false,
-          copyright_policy_version: p.copyright_policy_version || 'v1.0',
-          client_operation_id: p.client_operation_id || null,
-          created_at: new Date(p.created_at),
-          updated_at: new Date(p.updated_at || p.created_at)
-        };
-        if (idx >= 0) memoryStore.posts[idx] = pObj;
-        else memoryStore.posts.push(pObj);
-      }
-    }
-
     // 8. Reacciones
     const reactionsRes = await pool.query('SELECT * FROM post_reactions');
     if (reactionsRes.rows && reactionsRes.rows.length > 0) {
@@ -568,25 +543,7 @@ async function hydrateMemoryStoreFromPg() {
       }
     }
 
-    // 12. Suscripciones Web Push (deben sobrevivir reinicios/cold-starts de Render)
-    const pushRes = await pool.query('SELECT * FROM push_subscriptions');
-    if (pushRes.rows && pushRes.rows.length > 0) {
-      for (const ps of pushRes.rows) {
-        const psObj = {
-          id: ps.id,
-          user_id: ps.user_id,
-          endpoint: ps.endpoint,
-          p256dh: ps.p256dh,
-          auth: ps.auth,
-          created_at: new Date(ps.created_at)
-        };
-        const idx = memoryStore.push_subscriptions.findIndex(s => s.endpoint === ps.endpoint);
-        if (idx >= 0) memoryStore.push_subscriptions[idx] = psObj;
-        else memoryStore.push_subscriptions.push(psObj);
-      }
-    }
-
-    console.log(`[UniLink DB] Sincronización exitosa: ${memoryStore.users.length} usuarios, ${memoryStore.posts.length} posts, ${memoryStore.study_groups.length} grupos y ${memoryStore.push_subscriptions.length} suscripciones push en memoria.`);
+    console.log(`[UniLink DB] Sincronización exitosa: ${memoryStore.users.length} usuarios, ${memoryStore.posts.length} posts y ${memoryStore.study_groups.length} grupos en memoria.`);
   } catch (err) {
     console.warn('[UniLink DB] Error hidratando memoria desde PostgreSQL:', err.message);
   }
@@ -614,7 +571,46 @@ async function ensurePostRatingsTable() {
   }
 }
 
-async function initDatabase() {
+async function initPushSubscriptions() {
+  try {
+    let subscriptions;
+    try {
+      ({ rows: subscriptions } = await pool.query('SELECT * FROM push_subscriptions'));
+    } catch (err) {
+      if (err.code !== '42P01') throw err;
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id UUID PRIMARY KEY,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+      `);
+      ({ rows: subscriptions } = await pool.query('SELECT * FROM push_subscriptions'));
+    }
+    for (const subscription of subscriptions) {
+      const record = { ...subscription, created_at: new Date(subscription.created_at) };
+      const index = memoryStore.push_subscriptions.findIndex(s => s.endpoint === record.endpoint);
+      if (index >= 0) memoryStore.push_subscriptions[index] = record;
+      else memoryStore.push_subscriptions.push(record);
+    }
+  } catch (err) {
+    console.warn('[UniLink DB] No se pudieron recuperar las suscripciones push:', err.message);
+  }
+}
+
+function initDatabase() {
+  if (!databaseInitialization) {
+    databaseInitialization = connectDatabase().finally(() => {
+      databaseInitialization = undefined;
+    });
+  }
+  return databaseInitialization;
+}
+
+async function connectDatabase() {
   if (!pool) {
     console.log('[UniLink DB] DATABASE_URL no provista. Operando con almacén en memoria y seed inicial de prueba.');
     usePg = false;
@@ -625,14 +621,165 @@ async function initDatabase() {
     const res = await pool.query('SELECT NOW()');
     console.log('[UniLink DB] Conectado exitosamente a PostgreSQL (Neon):', res.rows[0].now);
     usePg = true;
+    await updatePostSchema().catch(error => {
+      console.warn('[UniLink DB] No se pudo actualizar el esquema de publicaciones:', error.message);
+    });
     await ensurePostRatingsTable();
     await hydrateMemoryStoreFromPg();
+    await hydratePostsFromPg();
+    await initPushSubscriptions();
     return true;
   } catch (err) {
     console.warn('[UniLink DB] No se pudo conectar a PostgreSQL externo. Usando almacén en memoria:', err.message);
     usePg = false;
     return false;
   }
+}
+
+async function hydratePostsFromPg() {
+  try {
+    const postsRes = await pool.query('SELECT * FROM posts');
+    if (postsRes.rows && postsRes.rows.length > 0) {
+      for (const p of postsRes.rows) {
+        const idx = memoryStore.posts.findIndex(mp => mp.id === p.id);
+        const pObj = {
+          id: p.id,
+          author_id: p.author_id,
+          category_id: p.category_id,
+          group_id: p.source_group_id || p.group_id || null,
+          post_type: p.post_type || 'RESOURCE',
+          title: p.title,
+          content: p.content,
+          location: p.location || '',
+          status: p.status || 'ACTIVE',
+          copyright_declaration_accepted: p.copyright_declaration_accepted !== false,
+          copyright_policy_version: p.copyright_policy_version || 'v1.0',
+          client_operation_id: p.client_operation_id || null,
+          created_at: new Date(p.created_at),
+          updated_at: new Date(p.updated_at || p.created_at)
+        };
+        if (idx >= 0) memoryStore.posts[idx] = pObj;
+        else memoryStore.posts.push(pObj);
+      }
+    }
+
+    const filesRes = await pool.query('SELECT * FROM files');
+    for (const file of filesRes.rows) {
+      const index = memoryStore.files.findIndex(item => item.id === file.id);
+      const record = { ...file, file_size: Number(file.file_size) };
+      if (index >= 0) memoryStore.files[index] = record;
+      else memoryStore.files.push(record);
+    }
+
+    const linksRes = await pool.query('SELECT * FROM post_files ORDER BY display_order');
+    for (const link of linksRes.rows) {
+      const index = memoryStore.post_files.findIndex(item => item.id === link.id);
+      if (index >= 0) memoryStore.post_files[index] = link;
+      else memoryStore.post_files.push(link);
+    }
+
+  } catch (error) {
+    console.warn('[UniLink DB] No se pudieron recuperar las publicaciones:', error.message);
+  }
+}
+
+async function updatePostSchema() {
+  const { rows } = await pool.query(`
+    SELECT column_name, data_type FROM information_schema.columns
+    WHERE table_schema = current_schema() AND table_name = 'posts'
+  `);
+  if (!rows.length) return;
+  if (!rows.some(column => column.column_name === 'source_group_id')) {
+    await pool.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS source_group_id TEXT');
+  }
+  if (rows.some(column => column.column_name === 'client_operation_id' && column.data_type === 'uuid')) {
+    await pool.query('ALTER TABLE posts ALTER COLUMN client_operation_id TYPE TEXT USING client_operation_id::text');
+  }
+}
+
+async function persistPostCategory(client, category) {
+  const id = isUuid(category.id) ? category.id : uuidv5(`unilink:category:${category.id}`, uuidv5.URL);
+  const parent = memoryStore.categories.find(item => item.id === category.parent_id);
+  const parentId = parent ? await persistPostCategory(client, parent) : null;
+  if (!isUuid(category.id)) {
+    const { rows } = await client.query(
+      'SELECT id FROM categories WHERE normalized_name = $1 AND parent_id IS NOT DISTINCT FROM $2 LIMIT 1',
+      [category.normalized_name, parentId]
+    );
+    if (rows.length) return rows[0].id;
+  }
+  await client.query(
+    `INSERT INTO categories (id, name, normalized_name, description, parent_id, status)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (id) DO NOTHING`,
+    [id, category.name, category.normalized_name, category.description, parentId, category.status]
+  );
+  return id;
+}
+
+async function persistPost(post, files, links, category) {
+  const client = await pool.connect();
+  let commitStarted = false;
+  try {
+    await client.query('BEGIN');
+    const categoryId = await persistPostCategory(client, category);
+    // Los grupos que solo existen en memoria mantienen su identificador y nunca se vuelven publicaciones generales.
+    const group = isUuid(post.group_id)
+      ? await client.query('SELECT id FROM study_groups WHERE id = $1', [post.group_id])
+      : null;
+    const groupId = group?.rows[0]?.id || null;
+    const created = await client.query(
+      `INSERT INTO posts (
+        id, author_id, category_id, group_id, source_group_id, post_type, title, content, status, location,
+        copyright_declaration_accepted, copyright_policy_version, client_operation_id, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       ON CONFLICT (client_operation_id) DO NOTHING RETURNING id`,
+      [post.id, post.author_id, categoryId, groupId, groupId ? null : post.group_id, post.post_type,
+        post.title, post.content, post.status, post.location, post.copyright_declaration_accepted,
+        post.copyright_policy_version, post.client_operation_id, post.created_at, post.updated_at]
+    );
+    if (!created.rowCount) {
+      const existing = await client.query('SELECT * FROM posts WHERE client_operation_id = $1', [post.client_operation_id]);
+      await client.query('ROLLBACK');
+      return existing.rows[0];
+    }
+
+    for (const file of files) {
+      await client.query(
+        `INSERT INTO files (id, uploader_id, original_name, storage_key, mime_type, file_size, file_type, checksum, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [file.id, file.uploader_id, file.original_name, file.storage_key, file.mime_type, file.file_size,
+          file.file_type, file.checksum, file.status, file.created_at]
+      );
+    }
+    for (const link of links) {
+      await client.query(
+        'INSERT INTO post_files (id, post_id, file_id, display_order) VALUES ($1, $2, $3, $4)',
+        [link.id, link.post_id, link.file_id, link.display_order]
+      );
+    }
+    commitStarted = true;
+    await client.query('COMMIT');
+    return null;
+  } catch (error) {
+    if (commitStarted) {
+      // Si se perdió la conexión al confirmar, la publicación puede referenciar los adjuntos.
+      error.preserveAttachments = true;
+    }
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function updatePostStatus(post, status) {
+  const updatedAt = new Date();
+  if (pool && isUuid(post.id)) {
+    await pool.query('UPDATE posts SET status = $1, updated_at = $2 WHERE id = $3', [status, updatedAt, post.id]);
+  }
+  post.status = status;
+  post.updated_at = updatedAt;
 }
 
 /**
@@ -746,9 +893,11 @@ async function persistPushSubscription(sub) {
       `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (endpoint) DO UPDATE
-         SET user_id = EXCLUDED.user_id,
+         SET id = EXCLUDED.id,
+             user_id = EXCLUDED.user_id,
              p256dh = EXCLUDED.p256dh,
-             auth = EXCLUDED.auth`,
+             auth = EXCLUDED.auth,
+             created_at = EXCLUDED.created_at`,
       [sub.id, sub.user_id, sub.endpoint, sub.p256dh, sub.auth, sub.created_at || new Date()]
     );
     return true;
@@ -796,10 +945,10 @@ async function deletePostRating(postId, userId) {
 /**
  * Elimina una suscripción Web Push expirada (410 Gone / 404 Not Found).
  */
-async function deletePushSubscriptionByEndpoint(endpoint) {
+async function deletePushSubscription(id) {
   if (!pool) return false;
   try {
-    await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [endpoint]);
+    await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [id]);
     return true;
   } catch (err) {
     console.warn('[UniLink DB] Error eliminando suscripción push en PostgreSQL:', err.message);
@@ -818,10 +967,12 @@ module.exports = {
   memoryStore,
   initDatabase,
   hydrateMemoryStoreFromPg,
+  persistPost,
+  updatePostStatus,
   persistUser,
   queryUserByEmail,
   persistPostRating,
   deletePostRating,
   persistPushSubscription,
-  deletePushSubscriptionByEndpoint
+  deletePushSubscription
 };

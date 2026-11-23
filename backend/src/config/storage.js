@@ -69,6 +69,14 @@ const uploadFileToR2 = async (filePath, storageKey, mimeType) => {
   }
 };
 
+const deleteFileFromR2 = async (storageKey) => {
+  const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+  await getR2Client().send(new DeleteObjectCommand({
+    Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+    Key: storageKey
+  }));
+};
+
 const getHost = () => {
   if (process.env.BACKEND_HOST) return process.env.BACKEND_HOST.replace(/\/$/, '');
   if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '');
@@ -89,5 +97,6 @@ module.exports = {
   uploadsDir,
   isR2Configured,
   uploadFileToR2,
+  deleteFileFromR2,
   getFileUrl
 };
