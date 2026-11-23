@@ -1,7 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const { memoryStore, persistPostRating, deletePostRating } = require('../../config/db');
+const { memoryStore, pool, persistPostRating, deletePostRating } = require('../../config/db');
 const { getFileUrl, uploadFileToR2 } = require('../../config/storage');
 const { recordFileAccess } = require('../../services/storageRetentionService');
 const { notifyUser } = require('../notifications/notificationController');
@@ -15,6 +15,62 @@ const getContributionAccess = (user) => {
     contributions_count,
     can_access_downloads: user.role === 'ADMIN' || contributions_count > 0
   };
+};
+
+const resolvePostCategory = async (categoryId, categoryName) => {
+  if (categoryId) return categoryId;
+
+  const name = typeof categoryName === 'string' ? categoryName.trim() : '';
+  if (!name || name.length > 100) {
+    throw new Error('El nombre de la materia debe tener entre 1 y 100 caracteres.');
+  }
+
+  const normalizedName = name.toLowerCase().replace(/\s+/g, '-');
+  let category = memoryStore.categories.find(
+    (item) =>
+      item.normalized_name === normalizedName &&
+      !(item.parent_id || null) &&
+      item.status === 'ACTIVE'
+  );
+
+  if (!category && pool) {
+    const existing = await pool.query(
+      `SELECT id, name, normalized_name, parent_id, status
+       FROM categories
+       WHERE normalized_name = $1 AND parent_id IS NULL AND status = 'ACTIVE'
+       LIMIT 1`,
+      [normalizedName]
+    );
+    category = existing.rows[0];
+
+    if (!category) {
+      const created = await pool.query(
+        `INSERT INTO categories (name, normalized_name, status)
+         VALUES ($1, $2, 'ACTIVE')
+         RETURNING id, name, normalized_name, parent_id, status`,
+        [name, normalizedName]
+      );
+      category = created.rows[0];
+    }
+
+    if (category && !memoryStore.categories.some((item) => item.id === category.id)) {
+      memoryStore.categories.push(category);
+    }
+  }
+
+  if (!category) {
+    category = {
+      id: uuidv4(),
+      name,
+      normalized_name: normalizedName,
+      parent_id: null,
+      status: 'ACTIVE',
+      created_at: new Date()
+    };
+    memoryStore.categories.push(category);
+  }
+
+  return category.id;
 };
 
 const getPosts = async (req, res) => {
@@ -131,6 +187,7 @@ const createPost = async (req, res) => {
       title,
       content,
       category_id,
+      category_name,
       group_id,
       post_type,
       location,
@@ -153,10 +210,19 @@ const createPost = async (req, res) => {
       });
     }
 
-    if (!title || !content || !category_id) {
+    if (!title || !content || (!category_id && !category_name)) {
       return res.status(400).json({
         success: false,
         error: 'El título, contenido y categoría son obligatorios.'
+      });
+    }
+    if (
+      !category_id &&
+      (typeof category_name !== 'string' || !category_name.trim() || category_name.trim().length > 100)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: 'El nombre de la materia debe tener entre 1 y 100 caracteres.'
       });
     }
 
@@ -188,11 +254,12 @@ const createPost = async (req, res) => {
       }
     }
 
+    const resolvedCategoryId = await resolvePostCategory(category_id, category_name);
     const postId = uuidv4();
     const newPost = {
       id: postId,
       author_id,
-      category_id,
+      category_id: resolvedCategoryId,
       group_id: group_id || null,
       post_type: post_type || 'RESOURCE',
       title: title.trim(),
