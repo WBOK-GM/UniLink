@@ -37,13 +37,37 @@ export async function request(endpoint, options = {}) {
   try {
     res = await fetch(url, { ...options, headers });
   } catch (error) {
-    const networkError = error instanceof Error ? error : new Error(String(error));
+    const networkError = error instanceof Error
+      ? error
+      : new Error(String(error));
+
     if (
-      !navigator.onLine ||
+      (typeof navigator !== 'undefined' && !navigator.onLine) ||
       networkError instanceof TypeError ||
-      networkError.message.includes('Failed to fetch')
+      networkError.name === 'AbortError' ||
+      /Failed to fetch|NetworkError/i.test(networkError.message)
     ) {
       networkError.isOffline = true;
+    }
+
+    throw networkError;
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const error = new Error(data.error || `Error ${res.status}: ${res.statusText}`);
+    error.status = res.status;
+    error.isServerResponse = true;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+  } catch (error) {
+    // Si no hay red o falló la conexión por completo (servidor en reposo o sin internet)
+    if (!navigator.onLine || error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.name === 'AbortError') {
+      error.isOffline = true;
     }
     throw networkError;
   }
@@ -57,6 +81,12 @@ export async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  // Health & Warm-up (Despertar Render)
+  pingHealth: () => {
+    const backendBase = API_BASE.replace(/\/api\/v1\/?$/, '');
+    return fetch(`${backendBase}/health`, { method: 'GET' }).then(r => r.json()).catch(() => null);
+  },
+
   // Auth
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   register: (payload) => request('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),

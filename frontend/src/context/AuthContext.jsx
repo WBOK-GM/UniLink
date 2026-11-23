@@ -138,9 +138,15 @@ export const AuthProvider = ({ children }) => {
         return res;
       }
     } catch (networkErr) {
+      // 1. Si el servidor SÍ respondió (ej. HTTP 401 Credenciales Inválidas, 400, 404):
+      // NO enmascarar el error con falso mensaje de conexión; propagar el motivo real del backend.
+      if (networkErr.isServerResponse || (networkErr.status && networkErr.status < 500)) {
+        throw networkErr;
+      }
+
       console.warn('[UniLink Auth] Falló conexión con servidor, verificando credenciales en IndexedDB:', networkErr.message);
 
-      // 2. Fallback de Autenticación Offline mediante IndexedDB
+      // 2. Fallback de Autenticación Offline mediante IndexedDB (Solo ante fallo genuino de red)
       const cachedUser = await db.cached_users.get(normalizedEmail);
 
       // Validar si coincide con el usuario demo precargado o usuario guardado
@@ -189,7 +195,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       throw new Error(
-        'No se pudo conectar con el servidor y no hay credenciales offline coincidentes para este correo.'
+        'No se pudo conectar con el servidor en la nube y no existen credenciales offline guardadas en este dispositivo para este correo.'
       );
     }
   };
