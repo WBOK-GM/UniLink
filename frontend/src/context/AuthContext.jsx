@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api, getAuthToken, setAuthToken, removeAuthToken } from '../api/client';
 import {
   db,
@@ -15,6 +15,32 @@ export const AuthProvider = ({ children }) => {
   const [token, setTokenState] = useState(getAuthToken());
   const [loading, setLoading] = useState(true);
   const [isOfflineSession, setIsOfflineSession] = useState(false);
+
+  const updateContributionAccess = useCallback((access) => {
+    if (
+      !user ||
+      !Number.isInteger(access?.contributions_count) ||
+      typeof access.can_access_downloads !== 'boolean'
+    ) {
+      console.warn('[UniLink Auth] El servidor no devolvió un contador de aportes válido.');
+      return false;
+    }
+
+    const updatedUser = {
+      ...user,
+      contributions_count: access.contributions_count,
+      can_access_downloads: access.can_access_downloads
+    };
+    setUser(updatedUser);
+    localStorage.setItem('unilink_cached_user', JSON.stringify(updatedUser));
+
+    const activeToken = getAuthToken();
+    if (activeToken) {
+      saveOfflineSession({ token: activeToken, user: updatedUser })
+        .catch((error) => console.warn('[UniLink Auth] No se pudo guardar la sesión actualizada offline:', error));
+    }
+    return true;
+  }, [user]);
 
   // Cargar usuario y token autenticado inicial (Soporta arranque Online y Offline)
   useEffect(() => {
@@ -310,7 +336,8 @@ export const AuthProvider = ({ children }) => {
         loginWithToken,
         loginAsGuest,
         logout,
-        updateUserProfile
+        updateUserProfile,
+        updateContributionAccess
       }}
     >
       {children}

@@ -13,7 +13,6 @@ import {
   X,
   Compass,
   ArrowRight,
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -45,6 +44,7 @@ import {
 import { api } from '../api/client';
 import { db } from '../db/db';
 import PostCard from '../components/PostCard';
+import FileViewerModal from '../components/FileViewerModal';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
@@ -64,6 +64,7 @@ export default function FeedPage({ onOpenAudit }) {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [suggestName, setSuggestName] = useState('');
   const [suggestDesc, setSuggestDesc] = useState('');
+  const [previewResource, setPreviewResource] = useState(null);
 
   // Mobile View Toggle: Screen 1 (Inicio) vs Screen 2 (Buscar Recursos)
   const isSearchActive = searchParams.get('view') === 'search';
@@ -147,6 +148,11 @@ export default function FeedPage({ onOpenAudit }) {
     if (n.includes('matem') || n.includes('cálculo') || n.includes('fisic')) return Calculator;
     if (n.includes('web') || n.includes('pwa')) return Globe;
     return BookOpen;
+  };
+
+  const openResourcePreview = (resource) => {
+    const file = resource.attachments?.[0];
+    if (file) setPreviewResource({ file, post: resource });
   };
 
   // Demo fallback items for recent resources matching mobile screenshot 2
@@ -343,7 +349,13 @@ export default function FeedPage({ onOpenAudit }) {
                     key={item.id}
                     className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3 hover:border-indigo-200 transition"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => openResourcePreview(item)}
+                      disabled={!item.attachments?.length}
+                      aria-label={`Visualizar ${item.title}`}
+                      className="flex items-center gap-3 min-w-0 flex-1 text-left disabled:cursor-default"
+                    >
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-700 to-indigo-500 text-white flex items-center justify-center shrink-0 font-black text-xs shadow-2xs">
                         {item.file_type === 'AUDIO' ? (
                           <Play className="w-4 h-4 fill-white ml-0.5" />
@@ -373,7 +385,7 @@ export default function FeedPage({ onOpenAudit }) {
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </button>
 
                     <button
                       type="button"
@@ -395,17 +407,17 @@ export default function FeedPage({ onOpenAudit }) {
             
             {/* Hero Section Container with Building Photo & Header */}
             <div
-              className="rounded-3xl text-white relative overflow-hidden px-5 pt-4 pb-10 shadow-xl"
+              className="rounded-3xl text-white relative overflow-hidden px-5 pt-4 pb-10 shadow-xl min-h-[210px]"
               style={{
                 background: 'linear-gradient(145deg, #100b2b 0%, #1e1250 45%, #2a186c 75%, #3b1d82 100%)'
               }}
             >
               {/* Campus Building blended on the right */}
-              <div className="absolute right-0 top-10 bottom-0 w-1/2 pointer-events-none select-none flex items-end justify-end overflow-hidden">
+              <div className="absolute right-0 inset-y-0 w-3/4 pointer-events-none select-none overflow-hidden">
                 <img
                   src="/images/uptc_hero_facade.png"
                   alt="Campus Universitario"
-                  className="w-full h-auto max-h-[195px] object-cover object-left opacity-90"
+                  className="w-full h-full object-cover object-left opacity-90"
                 />
               </div>
 
@@ -415,7 +427,7 @@ export default function FeedPage({ onOpenAudit }) {
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center p-1 bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
                     <img
-                      src="/images/uptc_crest_official.png"
+                      src="/images/uptc_eagle_crest.png"
                       alt="Emblema UniLink"
                       className="w-full h-full object-contain"
                     />
@@ -426,25 +438,17 @@ export default function FeedPage({ onOpenAudit }) {
                   </div>
                 </div>
 
-                {/* Right controls: Bell Notification + Avatar */}
+                {/* Mobile notifications */}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => alert('No tienes notificaciones pendientes')}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
                     title="Notificaciones"
                   >
                     <Bell className="w-4 h-4 text-white" />
                     <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-purple-400" />
                   </button>
-
-                  <Link
-                    to={user ? "/profile" : "/login"}
-                    className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center border-2 border-white/30 shadow-md"
-                    title={user ? "Mi Perfil" : "Iniciar Sesión"}
-                  >
-                    {user?.profile?.full_name ? user.profile.full_name.charAt(0) : 'W'}
-                  </Link>
                 </div>
               </div>
 
@@ -587,49 +591,49 @@ export default function FeedPage({ onOpenAudit }) {
 
               {/* Featured Horizontal Card */}
               <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-3.5">
-                <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-md relative">
-                  <img
-                    src="/images/pdf_thumb_waves.png"
-                    alt="Miniatura PDF"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => openResourcePreview(featuredPost)}
+                  disabled={!featuredPost.attachments?.length}
+                  aria-label={`Visualizar ${featuredPost.title}`}
+                  className="flex items-start gap-3.5 flex-1 min-w-0 text-left disabled:cursor-default"
+                >
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-md relative">
+                    <img
+                      src="/images/pdf_thumb_waves.png"
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
 
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <span className="inline-block px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
-                    {featuredPost.category?.name || 'Facultad de Ingeniería'}
-                  </span>
-                  
-                  <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug line-clamp-2">
-                    {featuredPost.title}
-                  </h4>
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <span className="inline-block px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                      {featuredPost.category?.name || 'Facultad de Ingeniería'}
+                    </span>
 
-                  <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400">
-                    <div className="flex items-center gap-1.5 truncate">
+                    <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug line-clamp-2">
+                      {featuredPost.title}
+                    </h4>
+
+                    <div className="flex items-center gap-1.5 pt-1 text-[10px] text-slate-400 truncate">
                       <div className="w-5 h-5 rounded-full bg-indigo-600 text-white font-black flex items-center justify-center text-[9px] shrink-0">
                         {featuredPost.author?.full_name ? featuredPost.author.full_name.charAt(0) : 'W'}
                       </div>
                       <span className="truncate">{featuredPost.author?.full_name || 'Walter Alfonso'} • Hace 4 h</span>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => alert(`Descargando "${featuredPost.title}"`)}
-                      className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 hover:bg-indigo-100 transition"
-                      title="Descargar recurso"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
                   </div>
-                </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => alert(`Descargando "${featuredPost.title}"`)}
+                  className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 hover:bg-indigo-100 transition"
+                  title="Descargar recurso"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              {/* Carousel Pagination Dots */}
-              <div className="flex items-center justify-center gap-1.5 pt-1">
-                <span className="w-5 h-1.5 rounded-full bg-indigo-600" />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-              </div>
             </div>
 
           </div>
@@ -658,26 +662,6 @@ export default function FeedPage({ onOpenAudit }) {
               alt="Campus Universitario"
               className="w-full h-full object-cover object-left"
             />
-          </div>
-
-          {/* Top Right Carousel Navigation Controls (< >) */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => alert('Slide anterior')}
-              className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white transition active:scale-95"
-              title="Anterior"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => alert('Siguiente slide')}
-              className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white transition active:scale-95"
-              title="Siguiente"
-            >
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
           </div>
 
           {/* Banner Left Content */}
@@ -1096,6 +1080,15 @@ export default function FeedPage({ onOpenAudit }) {
             </div>
           </div>
         </div>
+      )}
+
+      {previewResource && (
+        <FileViewerModal
+          file={previewResource.file}
+          post={previewResource.post}
+          isOpen
+          onClose={() => setPreviewResource(null)}
+        />
       )}
 
     </div>

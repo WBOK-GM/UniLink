@@ -6,6 +6,17 @@ const { getFileUrl, uploadFileToR2 } = require('../../config/storage');
 const { recordFileAccess } = require('../../services/storageRetentionService');
 const { notifyUser } = require('../notifications/notificationController');
 
+const getContributionAccess = (user) => {
+  const contributions_count = memoryStore.posts.filter(
+    post => post.author_id === user.id && post.status === 'ACTIVE'
+  ).length;
+
+  return {
+    contributions_count,
+    can_access_downloads: user.role === 'ADMIN' || contributions_count > 0
+  };
+};
+
 const getPosts = async (req, res) => {
   try {
     const { category_id, group_id, search } = req.query;
@@ -130,6 +141,7 @@ const createPost = async (req, res) => {
         success: true,
         alreadyProcessed: true,
         message: 'Publicación sincronizada previamente (idempotente).',
+        contribution_access: getContributionAccess(req.user),
         post: existingPost
       });
     }
@@ -258,6 +270,7 @@ const createPost = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: 'Publicación creada exitosamente.',
+      contribution_access: getContributionAccess(req.user),
       post: {
         ...newPost,
         attachments

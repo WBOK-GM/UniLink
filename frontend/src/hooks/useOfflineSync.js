@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../db/db';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { calculateFileSha256 } from '../utils/cryptoUtils';
 
 export function useOfflineSync() {
+  const { updateContributionAccess } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -53,9 +56,17 @@ export function useOfflineSync() {
           formData.append('client_operation_id', item.client_operation_id);
           formData.append('copyright_declaration_accepted', 'true');
 
+          for (let index = 0; index < (item.attachments || []).length; index++) {
+            const file = item.attachments[index];
+            formData.append('attachments', file, file.name || `archivo-${index + 1}`);
+            const checksum = await calculateFileSha256(file);
+            if (checksum) formData.append(`file_checksum_${index}`, checksum);
+          }
+
           const response = await api.createPost(formData);
 
           if (response.success) {
+            updateContributionAccess(response.contribution_access);
             await db.offline_posts.update(item.local_id, {
               sync_status: 'PUBLISHED',
               synced_at: new Date().toISOString()
@@ -91,7 +102,7 @@ export function useOfflineSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [isSyncing, refreshPendingCount]);
+  }, [isSyncing, refreshPendingCount, updateContributionAccess]);
 
   useEffect(() => {
     refreshPendingCount();

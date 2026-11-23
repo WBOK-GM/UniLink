@@ -33,22 +33,27 @@ export async function request(endpoint, options = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
+  let res;
   try {
-    const res = await fetch(url, { ...options, headers });
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(data.error || `Error ${res.status}: ${res.statusText}`);
-    }
-
-    return data;
+    res = await fetch(url, { ...options, headers });
   } catch (error) {
-    // Si no hay red, detectarlo
-    if (!navigator.onLine || error.message.includes('Failed to fetch')) {
-      error.isOffline = true;
+    const networkError = error instanceof Error ? error : new Error(String(error));
+    if (
+      !navigator.onLine ||
+      networkError instanceof TypeError ||
+      networkError.message.includes('Failed to fetch')
+    ) {
+      networkError.isOffline = true;
     }
-    throw error;
+    throw networkError;
   }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Error ${res.status}: ${res.statusText}`);
+  }
+
+  return data;
 }
 
 export const api = {

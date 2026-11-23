@@ -53,6 +53,7 @@ export async function queueOfflinePost(postData) {
     post_type: postData.post_type || 'RESOURCE',
     location: postData.location || null,
     attachments_meta: postData.attachments_meta || [], // Nombres y tipos
+    attachments: postData.attachments || [],
     sync_status: 'PENDING', // PENDING | SYNCING | PUBLISHED | FAILED
     retry_count: 0,
     last_error: null,

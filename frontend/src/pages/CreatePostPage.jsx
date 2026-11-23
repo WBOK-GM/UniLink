@@ -28,7 +28,7 @@ import { calculateFileSha256 } from '../utils/cryptoUtils';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateContributionAccess } = useAuth();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -97,6 +97,10 @@ export default function CreatePostPage() {
     setSubmitting(true);
 
     const clientOpId = crypto.randomUUID();
+    const attachmentsToQueue = [
+      ...attachedFiles,
+      ...(recordedAudio ? [recordedAudio] : [])
+    ];
 
     // 1. MODO OFFLINE: Si no hay conexión, guardar en IndexedDB (Dexie)
     if (!navigator.onLine) {
@@ -109,7 +113,8 @@ export default function CreatePostPage() {
           group_id: groupId || null,
           post_type: postType,
           location: locationText,
-          attachments_meta: attachedFiles.map(f => ({ name: f.name, size: f.size, type: f.type }))
+          attachments: attachmentsToQueue,
+          attachments_meta: attachmentsToQueue.map(file => ({ name: file.name, size: file.size, type: file.type }))
         });
 
         alert('📴 Publicación guardada en tu dispositivo (Modo Offline). Se enviará automáticamente cuando recuperes la conexión.');
@@ -155,24 +160,40 @@ export default function CreatePostPage() {
 
       const res = await api.createPost(formData);
       if (res.success) {
+        const accessUpdated = updateContributionAccess(res.contribution_access);
+        if (!accessUpdated) {
+          alert('Tu aporte se publicó, pero el servidor no devolvió el estado actualizado del desbloqueo.');
+        }
         navigate('/');
       } else {
         alert(res.error || 'Error al crear la publicación.');
       }
     } catch (err) {
-      console.warn('Fallo de red, guardando en cola offline:', err);
-      // Fallback automático si la red falló durante el envío
-      await queueOfflinePost({
-        client_operation_id: clientOpId,
-        title,
-        content,
-        category_id: categoryId,
-        group_id: groupId || null,
-        post_type: postType,
-        location: locationText
-      });
-      alert('No se pudo contactar el servidor. Se guardó en la cola local offline.');
-      navigate('/offline-queue');
+      if (!err.isOffline) {
+        console.error('Error al publicar el recurso:', err);
+        alert(err.message || 'No se pudo publicar el recurso.');
+        return;
+      }
+
+      console.warn('Sin conexión con el servidor, guardando en cola offline:', err);
+      try {
+        await queueOfflinePost({
+          client_operation_id: clientOpId,
+          title,
+          content,
+          category_id: categoryId,
+          group_id: groupId || null,
+          post_type: postType,
+          location: locationText,
+          attachments: attachmentsToQueue,
+          attachments_meta: attachmentsToQueue.map(file => ({ name: file.name, size: file.size, type: file.type }))
+        });
+        alert('No se pudo contactar el servidor. Se guardó en la cola local offline.');
+        navigate('/offline-queue');
+      } catch (queueError) {
+        console.error('No se pudo guardar el recurso en la cola offline:', queueError);
+        alert(`No se pudo publicar ni guardar el recurso localmente: ${queueError.message}`);
+      }
     } finally {
       setSubmitting(false);
     }
