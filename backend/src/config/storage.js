@@ -69,13 +69,19 @@ const uploadFileToR2 = async (filePath, storageKey, mimeType) => {
   }
 };
 
+const getHost = () => {
+  if (process.env.BACKEND_HOST) return process.env.BACKEND_HOST.replace(/\/$/, '');
+  if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '');
+  return 'http://localhost:5000';
+};
+
 const getFileUrl = (storageKey) => {
   if (isR2Configured() && process.env.CLOUDFLARE_R2_PUBLIC_DOMAIN) {
     const domain = process.env.CLOUDFLARE_R2_PUBLIC_DOMAIN.replace(/\/$/, '');
     return `${domain}/${storageKey}`;
   }
   // Fallback a almacenamiento local seguro
-  const host = process.env.BACKEND_HOST || 'http://localhost:5000';
+  const host = getHost();
   return `${host}/uploads/${storageKey}`;
 };
 

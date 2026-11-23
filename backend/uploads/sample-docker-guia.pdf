@@ -1,0 +1,74 @@
+%PDF-1.4
+1 0 obj
+<< /Title (Guia de Despliegue con Docker y Traefik)
+   /Author (UPTC Redes)
+   /Subject (Docker Containers)
+   /Creator (UniLink Academic Platform - UPTC)
+   /Producer (UniLink PDF Engine 1.4) >>
+endobj
+2 0 obj
+<< /Type /Catalog /Pages 3 0 R >>
+endobj
+3 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+4 0 obj
+<< /Type /Page
+   /Parent 3 0 R
+   /MediaBox [0 0 612 792]
+   /Contents 5 0 R
+   /Resources << /Font << /F1 6 0 R /F2 7 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 1453 >>
+stream
+BT
+/F1 16 Tf 50 740 Td (UNIVERSIDAD PEDAGOGICA Y TECNOLOGICA DE COLOMBIA) Tj
+/F1 12 Tf 0 -22 Td (FACULTAD DE INGENIERIA - TALLER DE REDES Y SISTEMAS DISTRIBUIDOS) Tj
+/F1 14 Tf 0 -30 Td (GUIA DE DESPLIEGUE CON DOCKER COMPOSE Y TRAEFIK PROXY) Tj
+/F2 10 Tf 0 -20 Td (Autor: Moderacion Academica UniLink UPTC) Tj
+/F1 12 Tf 0 -24 Td (1. Descripcion del Escenario de Laboratorio) Tj
+/F2 10 Tf 0 -16 Td (En este taller configuramos una infraestructura de microservicios contenerizados) Tj
+/F2 10 Tf 0 -14 Td (utilizando Traefik v3 como enrutador perimetral y terminador TLS inverso.) Tj
+/F1 12 Tf 0 -24 Td (2. Estructura del docker-compose.yml) Tj
+/F2 10 Tf 0 -16 Td (services:) Tj
+/F2 10 Tf 0 -14 Td (  traefik:) Tj
+/F2 10 Tf 0 -14 Td (    image: traefik:v3.1) Tj
+/F2 10 Tf 0 -14 Td (    ports: ['80:80', '443:443']) Tj
+/F2 10 Tf 0 -14 Td (    volumes: ['/var/run/docker.sock:/var/run/docker.sock:ro']) Tj
+/F2 10 Tf 0 -14 Td (  unilink-api:) Tj
+/F2 10 Tf 0 -14 Td (    build: ./backend) Tj
+/F2 10 Tf 0 -14 Td (    labels:) Tj
+/F2 10 Tf 0 -14 Td (      - 'traefik.enable=true') Tj
+/F2 10 Tf 0 -14 Td (      - 'traefik.http.routers.api.rule=Host(`api.unilink.edu.co`)') Tj
+/F1 12 Tf 0 -24 Td (3. Comandos de Operacion) Tj
+/F2 10 Tf 0 -16 Td ($ docker compose up -d --build) Tj
+/F2 10 Tf 0 -14 Td ($ docker compose ps -a) Tj
+/F2 10 Tf 0 -14 Td ($ docker compose logs -f --tail=100) Tj
+/F2 9 Tf 0 -45 Td (Documento de Laboratorio - UPTC Sede Central Tunja) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000220 00000 n 
+0000000269 00000 n 
+0000000326 00000 n 
+0000000474 00000 n 
+0000001978 00000 n 
+0000002053 00000 n 
+trailer
+<< /Size 8
+   /Root 2 0 R
+   /Info 1 0 R >>
+startxref
+2123
+%%EOF

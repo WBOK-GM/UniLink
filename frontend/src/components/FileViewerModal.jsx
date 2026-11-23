@@ -13,6 +13,7 @@ import {
   Eye
 } from 'lucide-react';
 import { db, saveResourceOffline } from '../db/db';
+import { resolveFileUrl } from '../api/client';
 
 export default function FileViewerModal({ file, post, isOpen, onClose }) {
   const [blobUrl, setBlobUrl] = useState(null);
@@ -60,9 +61,10 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
         }
 
         // 2. Si hay conexión, descargar el Blob y guardarlo en IndexedDB
-        if (file.url) {
+        const fileTargetUrl = resolveFileUrl(file.url);
+        if (fileTargetUrl) {
           try {
-            const res = await fetch(file.url);
+            const res = await fetch(fileTargetUrl);
             if (!res.ok) throw new Error(`HTTP ${res.status}: Archivo no disponible.`);
             const arrayBuf = await res.arrayBuffer();
             const blob = new Blob([arrayBuf], { type: file.mime_type || defaultMimeType });
@@ -86,7 +88,7 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
             console.warn('No se pudo descargar el archivo para almacenamiento PWA:', fetchErr);
             // Fallback a URL directa si fetch falló pero la URL existe
             if (isMounted) {
-              setBlobUrl(file.url);
+              setBlobUrl(fileTargetUrl);
               setLoading(false);
             }
           }
@@ -120,6 +122,7 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
 
   if (!isOpen || !file) return null;
 
+  const activeFileUrl = resolveFileUrl(file.url);
   const isPdf = file.mime_type === 'application/pdf' || file.original_name?.toLowerCase().endsWith('.pdf');
   const isImage = file.file_type === 'IMAGE' || file.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(file.original_name || '');
 
@@ -130,8 +133,9 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
       let downloadSource = blobUrl;
 
       // Si no tenemos blobUrl aún, obtenerlo
+      const targetUrl = resolveFileUrl(file.url);
       if (!downloadSource || !downloadSource.startsWith('blob:')) {
-        const res = await fetch(file.url);
+        const res = await fetch(targetUrl);
         const blob = await res.blob();
         downloadSource = URL.createObjectURL(blob);
       }
@@ -251,9 +255,9 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
               <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
               <h4 className="text-base font-black text-slate-900 dark:text-white">No se pudo visualizar el archivo</h4>
               <p className="text-xs text-slate-600 dark:text-slate-400">{error}</p>
-              {file.url && (
+              {activeFileUrl && (
                 <a
-                  href={file.url}
+                  href={activeFileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition"
@@ -267,7 +271,7 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
             /* PDF In-App Object Viewer with Fallback */
             <div className="w-full h-full flex flex-col bg-slate-900">
               <object
-                data={blobUrl || file.url}
+                data={blobUrl || activeFileUrl}
                 type="application/pdf"
                 className="w-full h-full border-0 rounded-b-3xl bg-slate-900"
               >
@@ -286,7 +290,7 @@ export default function FileViewerModal({ file, post, isOpen, onClose }) {
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     <a
-                      href={blobUrl || file.url}
+                      href={blobUrl || activeFileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-2 transition shadow-md"
