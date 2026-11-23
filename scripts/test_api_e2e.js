@@ -76,6 +76,19 @@ async function runTests() {
     const catRes = await apiCall('/categories');
     assert('Catálogo de categorías responde', catRes.ok && catRes.body.categories?.length > 0);
 
+    const shortTextPostRes = await apiCall('/posts', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        title: 'Prueba de texto corto',
+        content: 'Texto demasiado breve.',
+        category_id: 'c1',
+        client_operation_id: `test-e2e-short-${Date.now()}`,
+        copyright_declaration_accepted: true
+      })
+    });
+    assert('Las publicaciones solo de texto exigen 255 caracteres', shortTextPostRes.status === 400);
+
     // 4. Create Post (Online)
     const opId = 'test-e2e-op-' + Date.now();
     const newPostRes = await apiCall('/posts', {
@@ -83,7 +96,7 @@ async function runTests() {
       headers: authHeaders,
       body: JSON.stringify({
         title: 'Prueba Automatizada E2E de Apunte',
-        content: 'Contenido verificado mediante script de prueba.',
+        content: 'Este contenido de prueba valida que una publicación compuesta únicamente por texto tenga una explicación académica suficientemente desarrollada. '.repeat(3),
         category_id: 'c1',
         client_operation_id: opId,
         copyright_declaration_accepted: true

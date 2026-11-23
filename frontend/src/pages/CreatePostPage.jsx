@@ -47,6 +47,7 @@ export default function CreatePostPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
+  const hasSupportingFile = attachedFiles.length > 0 || Boolean(recordedAudio);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,6 +87,10 @@ export default function CreatePostPage() {
     e.preventDefault();
     if (!title.trim() || !content.trim() || !categoryId) {
       alert('Por favor completa el título, contenido y categoría.');
+      return;
+    }
+    if (!hasSupportingFile && content.trim().length < 255) {
+      alert('Las publicaciones solo de texto deben tener al menos 255 caracteres.');
       return;
     }
     // Abrir modal de derechos de autor antes de procesar
@@ -308,7 +313,7 @@ export default function CreatePostPage() {
           {/* Content Textarea */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Descripción y contenido explicativo *
+              Descripción y contenido explicativo * {!hasSupportingFile && '(mínimo 255 caracteres si no adjuntas archivos)'}
             </label>
             <textarea
               required
@@ -318,6 +323,9 @@ export default function CreatePostPage() {
               placeholder="Explica de qué trata el material, fórmulas importantes, profesor o recomendaciones de estudio..."
               className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white shadow-sm focus:outline-none focus:border-brand-500 transition resize-y"
             />
+            <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              {content.trim().length} caracteres{hasSupportingFile ? '' : ' / 255 mínimo para publicaciones solo de texto'}
+            </p>
           </div>
 
           {/* Audio Recorder Component */}

@@ -23,7 +23,6 @@ import {
   Cpu,
   Network,
   Calculator,
-  Download,
   Clock,
   ThumbsUp,
   ThumbsDown,
@@ -36,15 +35,12 @@ import {
   BarChart3,
   Globe,
   Flame,
-  MoreVertical,
   Bell,
-  Play,
   Sparkles
 } from 'lucide-react';
 import { api } from '../api/client';
 import { db } from '../db/db';
 import PostCard from '../components/PostCard';
-import FileViewerModal from '../components/FileViewerModal';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
@@ -64,7 +60,6 @@ export default function FeedPage({ onOpenAudit }) {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [suggestName, setSuggestName] = useState('');
   const [suggestDesc, setSuggestDesc] = useState('');
-  const [previewResource, setPreviewResource] = useState(null);
 
   // Mobile View Toggle: Screen 1 (Inicio) vs Screen 2 (Buscar Recursos)
   const isSearchActive = searchParams.get('view') === 'search';
@@ -148,51 +143,6 @@ export default function FeedPage({ onOpenAudit }) {
     if (n.includes('matem') || n.includes('cálculo') || n.includes('fisic')) return Calculator;
     if (n.includes('web') || n.includes('pwa')) return Globe;
     return BookOpen;
-  };
-
-  const openResourcePreview = (resource) => {
-    const file = resource.attachments?.[0];
-    if (file) setPreviewResource({ file, post: resource });
-  };
-
-  // Demo fallback items for recent resources matching mobile screenshot 2
-  const recentDisplayList = filteredPosts.length > 0 ? filteredPosts : [
-    {
-      id: 'demo-1',
-      title: 'Resumen PWA - Service Workers',
-      category: { name: 'Ingeniería' },
-      file_type: 'PDF',
-      likes_count: 5,
-      time: 'Hace 2 días',
-      downloads: '1.2k'
-    },
-    {
-      id: 'demo-2',
-      title: 'Clase de Redes (Video)',
-      category: { name: 'Ingeniería' },
-      file_type: 'AUDIO',
-      likes_count: 4,
-      time: 'Hace 3 días',
-      downloads: '856'
-    },
-    {
-      id: 'demo-3',
-      title: 'Apuntes de Cálculo',
-      category: { name: 'Matemáticas' },
-      file_type: 'DOCUMENT',
-      likes_count: 3,
-      time: 'Hace 1 semana',
-      downloads: '742'
-    }
-  ];
-
-  const featuredPost = posts.length > 0 ? posts[0] : {
-    id: 'featured-default',
-    title: 'Guía Completa de Service Workers y Estrategias de Caché PWA',
-    category: { name: 'Facultad de Ingeniería' },
-    content: 'Comparto este resumen detallado con ejemplos de Cache First, Network First y Background Sync con IndexedDB para el proyecto de noveno semestre.',
-    author: { full_name: 'Walter Alfonso' },
-    created_at: new Date().toISOString()
   };
 
   return (
@@ -343,59 +293,22 @@ export default function FeedPage({ onOpenAudit }) {
               </div>
 
               {/* Items List */}
-              <div className="space-y-2">
-                {recentDisplayList.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3 hover:border-indigo-200 transition"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => openResourcePreview(item)}
-                      disabled={!item.attachments?.length}
-                      aria-label={`Visualizar ${item.title}`}
-                      className="flex items-center gap-3 min-w-0 flex-1 text-left disabled:cursor-default"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-700 to-indigo-500 text-white flex items-center justify-center shrink-0 font-black text-xs shadow-2xs">
-                        {item.file_type === 'AUDIO' ? (
-                          <Play className="w-4 h-4 fill-white ml-0.5" />
-                        ) : item.file_type === 'DOCUMENT' ? (
-                          <FileText className="w-4 h-4 text-white" />
-                        ) : (
-                          <span className="text-[10px] font-black uppercase tracking-wider">PDF</span>
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <span className="inline-block px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black mb-0.5">
-                          {item.category?.name || 'Ingeniería'}
-                        </span>
-                        <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
-                          {item.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
-                          <span className="flex items-center gap-0.5">
-                            <Download className="w-3 h-3 text-slate-400" />
-                            <span>{item.downloads || (item.likes_count ? `${item.likes_count * 150 + 350}` : '1.2k')}</span>
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-0.5">
-                            <Clock className="w-3 h-3 text-slate-400" />
-                            <span>{item.time || 'Hace 2 días'}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => alert(`Opciones para "${item.title}"`)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg shrink-0"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+              <div className="space-y-3">
+                {filteredPosts.length > 0 ? (
+                  filteredPosts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onPostUpdated={loadData}
+                      compact
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-6 text-center">
+                    <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">No hay recursos recientes para mostrar.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -589,50 +502,18 @@ export default function FeedPage({ onOpenAudit }) {
                 </button>
               </div>
 
-              {/* Featured Horizontal Card */}
-              <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-3.5">
-                <button
-                  type="button"
-                  onClick={() => openResourcePreview(featuredPost)}
-                  disabled={!featuredPost.attachments?.length}
-                  aria-label={`Visualizar ${featuredPost.title}`}
-                  className="flex items-start gap-3.5 flex-1 min-w-0 text-left disabled:cursor-default"
-                >
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-md relative">
-                    <img
-                      src="/images/pdf_thumb_waves.png"
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <span className="inline-block px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
-                      {featuredPost.category?.name || 'Facultad de Ingeniería'}
-                    </span>
-
-                    <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug line-clamp-2">
-                      {featuredPost.title}
-                    </h4>
-
-                    <div className="flex items-center gap-1.5 pt-1 text-[10px] text-slate-400 truncate">
-                      <div className="w-5 h-5 rounded-full bg-indigo-600 text-white font-black flex items-center justify-center text-[9px] shrink-0">
-                        {featuredPost.author?.full_name ? featuredPost.author.full_name.charAt(0) : 'W'}
-                      </div>
-                      <span className="truncate">{featuredPost.author?.full_name || 'Walter Alfonso'} • Hace 4 h</span>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => alert(`Descargando "${featuredPost.title}"`)}
-                  className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 hover:bg-indigo-100 transition"
-                  title="Descargar recurso"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              {posts.length > 0 ? (
+                <PostCard
+                  post={posts[0]}
+                  onPostUpdated={loadData}
+                  compact
+                />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-6 text-center">
+                  <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Aún no hay recursos destacados.</p>
+                </div>
+              )}
 
             </div>
 
@@ -1080,15 +961,6 @@ export default function FeedPage({ onOpenAudit }) {
             </div>
           </div>
         </div>
-      )}
-
-      {previewResource && (
-        <FileViewerModal
-          file={previewResource.file}
-          post={previewResource.post}
-          isOpen
-          onClose={() => setPreviewResource(null)}
-        />
       )}
 
     </div>

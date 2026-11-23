@@ -153,6 +153,13 @@ const createPost = async (req, res) => {
       });
     }
 
+    if ((!req.files || req.files.length === 0) && content.trim().length < 255) {
+      return res.status(400).json({
+        success: false,
+        error: 'Las publicaciones solo de texto deben tener al menos 255 caracteres.'
+      });
+    }
+
     // RN-30: Validación obligatoria de declaración de derechos de autor
     if (copyright_declaration_accepted !== true && copyright_declaration_accepted !== 'true') {
       return res.status(400).json({
