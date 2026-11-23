@@ -49,7 +49,13 @@ export function useOfflineSync() {
           const formData = new FormData();
           formData.append('title', item.title);
           formData.append('content', item.content);
-          formData.append('category_id', item.category_id);
+          if (item.category_id) {
+            formData.append('category_id', item.category_id);
+          } else if (item.category_name) {
+            formData.append('category_name', item.category_name);
+          } else {
+            throw new Error('La publicación en cola no tiene una materia.');
+          }
           if (item.group_id) formData.append('group_id', item.group_id);
           formData.append('post_type', item.post_type);
           if (item.location) formData.append('location', item.location);

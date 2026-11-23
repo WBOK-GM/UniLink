@@ -140,6 +140,11 @@ export default function OfflinePage() {
                     </div>
 
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">{post.title}</h4>
+                    {post.category_name && (
+                      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">
+                        Materia: {post.category_name}
+                      </p>
+                    )}
                     <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mt-0.5">{post.content}</p>
 
                     {post.last_error && (
