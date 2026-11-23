@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { memoryStore } = require('../../config/db');
+const { notifyUser } = require('../notifications/notificationController');
 
 const getMeetings = async (req, res) => {
   try {
@@ -64,6 +65,22 @@ const createMeeting = async (req, res) => {
       });
     }
 
+    const group = memoryStore.study_groups.find(g => g.id === group_id && g.status === 'ACTIVE');
+    if (!group) {
+      return res.status(404).json({ success: false, error: 'Grupo de estudio no encontrado.' });
+    }
+
+    // RN-15/16: Validar que el creador sea integrante activo o propietario del grupo
+    const membership = memoryStore.group_members.find(
+      m => m.group_id === group_id && m.user_id === creator_id && m.membership_status === 'ACTIVE'
+    );
+    if (!membership && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Solo los integrantes activos del grupo pueden programar encuentros académicos.'
+      });
+    }
+
     const meetingId = uuidv4();
     const newMeeting = {
       id: meetingId,
@@ -91,6 +108,22 @@ const createMeeting = async (req, res) => {
       attendance_status: 'CONFIRMED',
       responded_at: new Date()
     });
+
+    // Notificar a todos los miembros activos del grupo vía Web Push + In-App (excepto al creador)
+    const activeMembers = memoryStore.group_members.filter(
+      m => m.group_id === group_id && m.membership_status === 'ACTIVE' && m.user_id !== creator_id
+    );
+
+    for (const member of activeMembers) {
+      await notifyUser(member.user_id, {
+        title: '📅 Nuevo Encuentro Académico',
+        message: `Se ha programado "${newMeeting.title}" en el grupo "${group.name}".`,
+        url: `/groups/${group_id}`,
+        notification_type: 'MEETING_SCHEDULED',
+        reference_type: 'MEETING',
+        reference_id: meetingId
+      });
+    }
 
     return res.status(201).json({
       success: true,

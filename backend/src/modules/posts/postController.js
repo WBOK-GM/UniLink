@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { memoryStore } = require('../../config/db');
 const { getFileUrl, uploadFileToR2 } = require('../../config/storage');
 const { recordFileAccess } = require('../../services/storageRetentionService');
+const { notifyUser } = require('../notifications/notificationController');
 
 const getPosts = async (req, res) => {
   try {
@@ -61,10 +62,14 @@ const getPosts = async (req, res) => {
         };
       }).filter(Boolean);
 
-      // Reacciones
+      // Reacciones y calificación de 1 a 5 estrellas
       const postReactions = memoryStore.post_reactions.filter(r => r.post_id === post.id);
       const likesCount = postReactions.filter(r => r.reaction_type === 'LIKE').length;
       const dislikesCount = postReactions.filter(r => r.reaction_type === 'DISLIKE').length;
+      const totalRatings = likesCount + dislikesCount;
+      const averageRating = totalRatings > 0
+        ? Number(((likesCount * 5 + dislikesCount * 1) / totalRatings).toFixed(1))
+        : 5.0;
       const myReaction = currentUserId
         ? (postReactions.find(r => r.user_id === currentUserId) || {}).reaction_type || null
         : null;
@@ -87,6 +92,8 @@ const getPosts = async (req, res) => {
         attachments,
         likes_count: likesCount,
         dislikes_count: dislikesCount,
+        average_rating: averageRating,
+        ratings_count: totalRatings,
         my_reaction: myReaction,
         client_operation_id: post.client_operation_id,
         created_at: post.created_at
@@ -313,6 +320,17 @@ const reactToPost = async (req, res) => {
         updated_at: new Date()
       });
     }
+
+    // Notificar al autor vía Web Push y notificación in-app
+    const reactionLabel = reaction_type === 'LIKE' ? 'reaccionó positivamente a' : 'calificó';
+    notifyUser(post.author_id, {
+      title: '⭐ Nueva Calificación en tu Apunte',
+      message: `Un compañero ${reactionLabel} tu publicación "${post.title}".`,
+      url: '/',
+      notification_type: 'POST_REACTION',
+      reference_type: 'POST',
+      reference_id: post.id
+    }).catch(err => console.warn('[Push Post Reaction Error]:', err.message));
 
     return res.json({
       success: true,

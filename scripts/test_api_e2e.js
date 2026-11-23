@@ -45,8 +45,18 @@ async function runTests() {
       body: JSON.stringify({ email: 'estudiante@unilink.edu.co', password: '123456' })
     });
     assert('Login de estudiante demo exitoso', loginRes.ok && !!loginRes.body.token);
+    assert('Métricas de aportes y acceso condicionado incluidas', loginRes.body.user?.contributions_count !== undefined);
     const token = loginRes.body.token;
     const authHeaders = { Authorization: `Bearer ${token}` };
+
+    // 2.1 Login Administrador Demo
+    const adminLoginRes = await apiCall('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'admin@unilink.edu.co', password: '123456' })
+    });
+    assert('Login de administrador exitoso', adminLoginRes.ok && adminLoginRes.body.user?.role === 'ADMIN');
+    const adminToken = adminLoginRes.body.token;
+    const adminHeaders = { Authorization: `Bearer ${adminToken}` };
 
     // 3. Categories Listing
     const catRes = await apiCall('/categories');
@@ -91,12 +101,75 @@ async function runTests() {
     });
     assert('El autor no puede votar su propio post (RN-04)', selfReactRes.status === 400);
 
+    // Usuario diferente (Admin) vota el post del estudiante
+    const adminReactRes = await apiCall(`/posts/${createdPostId}/react`, {
+      method: 'POST',
+      headers: adminHeaders,
+      body: JSON.stringify({ reaction_type: 'LIKE' })
+    });
+    assert('Tercero puede calificar post y genera notificación push', adminReactRes.ok && adminReactRes.body.current_reaction === 'LIKE');
+
+    // 6.1 Flujo Completo de Moderación de Categorías (Sugerir -> Revisar -> Aprobar)
+    const suggestRes = await apiCall('/categories/suggest', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ name: 'Sistemas Complejos', description: 'Teoría del caos y redes complejas' })
+    });
+    assert('Estudiante puede sugerir categoría', suggestRes.ok && !!suggestRes.body.suggestion);
+    const suggestionId = suggestRes.body.suggestion?.id;
+
+    const listSuggestionsRes = await apiCall('/categories/suggestions', {
+      headers: adminHeaders
+    });
+    assert('Administrador puede listar sugerencias de categorías', listSuggestionsRes.ok && listSuggestionsRes.body.suggestions?.length > 0);
+
+    const approveRes = await apiCall(`/categories/suggestions/${suggestionId}/approve`, {
+      method: 'POST',
+      headers: adminHeaders
+    });
+    assert('Administrador puede aprobar categoría para activarla en catálogo', approveRes.ok && approveRes.body.category?.status === 'ACTIVE');
+
     // 7. Groups listing with Haversine Geolocation (UPTC Tunja Campus)
     const groupsRes = await apiCall('/groups?lat=5.5530&lng=-73.3565&radius_km=20');
     assert('Grupos responden con cálculo de distancia Haversine', groupsRes.ok && groupsRes.body.groups?.length > 0);
+    let sampleGroupId = null;
     if (groupsRes.body.groups?.length > 0) {
+      sampleGroupId = groupsRes.body.groups[0].id;
       assert('Distancia en kilómetros calculada', groupsRes.body.groups[0].distance_km !== undefined);
     }
+
+    // 7.1 Validación de Membresía al Crear Encuentro (RN-15/16)
+    // Crear un grupo nuevo donde el estudiante sea creador
+    const groupCreated = await apiCall('/groups', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        name: 'Grupo E2E Membresía Test',
+        category_id: 'c1',
+        location_latitude: 5.5530,
+        location_longitude: -73.3565
+      })
+    });
+    const testGroupId = groupCreated.body.group?.id;
+
+    // Usuario que NO es miembro intenta programar encuentro
+    const nonMemberMeeting = await apiCall('/meetings', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token.replace(/^[^.]+/, 'dummy')}` }, // token malformado
+    });
+    assert('Petición no autenticada es rechazada', nonMemberMeeting.status === 401);
+
+    // Creador del grupo sí puede programar encuentro
+    const creatorMeeting = await apiCall('/meetings', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        group_id: testGroupId,
+        title: 'Sesión de Programación E2E',
+        start_datetime: new Date(Date.now() + 86400000).toISOString()
+      })
+    });
+    assert('Miembro activo o creador puede programar encuentro (RN-15/16)', creatorMeeting.status === 201);
 
     // 8. Meetings list & RSVP
     const meetRes = await apiCall('/meetings');

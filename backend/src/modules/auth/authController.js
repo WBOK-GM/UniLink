@@ -85,6 +85,8 @@ const register = async (req, res) => {
         id: newUser.id,
         email: newUser.email,
         role: newUser.role,
+        contributions_count: 0,
+        can_access_downloads: newUser.role === 'ADMIN',
         profile: {
           id: newProfile.id,
           full_name: newProfile.full_name,
@@ -148,6 +150,10 @@ const login = async (req, res) => {
     }
 
     const profile = memoryStore.profiles.find(p => p.user_id === user.id) || {};
+    const contributionsCount = memoryStore.posts.filter(
+      p => p.author_id === user.id && p.status === 'ACTIVE'
+    ).length;
+    const canAccessDownloads = user.role === 'ADMIN' || contributionsCount > 0;
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
@@ -163,6 +169,8 @@ const login = async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
+        contributions_count: contributionsCount,
+        can_access_downloads: canAccessDownloads,
         profile: {
           id: profile.id,
           full_name: profile.full_name,
@@ -189,6 +197,10 @@ const getMe = async (req, res) => {
     }
 
     const profile = memoryStore.profiles.find(p => p.user_id === user.id) || {};
+    const contributionsCount = memoryStore.posts.filter(
+      p => p.author_id === user.id && p.status === 'ACTIVE'
+    ).length;
+    const canAccessDownloads = user.role === 'ADMIN' || contributionsCount > 0;
 
     return res.json({
       success: true,
@@ -196,6 +208,8 @@ const getMe = async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
+        contributions_count: contributionsCount,
+        can_access_downloads: canAccessDownloads,
         profile
       }
     });

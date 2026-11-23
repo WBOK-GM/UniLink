@@ -75,20 +75,19 @@ const getVapidPublicKey = async (req, res) => {
   });
 };
 
-const triggerTestPush = async (req, res) => {
+/**
+ * Envía una notificación Web Push a todos los endpoints registrados de un usuario
+ */
+const sendPushToUser = async (userId, payload) => {
   try {
-    const userId = req.user.id;
     const userSubs = memoryStore.push_subscriptions.filter(s => s.user_id === userId);
+    if (!userSubs || userSubs.length === 0) {
+      return { sent: 0 };
+    }
 
-    const payload = JSON.stringify({
-      title: '🔔 Notificación de Prueba UniLink',
-      body: 'Tu dispositivo está correctamente enlazado para recibir alertas académicas.',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
-      data: { url: '/' }
-    });
-
+    const stringifiedPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
     let sentCount = 0;
+
     for (const sub of userSubs) {
       try {
         await webpush.sendNotification({
@@ -97,17 +96,75 @@ const triggerTestPush = async (req, res) => {
             p256dh: sub.p256dh,
             auth: sub.auth
           }
-        }, payload);
+        }, stringifiedPayload);
         sentCount++;
       } catch (err) {
-        console.warn('[Push Test] Error enviando a un endpoint:', err.message);
+        console.warn(`[UniLink Push] Error despachando a endpoint de usuario ${userId}:`, err.message);
+        // Si el endpoint expiró (410 Gone / 404 Not Found), retirar la suscripción
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          const idx = memoryStore.push_subscriptions.findIndex(s => s.endpoint === sub.endpoint);
+          if (idx >= 0) memoryStore.push_subscriptions.splice(idx, 1);
+        }
       }
     }
+    return { sent: sentCount };
+  } catch (error) {
+    console.warn('[UniLink Push] Error general en sendPushToUser:', error.message);
+    return { sent: 0, error: error.message };
+  }
+};
+
+/**
+ * Función centralizada para notificar a un usuario:
+ * 1. Registra la notificación en el historial interno (in-app)
+ * 2. Despacha la notificación Web Push al dispositivo (Service Worker)
+ */
+const notifyUser = async (userId, { title, message, url, notification_type, reference_type, reference_id }) => {
+  try {
+    const notif = {
+      id: uuidv4(),
+      user_id: userId,
+      title,
+      message,
+      notification_type: notification_type || 'SYSTEM',
+      reference_type: reference_type || null,
+      reference_id: reference_id || null,
+      is_read: false,
+      created_at: new Date()
+    };
+    memoryStore.notifications.push(notif);
+
+    const pushPayload = {
+      title,
+      body: message,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+      data: { url: url || '/' }
+    };
+
+    const pushResult = await sendPushToUser(userId, pushPayload);
+    return { notification: notif, pushResult };
+  } catch (error) {
+    console.warn('[UniLink Notify] Error en notifyUser:', error.message);
+    return null;
+  }
+};
+
+const triggerTestPush = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await sendPushToUser(userId, {
+      title: '🔔 Notificación de Prueba UniLink',
+      body: 'Tu dispositivo está correctamente enlazado para recibir alertas académicas.',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+      data: { url: '/' }
+    });
 
     return res.json({
       success: true,
-      message: sentCount > 0
-        ? `Notificación enviada a ${sentCount} dispositivo(s).`
+      message: result.sent > 0
+        ? `Notificación enviada a ${result.sent} dispositivo(s).`
         : 'Suscripción registrada, pero no se pudo contactar el push service (o modo offline local).'
     });
   } catch (error) {
@@ -120,5 +177,7 @@ module.exports = {
   markAsRead,
   subscribePush,
   getVapidPublicKey,
-  triggerTestPush
+  triggerTestPush,
+  sendPushToUser,
+  notifyUser
 };
