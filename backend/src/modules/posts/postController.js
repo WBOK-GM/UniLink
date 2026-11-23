@@ -370,9 +370,42 @@ const deactivatePost = async (req, res) => {
   }
 };
 
+const reactivatePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const post = memoryStore.posts.find(p => p.id === id);
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Publicación no encontrada.' });
+    }
+
+    // RF-11: El autor podrá consultar sus publicaciones desactivadas y reactivarlas (o ADMIN)
+    if (post.author_id !== userId && userRole !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Solo el autor o un administrador puede reactivar esta publicación.'
+      });
+    }
+
+    post.status = 'ACTIVE';
+    post.updated_at = new Date();
+
+    return res.json({
+      success: true,
+      message: 'Publicación reactivada exitosamente.',
+      post
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   getPosts,
   createPost,
   reactToPost,
-  deactivatePost
+  deactivatePost,
+  reactivatePost
 };

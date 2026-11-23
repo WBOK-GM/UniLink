@@ -348,7 +348,9 @@ export default function GroupsPage() {
                     className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-500 shadow-2xs"
                   >
                     {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={c.id} value={c.id}>
+                        {c.parent_id ? `↳ ${c.name}` : c.name}
+                      </option>
                     ))}
                   </select>
                 </div>

@@ -843,7 +843,7 @@ export default function FeedPage({ onOpenAudit }) {
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>{cat.name}</span>
+                  <span>{cat.parent_id ? `↳ ${cat.name}` : cat.name}</span>
                 </button>
               );
             })}

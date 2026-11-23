@@ -259,7 +259,7 @@ export default function CreatePostPage() {
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.parent_id ? `↳ ${c.name}` : c.name}
                   </option>
                 ))}
               </select>

@@ -12,7 +12,8 @@ import {
   Sparkles,
   ArrowRight,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  LogOut
 } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -114,6 +115,21 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
     }
   };
 
+  // RF-20: Salida voluntaria del grupo
+  const handleLeaveGroup = async () => {
+    if (!confirm('¿Estás seguro de que deseas abandonar este grupo de estudio?')) return;
+    try {
+      const res = await api.leaveGroup(groupId);
+      if (res.success) {
+        alert(res.message || 'Has salido del grupo.');
+        if (onGroupUpdated) onGroupUpdated();
+        onClose();
+      }
+    } catch (err) {
+      alert(err.message || 'Error al abandonar el grupo.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-3xl max-h-[92vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all">
@@ -180,16 +196,30 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
             </button>
           </div>
 
-          {activeTab === 'TASKS' && isMember && (
-            <button
-              type="button"
-              onClick={() => setShowNewTaskForm(!showNewTaskForm)}
-              className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-2xs"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{showNewTaskForm ? 'Cancelar' : 'Nueva Tarea'}</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {isMember && myRole !== 'OWNER' && (
+              <button
+                type="button"
+                onClick={handleLeaveGroup}
+                className="px-2.5 py-1.5 rounded-xl text-rose-600 hover:text-rose-700 dark:text-rose-400 font-bold text-xs flex items-center gap-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition border border-rose-200/50 dark:border-rose-900/50"
+                title="Abandonar este grupo (RF-20)"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Abandonar</span>
+              </button>
+            )}
+
+            {activeTab === 'TASKS' && isMember && (
+              <button
+                type="button"
+                onClick={() => setShowNewTaskForm(!showNewTaskForm)}
+                className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-2xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{showNewTaskForm ? 'Cancelar' : 'Nueva Tarea'}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Body Content */}
