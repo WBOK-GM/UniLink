@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import L from 'leaflet';
 import {
   Compass,
@@ -9,6 +10,7 @@ import {
   Navigation,
   Filter,
   ArrowRight,
+  ArrowLeft,
   Activity,
   Building2,
   AlertCircle,
@@ -259,6 +261,15 @@ export default function MapPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 pb-20">
+      {/* Volver a Grupos */}
+      <Link
+        to="/groups"
+        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs active:scale-95 transition"
+      >
+        <ArrowLeft className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+        <span>Volver a Grupos</span>
+      </Link>
+
       {/* Top Controls Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
         <div>
@@ -372,14 +383,14 @@ export default function MapPage() {
       )}
 
       {/* Map + Sidebar Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[580px]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:h-[580px]">
         {/* Leaflet Map Box */}
-        <div className="lg:col-span-2 h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md relative">
+        <div className="lg:col-span-2 h-[60vh] min-h-[400px] lg:h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md relative">
           <div ref={mapContainerRef} className="w-full h-full" />
         </div>
 
         {/* Groups List Sidebar */}
-        <div className="h-full glass-panel rounded-2xl border border-slate-200/90 dark:border-slate-800/80 p-4 flex flex-col shadow-sm">
+        <div className="lg:h-full glass-panel rounded-2xl border border-slate-200/90 dark:border-slate-800/80 p-4 flex flex-col shadow-sm">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Grupos en el radio ({groups.length})

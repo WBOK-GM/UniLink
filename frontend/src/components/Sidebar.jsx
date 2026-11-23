@@ -7,27 +7,26 @@ import {
   Calendar,
   ShieldCheck,
   Download,
-  Share2,
+  Upload,
   LogIn,
-  User,
-  X
+  User
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
-export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, isInstallable }) {
+export default function Sidebar({ onOpenAudit, onInstallApp, isInstallable }) {
   const location = useLocation();
   const { user } = useAuth();
   const { pendingCount } = useOfflineSync();
 
   const navItems = [
     { to: '/', label: 'Inicio', icon: Home },
-    { to: '/?format=DOCUMENT', label: 'Recursos', icon: BookOpen },
+    { to: '/?view=search&format=DOCUMENT', label: 'Recursos', icon: BookOpen },
+    { to: '/create-post', label: 'Compartir', icon: Upload },
     { to: '/groups', label: 'Grupos', icon: Users },
     { to: '/meetings', label: 'Encuentros', icon: Calendar },
     ...(user?.role === 'ADMIN' ? [{ type: 'audit', label: 'Consola Servidor', icon: ShieldCheck, badge: 'A+' }] : []),
     ...(isInstallable ? [{ type: 'install', label: 'Instalar App', icon: Download }] : []),
-    { to: '/create-post', label: 'Compartir', icon: Share2 },
     { to: user ? '/profile' : '/login', label: user ? 'Mi Perfil' : 'Ingresar', icon: user ? User : LogIn }
   ];
 
@@ -40,34 +39,15 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
 
   return (
     <>
-      {/* Mobile Backdrop */}
-      {isOpen && (
-        <div
-          onClick={onClose}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden animate-fadeIn"
-        />
-      )}
-
-      {/* Sidebar Container */}
+      {/* Sidebar Container: solo visible en escritorio */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-56 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className="hidden lg:flex fixed top-0 bottom-0 left-0 z-50 w-56 flex-col justify-between"
         style={{ background: '#0b1028' }}
       >
         {/* Top: Logo Area with Academic Crest and Single Label */}
         <div className="w-full">
           <div className="w-full px-4 pt-7 pb-5 flex flex-col items-center justify-center relative text-center">
-            <button
-              onClick={onClose}
-              className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-400 hover:text-white lg:hidden transition"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
-              title="Cerrar menú"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <Link to="/" onClick={onClose} className="w-full flex flex-col items-center justify-center text-center group">
+            <Link to="/" className="w-full flex flex-col items-center justify-center text-center group">
               <div className="w-16 h-16 sm:w-18 sm:h-18 flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform duration-200">
                 <img
                   src="/images/uptc_eagle_crest.png"
@@ -96,7 +76,7 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => { if (onClose) onClose(); if (onOpenAudit) onOpenAudit(); }}
+                    onClick={() => { if (onOpenAudit) onOpenAudit(); }}
                     className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left group"
                     style={{ color: '#94a3b8' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; }}
@@ -121,7 +101,7 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => { if (onClose) onClose(); if (onInstallApp) onInstallApp(); }}
+                    onClick={() => { if (onInstallApp) onInstallApp(); }}
                     className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left"
                     style={{ color: '#c4b5fd' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
@@ -137,7 +117,6 @@ export default function Sidebar({ isOpen, onClose, onOpenAudit, onInstallApp, is
                 <Link
                   key={idx}
                   to={item.to}
-                  onClick={onClose}
                   className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all"
                   style={
                     active

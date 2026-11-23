@@ -94,7 +94,7 @@ function securityHeaders(req, res, next) {
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com",
     "connect-src 'self' http://localhost:* ws://localhost:* https://*.tile.openstreetmap.org",
-    "media-src 'self' data: blob:",
+    "media-src 'self' data: blob: http://localhost:* http://127.0.0.1:* https:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

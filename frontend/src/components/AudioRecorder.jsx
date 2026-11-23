@@ -18,26 +18,32 @@ export default function AudioRecorder({ onAudioRecorded }) {
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-      const supportedType = preferredTypes.find((type) => window.MediaRecorder.isTypeSupported?.(type));
-      mediaRecorderRef.current = new MediaRecorder(stream, supportedType ? { mimeType: supportedType } : undefined);
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
+      recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
-      mediaRecorderRef.current.onstop = () => {
-        const actualType = mediaRecorderRef.current?.mimeType || supportedType || 'audio/webm';
-        const extension = actualType.includes('mp4') ? 'm4a' : actualType.includes('ogg') ? 'ogg' : 'webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: actualType });
+      recorder.onstop = () => {
+        const audioMimeType = recorder.mimeType || audioChunksRef.current[0]?.type || 'audio/webm';
+        const audioType = audioMimeType.split(';')[0];
+        const extension = audioType === 'audio/mp4' || audioType === 'audio/x-m4a'
+          ? 'm4a'
+          : audioType === 'audio/ogg'
+          ? 'ogg'
+          : audioType === 'audio/wav'
+          ? 'wav'
+          : 'webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: audioMimeType });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
 
         // Convertir a archivo File para adjuntar al post
-        const audioFile = new File([audioBlob], `nota_voz_${Date.now()}.${extension}`, { type: actualType });
+        const audioFile = new File([audioBlob], `nota_voz_${Date.now()}.${extension}`, { type: audioMimeType });
         if (onAudioRecorded) {
           onAudioRecorded(audioFile);
         }
@@ -46,7 +52,7 @@ export default function AudioRecorder({ onAudioRecorded }) {
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      mediaRecorderRef.current.start();
+      recorder.start();
       setIsRecording(true);
       setRecordingTime(0);
 
