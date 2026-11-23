@@ -1,14 +1,28 @@
+const { createECDH } = require('node:crypto');
 const webpush = require('web-push');
 
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'BH6LM-jt3b3N1pw8LVSmnm3zS6U67XW8JzANZ02NW6dQy_TryhzbKMdSSmABl90Bh5XRCcMxUv_pAi1GzYDO-YE';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'LxEMebYLb1KMgc3p5ToxcWNij6sc1nZHA3SsXYezrCU';
-const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:soporte@unilink.edu.co';
+let vapidPublicKey = process.env.VAPID_PUBLIC_KEY?.trim();
+let vapidPrivateKey = process.env.VAPID_PRIVATE_KEY?.trim();
+const vapidSubject = process.env.VAPID_SUBJECT?.trim() || 'mailto:soporte@unilink.edu.co';
 
 try {
+  if (!vapidPublicKey && !vapidPrivateKey && process.env.NODE_ENV !== 'production') {
+    const keys = webpush.generateVAPIDKeys();
+    vapidPublicKey = keys.publicKey;
+    vapidPrivateKey = keys.privateKey;
+  }
+
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+  const keyPair = createECDH('prime256v1');
+  keyPair.setPrivateKey(Buffer.from(vapidPrivateKey, 'base64url'));
+  if (!keyPair.getPublicKey().equals(Buffer.from(vapidPublicKey, 'base64url'))) {
+    throw new Error('VAPID_PUBLIC_KEY y VAPID_PRIVATE_KEY deben pertenecer al mismo par.');
+  }
+
   console.log('[UniLink Push] Web Push configurado con claves VAPID.');
 } catch (error) {
-  console.warn('[UniLink Push] Error al inicializar VAPID (se usará modo simulado):', error.message);
+  vapidPublicKey = null;
+  console.warn('[UniLink Push] Web Push deshabilitado:', error.message);
 }
 
 module.exports = { webpush, vapidPublicKey };
