@@ -26,6 +26,9 @@ import CameraCaptureModal from '../components/CameraCaptureModal';
 import { getResilientPosition } from '../utils/geoUtils';
 import { calculateFileSha256 } from '../utils/cryptoUtils';
 
+const CUSTOM_CATEGORY_ID = '__custom__';
+const CATEGORIES_CACHE_KEY = 'unilink_categories_cache';
+
 export default function CreatePostPage() {
   const navigate = useNavigate();
   const { user, updateContributionAccess } = useAuth();
@@ -33,6 +36,7 @@ export default function CreatePostPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [customCategoryName, setCustomCategoryName] = useState('');
   const [groupId, setGroupId] = useState('');
   const [locationText, setLocationText] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -51,15 +55,41 @@ export default function CreatePostPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      const [catRes, grpRes] = await Promise.all([
+        api.getCategories().catch((error) => {
+          console.warn('No se pudo cargar el catálogo de materias:', error);
+          return { categories: [] };
+        }),
+        api.getGroups().catch((error) => {
+          console.warn('No se pudieron cargar los grupos:', error);
+          return { groups: [] };
+        })
+      ]);
+
+      let cachedCategories = [];
       try {
-        const [catRes, grpRes] = await Promise.all([
-          api.getCategories().catch(() => ({ categories: [] })),
-          api.getGroups().catch(() => ({ groups: [] }))
-        ]);
-        if (catRes.categories) setCategories(catRes.categories);
-        if (grpRes.groups) setGroups(grpRes.groups);
-        if (catRes.categories?.length > 0) setCategoryId(catRes.categories[0].id);
-      } catch (e) {}
+        cachedCategories = JSON.parse(localStorage.getItem(CATEGORIES_CACHE_KEY) || '[]');
+        if (!Array.isArray(cachedCategories)) cachedCategories = [];
+      } catch (error) {
+        console.warn('No se pudo leer el catálogo local de materias:', error);
+      }
+
+      const availableCategories = catRes.categories?.length
+        ? catRes.categories
+        : cachedCategories;
+
+      setCategories(availableCategories);
+      setGroups(grpRes.groups || []);
+
+      if (catRes.categories?.length) {
+        try {
+          localStorage.setItem(CATEGORIES_CACHE_KEY, JSON.stringify(catRes.categories));
+        } catch (error) {
+          console.warn('No se pudo guardar el catálogo local de materias:', error);
+        }
+      }
+
+      setCategoryId(availableCategories[0]?.id || CUSTOM_CATEGORY_ID);
     };
     fetchData();
   }, []);
@@ -85,8 +115,18 @@ export default function CreatePostPage() {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim() || !categoryId) {
+    const isCustomCategory = categoryId === CUSTOM_CATEGORY_ID;
+    if (
+      !title.trim() ||
+      !content.trim() ||
+      (!isCustomCategory && !categoryId) ||
+      (isCustomCategory && !customCategoryName.trim())
+    ) {
       alert('Por favor completa el título, contenido y categoría.');
+      return;
+    }
+    if (isCustomCategory && customCategoryName.trim().length > 100) {
+      alert('El nombre de la materia no puede superar los 100 caracteres.');
       return;
     }
     if (!hasSupportingFile && content.trim().length < 255) {
@@ -106,6 +146,10 @@ export default function CreatePostPage() {
       ...attachedFiles,
       ...(recordedAudio ? [recordedAudio] : [])
     ];
+    const isCustomCategory = categoryId === CUSTOM_CATEGORY_ID;
+    const selectedCategoryName = isCustomCategory
+      ? customCategoryName.trim()
+      : categories.find((category) => category.id === categoryId)?.name || '';
 
     // 1. MODO OFFLINE: Si no hay conexión, guardar en IndexedDB (Dexie)
     if (!navigator.onLine) {
@@ -114,7 +158,8 @@ export default function CreatePostPage() {
           client_operation_id: clientOpId,
           title,
           content,
-          category_id: categoryId,
+          category_id: isCustomCategory ? null : categoryId,
+          category_name: selectedCategoryName,
           group_id: groupId || null,
           post_type: postType,
           location: locationText,
@@ -137,7 +182,11 @@ export default function CreatePostPage() {
       const formData = new FormData();
       formData.append('title', title);
       formData.append('content', content);
-      formData.append('category_id', categoryId);
+      if (isCustomCategory) {
+        formData.append('category_name', selectedCategoryName);
+      } else {
+        formData.append('category_id', categoryId);
+      }
       if (groupId) formData.append('group_id', groupId);
       formData.append('post_type', postType);
       if (locationText) formData.append('location', locationText);
@@ -186,7 +235,8 @@ export default function CreatePostPage() {
           client_operation_id: clientOpId,
           title,
           content,
-          category_id: categoryId,
+          category_id: isCustomCategory ? null : categoryId,
+          category_name: selectedCategoryName,
           group_id: groupId || null,
           post_type: postType,
           location: locationText,
@@ -279,16 +329,34 @@ export default function CreatePostPage() {
               </label>
               <select
                 required
-                value={categoryId}
+                value={categoryId || (!categories.length ? CUSTOM_CATEGORY_ID : '')}
                 onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 shadow-sm focus:outline-none focus:border-brand-500 transition"
               >
+                {!categories.length && <option value={CUSTOM_CATEGORY_ID}>Escribir materia</option>}
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.parent_id ? `↳ ${c.name}` : c.name}
                   </option>
                 ))}
+                {categories.length > 0 && <option value={CUSTOM_CATEGORY_ID}>Otra materia...</option>}
               </select>
+              {categoryId === CUSTOM_CATEGORY_ID && (
+                <input
+                  type="text"
+                  required
+                  maxLength={100}
+                  value={customCategoryName}
+                  onChange={(e) => setCustomCategoryName(e.target.value)}
+                  placeholder="Escribe el nombre de la materia"
+                  className="mt-2 w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-200 shadow-sm focus:outline-none focus:border-brand-500 transition"
+                />
+              )}
+              {!categories.length && (
+                <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+                  Catálogo no disponible; puedes escribir la materia y se agregará al publicar.
+                </p>
+              )}
             </div>
 
             <div>
