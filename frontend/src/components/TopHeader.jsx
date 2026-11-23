@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Menu,
   Sun,
   Moon,
   LogIn,
@@ -17,7 +16,7 @@ import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useTheme } from '../context/ThemeContext';
 import StorageManagerModal from './StorageManagerModal';
 
-export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
+export default function TopHeader({ onOpenAudit }) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { isOnline, pendingCount } = useOfflineSync();
@@ -30,17 +29,8 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
   return (
     <header className={`${isHome ? 'hidden lg:flex' : 'flex'} sticky top-0 z-30 bg-white/95 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 transition-colors shadow-2xs`}>
       
-      {/* Left: Mobile Menu Trigger + Campus Pill Tag */}
+      {/* Left: Campus Pill Tag */}
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onToggleSidebar}
-          className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 lg:hidden transition"
-          title="Abrir menú"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-
         {/* University Location Pill Tag (Matches Reference Image) */}
         <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
           <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
