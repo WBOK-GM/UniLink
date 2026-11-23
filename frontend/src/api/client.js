@@ -86,12 +86,14 @@ export const api = {
   createPost: (formData) => request('/posts', { method: 'POST', body: formData }),
   reactToPost: (id, reaction_type) => request(`/posts/${id}/react`, { method: 'POST', body: JSON.stringify({ reaction_type }) }),
   deactivatePost: (id) => request(`/posts/${id}`, { method: 'DELETE' }),
+  reactivatePost: (id) => request(`/posts/${id}/reactivate`, { method: 'PATCH' }),
 
   // Groups, Roles & Collaborative Tasks
   getGroups: (params = '') => request(`/groups${params ? `?${params}` : ''}`),
   getGroupById: (id) => request(`/groups/${id}`),
   createGroup: (payload) => request('/groups', { method: 'POST', body: JSON.stringify(payload) }),
   joinGroup: (id) => request(`/groups/${id}/join`, { method: 'POST' }),
+  leaveGroup: (id) => request(`/groups/${id}/leave`, { method: 'POST' }),
   getGroupMembers: (groupId) => request(`/groups/${groupId}/members`),
   getGroupTasks: (groupId) => request(`/groups/${groupId}/tasks`),
   createGroupTask: (groupId, payload) => request(`/groups/${groupId}/tasks`, { method: 'POST', body: JSON.stringify(payload) }),
@@ -111,5 +113,7 @@ export const api = {
   testPush: () => request('/notifications/test-push', { method: 'POST' }),
 
   // Reports
-  createReport: (payload) => request('/reports', { method: 'POST', body: JSON.stringify(payload) })
+  createReport: (payload) => request('/reports', { method: 'POST', body: JSON.stringify(payload) }),
+  getReports: () => request('/reports'),
+  resolveReport: (id, payload) => request(`/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify(payload) })
 };

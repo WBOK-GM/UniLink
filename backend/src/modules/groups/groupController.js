@@ -237,6 +237,17 @@ const joinGroup = async (req, res) => {
       }
     }
 
+    // RN-23: Validación de cupo máximo de miembros al unirse
+    const activeMembers = memoryStore.group_members.filter(
+      m => m.group_id === id && m.membership_status === 'ACTIVE'
+    );
+    if (group.max_members && activeMembers.length >= group.max_members) {
+      return res.status(400).json({
+        success: false,
+        error: 'El grupo de estudio ha alcanzado el cupo máximo de miembros permitidos (RN-23).'
+      });
+    }
+
     // RN-09: En grupos públicos el ingreso es directo
     // RN-10: En grupos privados requiere aprobación
     const isPublic = group.group_type === 'PUBLIC';
@@ -332,10 +343,49 @@ const respondJoinRequest = async (req, res) => {
   }
 };
 
+const leaveGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const group = memoryStore.study_groups.find(g => g.id === id);
+    if (!group) {
+      return res.status(404).json({ success: false, error: 'Grupo no encontrado.' });
+    }
+
+    const membership = memoryStore.group_members.find(
+      m => m.group_id === id && m.user_id === userId
+    );
+
+    if (!membership || membership.membership_status === 'LEFT') {
+      return res.status(400).json({ success: false, error: 'No eres integrante de este grupo.' });
+    }
+
+    // RF-20: Un miembro activo puede retirarse voluntariamente.
+    // El propietario (OWNER) no puede abandonar el grupo sin transferir previamente la propiedad o eliminar el grupo.
+    if (membership.member_role === 'OWNER') {
+      return res.status(400).json({
+        success: false,
+        error: 'El propietario no puede abandonar el grupo sin transferir previamente la propiedad o eliminar el grupo (RF-20).'
+      });
+    }
+
+    membership.membership_status = 'LEFT';
+
+    return res.json({
+      success: true,
+      message: 'Has abandonado el grupo de estudio voluntariamente.'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   getGroups,
   getGroupById,
   createGroup,
   joinGroup,
+  leaveGroup,
   respondJoinRequest
 };

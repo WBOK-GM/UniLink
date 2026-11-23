@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getGroups, getGroupById, createGroup, joinGroup, respondJoinRequest } = require('./groupController');
+const { getGroups, getGroupById, createGroup, joinGroup, leaveGroup, respondJoinRequest } = require('./groupController');
 const {
   getGroupMembers,
   getGroupTasks,
@@ -14,6 +14,7 @@ router.get('/', optionalAuth, getGroups);
 router.get('/:id', optionalAuth, getGroupById);
 router.post('/', requireAuth, createGroup);
 router.post('/:id/join', requireAuth, joinGroup);
+router.post('/:id/leave', requireAuth, leaveGroup);
 router.post('/:id/members/:memberId/respond', requireAuth, respondJoinRequest);
 
 // Rutas de Miembros, Roles y Tareas Colaborativas

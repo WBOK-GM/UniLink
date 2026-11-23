@@ -146,6 +146,14 @@ const rsvpMeeting = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Encuentro no encontrado.' });
     }
 
+    // RN-22: Los encuentros cancelados no permitirán confirmación de asistencia
+    if (meeting.status === 'CANCELLED') {
+      return res.status(400).json({
+        success: false,
+        error: 'No se puede confirmar asistencia a un encuentro académico que ha sido cancelado (RN-22).'
+      });
+    }
+
     // RN-16: Solo integrantes del grupo pueden confirmar asistencia
     const membership = memoryStore.group_members.find(
       m => m.group_id === meeting.group_id && m.user_id === userId && m.membership_status === 'ACTIVE'
@@ -160,6 +168,19 @@ const rsvpMeeting = async (req, res) => {
     const validStatuses = ['CONFIRMED', 'DECLINED', 'PENDING'];
     if (!validStatuses.includes(attendance_status)) {
       return res.status(400).json({ success: false, error: 'Estado de asistencia no válido.' });
+    }
+
+    // RN-23: Validación de cupo máximo de asistentes
+    if (attendance_status === 'CONFIRMED') {
+      const confirmedCount = memoryStore.meeting_attendees.filter(
+        a => a.meeting_id === id && a.attendance_status === 'CONFIRMED' && a.user_id !== userId
+      ).length;
+      if (meeting.max_attendees && confirmedCount >= meeting.max_attendees) {
+        return res.status(400).json({
+          success: false,
+          error: 'El encuentro académico ha alcanzado el cupo máximo de asistentes permitidos (RN-23).'
+        });
+      }
     }
 
     const existingRsvp = memoryStore.meeting_attendees.find(

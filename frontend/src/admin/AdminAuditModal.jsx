@@ -17,7 +17,8 @@ import {
   Tags,
   Plus,
   Check,
-  FolderPlus
+  FolderPlus,
+  ShieldAlert
 } from 'lucide-react';
 import { runPwaAudit } from '../utils/auditPwa';
 import { api } from '../api/client';
@@ -36,6 +37,37 @@ export default function AuditModal({ isOpen, onClose }) {
   const [newCatName, setNewCatName] = useState('');
   const [newCatDesc, setNewCatDesc] = useState('');
   const [catMsg, setCatMsg] = useState(null);
+
+  // Estados de Moderación de Reportes (RF-32)
+  const [reports, setReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [reportMsg, setReportMsg] = useState(null);
+
+  const fetchReports = async () => {
+    try {
+      setLoadingReports(true);
+      const res = await api.getReports();
+      if (res && res.reports) {
+        setReports(res.reports);
+      }
+    } catch (err) {
+      console.warn('Error al cargar reportes:', err);
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
+  const handleResolveReport = async (reportId, action, reasonText) => {
+    try {
+      const res = await api.resolveReport(reportId, { action, resolution: reasonText || action });
+      setReportMsg({ type: 'success', text: res.message || 'Reporte resuelto.' });
+      fetchReports();
+      setTimeout(() => setReportMsg(null), 4000);
+    } catch (err) {
+      setReportMsg({ type: 'error', text: err.message });
+      setTimeout(() => setReportMsg(null), 4000);
+    }
+  };
 
   const fetchSuggestions = async () => {
     try {
@@ -221,11 +253,131 @@ export default function AuditModal({ isOpen, onClose }) {
               </span>
             )}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('REPORTS');
+              fetchReports();
+            }}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'REPORTS'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-white/70 dark:bg-slate-800/60'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>Moderación de Reportes</span>
+            {reports.filter(r => r.status === 'PENDING').length > 0 && (
+              <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
+                {reports.filter(r => r.status === 'PENDING').length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
-          {activeTab === 'CATEGORIES' ? (
+          {activeTab === 'REPORTS' ? (
+            <div className="space-y-6 animate-fadeIn">
+              {reportMsg && (
+                <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-bold ${
+                  reportMsg.type === 'success'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                }`}>
+                  {reportMsg.type === 'success' ? <Check className="w-4 h-4 text-emerald-600" /> : <AlertTriangle className="w-4 h-4 text-rose-600" />}
+                  <span>{reportMsg.text}</span>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                      Bandeja de Reportes de Contenido Académico (RF-32)
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Gestiona las denuncias de publicaciones académicas (RN-21). Puedes desestimar o aplicar sanciones.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchReports}
+                    disabled={loadingReports}
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    title="Refrescar reportes"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingReports ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {loadingReports ? (
+                  <div className="p-8 text-center text-xs text-slate-500 animate-pulse">
+                    Consultando bandeja de reportes...
+                  </div>
+                ) : reports.length === 0 ? (
+                  <div className="p-8 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
+                    No hay reportes de publicaciones registrados.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900/60">
+                    {reports.map((rep) => (
+                      <div key={rep.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 dark:text-white text-xs">
+                              Motivo: {rep.reason}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              rep.status === 'PENDING'
+                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}>
+                              {rep.status === 'PENDING' ? 'Pendiente' : `Resuelto (${rep.resolution || 'Procesado'})`}
+                            </span>
+                          </div>
+                          {rep.description && (
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                              "{rep.description}"
+                            </p>
+                          )}
+                          <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                            ID Publicación: {rep.post_id} • Fecha: {new Date(rep.created_at).toLocaleString()}
+                          </p>
+                        </div>
+
+                        {rep.status === 'PENDING' && (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleResolveReport(rep.id, 'DISMISS', 'Desestimado por administrador')}
+                              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition"
+                            >
+                              Desestimar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleResolveReport(rep.id, 'HIDE_POST', 'Ocultado por moderación de contenido')}
+                              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition"
+                            >
+                              Ocultar Post
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleResolveReport(rep.id, 'DEACTIVATE_POST', 'Desactivado por infracción grave')}
+                              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition"
+                            >
+                              Desactivar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : activeTab === 'CATEGORIES' ? (
             <div className="space-y-6 animate-fadeIn">
               {/* Notificación de Éxito / Error */}
               {catMsg && (

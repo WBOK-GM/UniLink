@@ -175,6 +175,114 @@ async function runTests() {
     const meetRes = await apiCall('/meetings');
     assert('Encuentros académicos responden', meetRes.ok && meetRes.body.meetings !== undefined);
 
+    // 8.1 Validación de Salida de Grupos (RF-20) y Cupo Máximo (RN-23)
+    // El propietario (estudiante) no puede abandonar el grupo sin transferir/eliminar
+    const ownerLeaveRes = await apiCall(`/groups/${testGroupId}/leave`, {
+      method: 'POST',
+      headers: authHeaders
+    });
+    assert('Propietario no puede abandonar grupo sin transferir propiedad (RF-20)', ownerLeaveRes.status === 400);
+
+    // Admin se une al grupo como miembro
+    const adminJoinRes = await apiCall(`/groups/${testGroupId}/join`, {
+      method: 'POST',
+      headers: adminHeaders
+    });
+    assert('Miembro adicional puede unirse al grupo público', adminJoinRes.ok);
+
+    // Admin abandona el grupo
+    const adminLeaveRes = await apiCall(`/groups/${testGroupId}/leave`, {
+      method: 'POST',
+      headers: adminHeaders
+    });
+    assert('Miembro activo puede abandonar voluntariamente el grupo (RF-20)', adminLeaveRes.ok);
+
+    // Cupo máximo de grupo (RN-23)
+    const smallGroup = await apiCall('/groups', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        name: 'Grupo Cupo Limitado',
+        category_id: 'c1',
+        location_latitude: 5.55,
+        location_longitude: -73.35,
+        max_members: 1
+      })
+    });
+    const smallGroupId = smallGroup.body.group?.id;
+    const overCapacityJoin = await apiCall(`/groups/${smallGroupId}/join`, {
+      method: 'POST',
+      headers: adminHeaders
+    });
+    assert('Bloqueo de ingreso al alcanzar cupo máximo de grupo (RN-23)', overCapacityJoin.status === 400);
+
+    // 8.2 Validación de Encuentros Cancelados (RN-22) y Cupo Máximo (RN-23)
+    const testMeetingId = creatorMeeting.body.meeting?.id;
+    // Forzar estado CANCELLED para validar RN-22
+    const { memoryStore } = require('../backend/src/config/db');
+    const meetingInMemory = memoryStore.group_meetings.find(m => m.id === testMeetingId);
+    if (meetingInMemory) meetingInMemory.status = 'CANCELLED';
+
+    const rsvpCancelled = await apiCall(`/meetings/${testMeetingId}/rsvp`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ attendance_status: 'CONFIRMED' })
+    });
+    assert('Bloqueo de confirmación a encuentro cancelado (RN-22)', rsvpCancelled.status === 400);
+
+    // Restaurar estado y probar cupo de asistentes (RN-23)
+    if (meetingInMemory) {
+      meetingInMemory.status = 'SCHEDULED';
+      meetingInMemory.max_attendees = 1; // Ya está el creador confirmado
+    }
+    // Asegurar que admin es miembro del grupo para intentar confirmar
+    const adminRejoin = await apiCall(`/groups/${testGroupId}/join`, {
+      method: 'POST',
+      headers: adminHeaders
+    });
+    const rsvpOverCapacity = await apiCall(`/meetings/${testMeetingId}/rsvp`, {
+      method: 'POST',
+      headers: adminHeaders,
+      body: JSON.stringify({ attendance_status: 'CONFIRMED' })
+    });
+    assert('Bloqueo de confirmación al alcanzar cupo de asistentes en encuentro (RN-23)', rsvpOverCapacity.status === 400);
+
+    // 8.3 Reactivación de Publicaciones (RF-11)
+    const deactivateRes = await apiCall(`/posts/${createdPostId}`, {
+      method: 'DELETE',
+      headers: authHeaders
+    });
+    assert('Autor puede desactivar su publicación', deactivateRes.ok);
+
+    const reactivateRes = await apiCall(`/posts/${createdPostId}/reactivate`, {
+      method: 'PATCH',
+      headers: authHeaders
+    });
+    assert('Autor puede reactivar su publicación desactivada (RF-11)', reactivateRes.ok && reactivateRes.body.post?.status === 'ACTIVE');
+
+    // 8.4 Resolución de Reportes de Moderación (RF-32 / RN-21)
+    const createReportRes = await apiCall('/reports', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        post_id: createdPostId,
+        reason: 'Contenido desactualizado',
+        description: 'La guía hace referencia a versiones obsoletas de la API.'
+      })
+    });
+    assert('Usuario puede denunciar publicación académica', createReportRes.status === 201);
+    const reportId = createReportRes.body.report?.id;
+
+    const resolveReportRes = await apiCall(`/reports/${reportId}/resolve`, {
+      method: 'POST',
+      headers: adminHeaders,
+      body: JSON.stringify({ action: 'HIDE_POST', resolution: 'Ocultado preventivamente por moderador' })
+    });
+    assert('Administrador puede resolver reporte y ocultar publicación (RF-32 / RN-21)', resolveReportRes.ok && resolveReportRes.body.report?.status === 'RESOLVED');
+
+    const postAfterReport = memoryStore.posts.find(p => p.id === createdPostId);
+    assert('Estado de publicación actualizado a HIDDEN tras resolución de moderación', postAfterReport?.status === 'HIDDEN');
+
     // 9. VAPID Public Key for Web Push
     const vapidRes = await apiCall('/notifications/vapid-public-key');
     assert('Clave pública VAPID provista para suscripción Web Push', vapidRes.ok && !!vapidRes.body.publicKey);
