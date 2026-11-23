@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS posts (
     author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
     group_id UUID REFERENCES study_groups(id) ON DELETE CASCADE,
+    source_group_id TEXT,
     post_type VARCHAR(30) NOT NULL DEFAULT 'GENERAL' CHECK (post_type IN ('RESOURCE', 'GENERAL')),
     title VARCHAR(200) NOT NULL,
     content TEXT NOT NULL,
@@ -110,7 +111,7 @@ CREATE TABLE IF NOT EXISTS posts (
     location VARCHAR(200),
     copyright_declaration_accepted BOOLEAN NOT NULL DEFAULT TRUE,
     copyright_policy_version VARCHAR(20) NOT NULL DEFAULT 'v1.0',
-    client_operation_id UUID UNIQUE NOT NULL, -- Idempotencia para sincronización offline
+    client_operation_id TEXT UNIQUE NOT NULL, -- Idempotencia para sincronización offline
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

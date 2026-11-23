@@ -9,14 +9,15 @@ import {
   Wifi,
   WifiOff,
   Trash2,
-  Download,
   Eye
 } from 'lucide-react';
-import { db, getDownloadedResources } from '../db/db';
+import { canOpenOfflineResource, db, getDownloadedResources } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import FileViewerModal from '../components/FileViewerModal';
 
 export default function OfflinePage() {
+  const { user } = useAuth();
   const { isOnline, pendingCount, isSyncing, syncOfflinePosts } = useOfflineSync();
   const [offlinePosts, setOfflinePosts] = useState([]);
   const [downloadedFiles, setDownloadedFiles] = useState([]);
@@ -47,13 +48,6 @@ export default function OfflinePage() {
     if (!confirm('¿Deseas descartar esta publicación pendiente?')) return;
     await db.offline_posts.delete(id);
     loadOfflineData();
-  };
-
-  const handleOpenOfflineBlob = (res) => {
-    if (res.local_blob) {
-      const url = URL.createObjectURL(res.local_blob);
-      window.open(url, '_blank');
-    }
   };
 
   const handleDeleteOfflineResource = async (resourceId) => {
@@ -214,19 +208,16 @@ export default function OfflinePage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setViewingResource({
-                        id: item.file_id,
-                        original_name: item.file_name,
-                        mime_type: item.file_name?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/png'
-                      });
-                    }}
-                    className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Ver en la App</span>
-                  </button>
+                  {canOpenOfflineResource(item, user) && (
+                    <button
+                      type="button"
+                      onClick={() => setViewingResource(item)}
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Ver en la App</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => handleDeleteOfflineResource(item.resource_id)}
@@ -245,7 +236,7 @@ export default function OfflinePage() {
       {/* In-App File Viewer Modal para recursos offline */}
       {viewingResource && (
         <FileViewerModal
-          file={viewingResource}
+          offlineResource={viewingResource}
           isOpen={!!viewingResource}
           onClose={() => setViewingResource(null)}
         />

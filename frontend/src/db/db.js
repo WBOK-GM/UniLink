@@ -87,6 +87,12 @@ export async function getDownloadedResources() {
   return await db.offline_resources.toArray();
 }
 
+export function canOpenOfflineResource(resource, user) {
+  // El visor antiguo usaba "pwa-user" para las copias locales sin asociar una cuenta.
+  return !!(user && user.role !== 'GUEST' && (resource?.local_blob || resource?.has_local_copy) &&
+    (resource.owner_user_id === user.id || resource.owner_user_id === 'pwa-user'));
+}
+
 /**
  * Verifica si un recurso específico está guardado offline
  */
@@ -140,6 +146,8 @@ export async function getOfflineStorageMetrics() {
         resource_id: r.resource_id,
         file_id: r.file_id,
         file_name: r.file_name,
+        owner_user_id: r.owner_user_id,
+        has_local_copy: !!r.local_blob,
         size_bytes: size,
         size_kb: +(size / 1024).toFixed(1),
         size_mb: +(size / (1024 * 1024)).toFixed(2),

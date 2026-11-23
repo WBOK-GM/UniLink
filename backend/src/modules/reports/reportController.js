@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { memoryStore } = require('../../config/db');
+const { memoryStore, updatePostStatus } = require('../../config/db');
 
 const createReport = async (req, res) => {
   try {
@@ -66,22 +66,16 @@ const resolveReport = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Reporte no encontrado.' });
     }
 
+    // Medidas sobre la publicación académica (RF-32 / RN-21)
+    const post = memoryStore.posts.find(p => p.id === report.post_id);
+    if (post && action !== 'DISMISS') {
+      await updatePostStatus(post, action === 'HIDE_POST' ? 'HIDDEN' : 'INACTIVE');
+    }
+
     report.status = 'RESOLVED';
     report.resolution = resolution || action;
     report.reviewed_by = reviewerId;
     report.reviewed_at = new Date();
-
-    // Medidas sobre la publicación académica (RF-32 / RN-21)
-    const post = memoryStore.posts.find(p => p.id === report.post_id);
-    if (post) {
-      if (action === 'HIDE_POST') {
-        post.status = 'HIDDEN';
-        post.updated_at = new Date();
-      } else if (action === 'DEACTIVATE_POST') {
-        post.status = 'INACTIVE';
-        post.updated_at = new Date();
-      }
-    }
 
     return res.json({
       success: true,
