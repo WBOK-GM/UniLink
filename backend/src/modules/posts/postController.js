@@ -17,14 +17,7 @@ const getContributionAccess = (user) => {
   };
 };
 
-const resolvePostCategory = async (categoryId, categoryName) => {
-  if (categoryId) return categoryId;
-
-  const name = typeof categoryName === 'string' ? categoryName.trim() : '';
-  if (!name || name.length > 100) {
-    throw new Error('El nombre de la materia debe tener entre 1 y 100 caracteres.');
-  }
-
+const resolvePostCategory = async (name) => {
   const normalizedName = name.toLowerCase().replace(/\s+/g, '-');
   let category = memoryStore.categories.find(
     (item) =>
@@ -70,7 +63,7 @@ const resolvePostCategory = async (categoryId, categoryName) => {
     memoryStore.categories.push(category);
   }
 
-  return category.id;
+  return category;
 };
 
 const getPosts = async (req, res) => {
@@ -225,28 +218,20 @@ const createPost = async (req, res) => {
       return res.status(503).json({ success: false, error: 'El almacenamiento permanente de archivos no está configurado.' });
     }
 
+    const categoryName = typeof category_name === 'string' ? category_name.trim() : '';
     if (
       typeof title !== 'string' ||
       !title.trim() ||
       typeof content !== 'string' ||
       !content.trim() ||
-      (!category_id &&
-        (typeof category_name !== 'string' || !category_name.trim()))
+      (!category_id && !categoryName)
     ) {
       return res.status(400).json({
         success: false,
         error: 'El título, contenido y categoría son obligatorios.'
       });
     }
-      return res.status(400).json({
-        success: false,
-        error: 'El título, contenido y categoría son obligatorios.'
-      });
-    }
-    if (
-      !category_id &&
-      (typeof category_name !== 'string' || !category_name.trim() || category_name.trim().length > 100)
-    ) {
+    if (!category_id && categoryName.length > 100) {
       return res.status(400).json({
         success: false,
         error: 'El nombre de la materia debe tener entre 1 y 100 caracteres.'
@@ -268,8 +253,9 @@ const createPost = async (req, res) => {
       });
     }
 
-    const category = memoryStore.categories.find(item => item.id === category_id);
-    if (!category || title.trim().length > 200 || (location && (typeof location !== 'string' || location.length > 200)) ||
+    const selectedCategory = memoryStore.categories.find(item => item.id === category_id);
+    if ((category_id && !selectedCategory) || title.trim().length > 200 ||
+        (location && (typeof location !== 'string' || location.length > 200)) ||
         (post_type && !['RESOURCE', 'GENERAL'].includes(post_type)) || typeof opId !== 'string') {
       return res.status(400).json({ success: false, error: 'Los datos de la publicación no son válidos.' });
     }
@@ -287,12 +273,12 @@ const createPost = async (req, res) => {
       }
     }
 
-    const resolvedCategoryId = await resolvePostCategory(category_id, category_name);
+    const category = selectedCategory || await resolvePostCategory(categoryName);
     const postId = uuidv4();
     const newPost = {
       id: postId,
       author_id,
-      category_id: resolvedCategoryId,
+      category_id: category.id,
       group_id: group_id || null,
       post_type: post_type || 'RESOURCE',
       title: title.trim(),

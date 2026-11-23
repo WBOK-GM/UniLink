@@ -121,10 +121,11 @@ async function runTests() {
     const createdPostId = newPostRes.body.post?.id;
 
     const audioData = Buffer.from('UniLink E2E audio payload');
+    const audioCategoryName = `Materia de audio E2E ${Date.now()}`;
     const audioForm = new FormData();
     audioForm.append('title', 'Prueba automatizada de audio');
     audioForm.append('content', 'Validación de carga de archivo de audio.');
-    audioForm.append('category_id', 'c1');
+    audioForm.append('category_name', audioCategoryName);
     audioForm.append('client_operation_id', `test-e2e-audio-${Date.now()}`);
     audioForm.append('copyright_declaration_accepted', 'true');
     audioForm.append(
@@ -152,6 +153,12 @@ async function runTests() {
         audioAttachment?.file_type === 'AUDIO' &&
         audioAttachment?.mime_type === 'audio/webm' &&
         !!audioAttachment?.url
+    );
+    assert(
+      'La carga multipart crea la materia escrita y la vincula al adjunto',
+      audioPostRes.ok && memoryStore.categories.some(
+        category => category.id === audioPostRes.body.post?.category_id && category.name === audioCategoryName
+      )
     );
 
     const refreshedUserRes = await apiCall('/auth/me', { headers: authHeaders });
