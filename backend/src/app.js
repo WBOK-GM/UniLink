@@ -27,11 +27,42 @@ app.use(securityHeaders);
 // 2. Limitador de tasa global para la API
 app.use(apiRateLimiter);
 
-// 3. Middlewares de análisis de cuerpo y desinfección
+// 3. Configuración estricta de CORS para Producción
+const allowedOrigins = [
+  'https://uni-link-rosy-seven.vercel.app',
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5173'
+].filter(Boolean);
+
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    // Permitir solicitudes sin origen (como clientes REST móviles, Postman o scripts internos)
+    if (!origin) return callback(null, true);
+
+    // En desarrollo local, permitir orígenes de desarrollo
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    // En producción: validar contra la lista autorizada o subdominios vercel del proyecto
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    const isExplicitlyAllowed = allowedOrigins.some(allowed => 
+      allowed.replace(/\/$/, '') === normalizedOrigin
+    );
+    const isVercelPreview = origin.endsWith('.vercel.app') && origin.includes('uni-link');
+
+    if (isExplicitlyAllowed || isVercelPreview) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS bloqueado por seguridad: el origen ${origin} no está autorizado.`));
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -42,7 +73,7 @@ app.use(sanitizeInput);
 // Servidor de archivos estáticos para subidas locales con soporte de visualización en marco (PWA In-App Viewer)
 app.use('/uploads', (req, res, next) => {
   res.removeHeader('X-Frame-Options');
-  res.setHeader('Content-Security-Policy', "default-src 'self' blob: data: http://localhost:* http://127.0.0.1:*; frame-ancestors 'self' http://localhost:* http://127.0.0.1:*; object-src 'self' blob: data: http://localhost:* http://127.0.0.1:*;");
+  res.setHeader('Content-Security-Policy', "default-src 'self' blob: data: https://*.vercel.app https://uni-link-rosy-seven.vercel.app http://localhost:* http://127.0.0.1:*; frame-ancestors 'self' https://*.vercel.app https://uni-link-rosy-seven.vercel.app http://localhost:* http://127.0.0.1:*; object-src 'self' blob: data: https://*.vercel.app https://uni-link-rosy-seven.vercel.app http://localhost:* http://127.0.0.1:*;");
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Disposition', 'inline');
