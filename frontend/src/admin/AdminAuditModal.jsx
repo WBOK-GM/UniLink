@@ -13,16 +13,86 @@ import {
   Lock,
   Eye,
   Activity,
-  Zap
+  Zap,
+  Tags,
+  Plus,
+  Check,
+  FolderPlus
 } from 'lucide-react';
 import { runPwaAudit } from '../utils/auditPwa';
+import { api } from '../api/client';
 import SensorDiagnosticsModal from '../components/SensorDiagnosticsModal';
 
 export default function AuditModal({ isOpen, onClose }) {
+  const [activeTab, setActiveTab] = useState('AUDIT'); // 'AUDIT' | 'CATEGORIES'
   const [loading, setLoading] = useState(true);
   const [auditResult, setAuditResult] = useState(null);
   const [selectedDimension, setSelectedDimension] = useState('ALL');
   const [sensorModalOpen, setSensorModalOpen] = useState(false);
+
+  // Estados de Moderación de Categorías
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatDesc, setNewCatDesc] = useState('');
+  const [catMsg, setCatMsg] = useState(null);
+
+  const fetchSuggestions = async () => {
+    try {
+      setLoadingSuggestions(true);
+      const res = await api.getCategorySuggestions();
+      if (res && res.suggestions) {
+        setSuggestions(res.suggestions);
+      }
+    } catch (err) {
+      console.warn('Error al cargar sugerencias de categorías:', err);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleApproveSuggestion = async (id) => {
+    try {
+      const res = await api.approveCategorySuggestion(id);
+      setCatMsg({ type: 'success', text: res.message || 'Categoría aprobada.' });
+      fetchSuggestions();
+      setTimeout(() => setCatMsg(null), 4000);
+    } catch (err) {
+      setCatMsg({ type: 'error', text: err.message });
+      setTimeout(() => setCatMsg(null), 4000);
+    }
+  };
+
+  const handleRejectSuggestion = async (id) => {
+    try {
+      const res = await api.rejectCategorySuggestion(id);
+      setCatMsg({ type: 'success', text: res.message || 'Propuesta rechazada.' });
+      fetchSuggestions();
+      setTimeout(() => setCatMsg(null), 4000);
+    } catch (err) {
+      setCatMsg({ type: 'error', text: err.message });
+      setTimeout(() => setCatMsg(null), 4000);
+    }
+  };
+
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    try {
+      const res = await api.createCategory({
+        name: newCatName.trim(),
+        description: newCatDesc.trim()
+      });
+      setCatMsg({ type: 'success', text: res.message || 'Categoría creada exitosamente.' });
+      setNewCatName('');
+      setNewCatDesc('');
+      fetchSuggestions();
+      setTimeout(() => setCatMsg(null), 4000);
+    } catch (err) {
+      setCatMsg({ type: 'error', text: err.message });
+      setTimeout(() => setCatMsg(null), 4000);
+    }
+  };
 
   const executeAudit = async () => {
     setLoading(true);
@@ -39,6 +109,7 @@ export default function AuditModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       executeAudit();
+      fetchSuggestions();
     }
   }, [isOpen]);
 
@@ -116,9 +187,181 @@ export default function AuditModal({ isOpen, onClose }) {
           </div>
         </div>
 
+        {/* Navigation Tabs Bar */}
+        <div className="flex items-center gap-1 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-900/50 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('AUDIT')}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'AUDIT'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-white/70 dark:bg-slate-800/60'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Auditoría PWA & Seguridad</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('CATEGORIES');
+              fetchSuggestions();
+            }}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'CATEGORIES'
+                ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-white/70 dark:bg-slate-800/60'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+            }`}
+          >
+            <Tags className="w-4 h-4" />
+            <span>Moderación de Categorías</span>
+            {suggestions.filter(s => s.status === 'PENDING').length > 0 && (
+              <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-bold">
+                {suggestions.filter(s => s.status === 'PENDING').length}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
-          {loading ? (
+          {activeTab === 'CATEGORIES' ? (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Notificación de Éxito / Error */}
+              {catMsg && (
+                <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-bold ${
+                  catMsg.type === 'success'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                }`}>
+                  {catMsg.type === 'success' ? <Check className="w-4 h-4 text-emerald-600" /> : <AlertTriangle className="w-4 h-4 text-rose-600" />}
+                  <span>{catMsg.text}</span>
+                </div>
+              )}
+
+              {/* Formulario de Creación Directa de Categoría */}
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <FolderPlus className="w-4 h-4 text-brand-600" />
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                    Crear Nueva Categoría Oficial (Directo)
+                  </h4>
+                </div>
+                <form onSubmit={handleCreateCategory} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Nombre de la Categoría (Ej: Robótica y Automatización)"
+                      value={newCatName}
+                      onChange={(e) => setNewCatName(e.target.value)}
+                      className="px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Descripción académica (opcional)"
+                      value={newCatDesc}
+                      onChange={(e) => setNewCatDesc(e.target.value)}
+                      className="px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition active:scale-95"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Crear Categoría</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Lista de Sugerencias de Estudiantes */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                      Propuestas Sugeridas por la Comunidad
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Revisa las categorías propuestas por estudiantes para activarlas en el catálogo oficial o rechazarlas.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchSuggestions}
+                    disabled={loadingSuggestions}
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    title="Refrescar lista"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingSuggestions ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {loadingSuggestions ? (
+                  <div className="py-12 text-center text-xs text-slate-400">
+                    Cargando propuestas de categorías...
+                  </div>
+                ) : suggestions.length === 0 ? (
+                  <div className="p-8 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
+                    No hay propuestas de categorías registradas por el momento.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900/60">
+                    {suggestions.map((sug) => (
+                      <div key={sug.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+                              {sug.name}
+                            </span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              sug.status === 'APPROVED'
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                : sug.status === 'REJECTED'
+                                ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                            }`}>
+                              {sug.status === 'APPROVED' ? 'Aprobada' : sug.status === 'REJECTED' ? 'Rechazada' : 'Pendiente'}
+                            </span>
+                          </div>
+                          {sug.description && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                              {sug.description}
+                            </p>
+                          )}
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            Propuesta por: <span className="font-medium text-slate-600 dark:text-slate-300">{sug.proposer?.full_name || 'Estudiante'}</span> ({sug.proposer?.email || 'N/A'})
+                          </p>
+                        </div>
+
+                        {sug.status === 'PENDING' && (
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRejectSuggestion(sug.id)}
+                              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 text-xs font-bold transition"
+                            >
+                              Rechazar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleApproveSuggestion(sug.id)}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Aprobar</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : loading ? (
             <div className="py-20 flex flex-col items-center justify-center space-y-4">
               <div className="relative">
                 <div className="w-16 h-16 rounded-full border-4 border-brand-200 dark:border-slate-800 border-t-brand-600 animate-spin" />

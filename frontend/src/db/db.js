@@ -23,6 +23,24 @@ export class UniLinkDatabase extends Dexie {
 export const db = new UniLinkDatabase();
 
 /**
+ * Registra el tag de sincronización en segundo plano con el Service Worker (Background Sync API)
+ */
+export async function registerBackgroundSync() {
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'SyncManager' in window) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.sync.register('sync-posts');
+      console.log('[UniLink SW] Tag de Background Sync "sync-posts" registrado exitosamente.');
+      return true;
+    } catch (e) {
+      console.warn('[UniLink SW] SyncManager no pudo registrar el tag:', e.message);
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
  * Guarda una publicación en la cola local de IndexedDB cuando no hay internet
  */
 export async function queueOfflinePost(postData) {
@@ -42,6 +60,7 @@ export async function queueOfflinePost(postData) {
   };
 
   const id = await db.offline_posts.add(localRecord);
+  registerBackgroundSync().catch(() => {});
   return { ...localRecord, local_id: id };
 }
 

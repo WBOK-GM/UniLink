@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const { memoryStore } = require('../../config/db');
 const { calculateHaversineDistance } = require('../../utils/haversine');
+const { notifyUser } = require('../notifications/notificationController');
 
 const getGroups = async (req, res) => {
   try {
@@ -255,18 +256,17 @@ const joinGroup = async (req, res) => {
       });
     }
 
-    // Si es privado, notificar al creador del grupo
+    // Si es privado, notificar al creador del grupo mediante Web Push y notificación interna
     if (!isPublic) {
-      memoryStore.notifications.push({
-        id: uuidv4(),
-        user_id: group.creator_id,
+      const applicantProfile = memoryStore.profiles.find(p => p.user_id === userId);
+      const applicantName = applicantProfile?.full_name || 'Un estudiante';
+      await notifyUser(group.creator_id, {
+        title: '👥 Nueva Solicitud de Ingreso',
+        message: `${applicantName} solicitó unirse a tu grupo de estudio "${group.name}".`,
+        url: `/groups/${group.id}`,
         notification_type: 'GROUP_REQUEST',
-        title: 'Nueva solicitud de ingreso',
-        message: `Un estudiante solicitó unirse al grupo ${group.name}.`,
         reference_type: 'GROUP',
-        reference_id: group.id,
-        is_read: false,
-        created_at: new Date()
+        reference_id: group.id
       });
     }
 
@@ -282,9 +282,60 @@ const joinGroup = async (req, res) => {
   }
 };
 
+const respondJoinRequest = async (req, res) => {
+  try {
+    const { id, memberId } = req.params;
+    const { action } = req.body; // 'APPROVE' | 'REJECT'
+    const currentUserId = req.user.id;
+
+    const group = memoryStore.study_groups.find(g => g.id === id);
+    if (!group) return res.status(404).json({ success: false, error: 'Grupo no encontrado.' });
+
+    // Verificar permisos: creador, rol OWNER o ADMIN
+    const isOwner = group.creator_id === currentUserId;
+    const myMembership = memoryStore.group_members.find(
+      m => m.group_id === id && m.user_id === currentUserId && (m.member_role === 'OWNER' || m.member_role === 'MODERATOR')
+    );
+
+    if (!isOwner && !myMembership && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, error: 'No tienes permisos para moderar este grupo.' });
+    }
+
+    const membership = memoryStore.group_members.find(
+      m => m.group_id === id && m.user_id === memberId
+    );
+
+    if (!membership) {
+      return res.status(404).json({ success: false, error: 'Solicitud de membresía no encontrada.' });
+    }
+
+    if (action === 'APPROVE') {
+      membership.membership_status = 'ACTIVE';
+      membership.joined_at = new Date();
+
+      await notifyUser(memberId, {
+        title: '🎉 Solicitud Aceptada',
+        message: `Tu solicitud para unirte al grupo "${group.name}" ha sido aprobada. ¡Ya puedes participar!`,
+        url: `/groups/${group.id}`,
+        notification_type: 'GROUP_APPROVED',
+        reference_type: 'GROUP',
+        reference_id: group.id
+      });
+
+      return res.json({ success: true, message: 'Solicitud aprobada exitosamente.' });
+    } else {
+      membership.membership_status = 'REJECTED';
+      return res.json({ success: true, message: 'Solicitud rechazada.' });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   getGroups,
   getGroupById,
   createGroup,
-  joinGroup
+  joinGroup,
+  respondJoinRequest
 };

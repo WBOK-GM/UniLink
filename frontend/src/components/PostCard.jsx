@@ -12,7 +12,11 @@ import {
   Mic,
   Image as ImageIcon,
   Eye,
-  CheckCircle2
+  CheckCircle2,
+  ThumbsUp,
+  ThumbsDown,
+  Star,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api, resolveFileUrl } from '../api/client';
@@ -20,6 +24,7 @@ import { db, saveResourceOffline, deleteResourceOffline, isResourceSavedOffline 
 import AudioPlayer from './AudioPlayer';
 import LocationViewModal from './LocationViewModal';
 import FileViewerModal from './FileViewerModal';
+import GatingUnlockModal from './GatingUnlockModal';
 
 export default function PostCard({ post, onPostUpdated }) {
   const { user } = useAuth();
@@ -35,7 +40,16 @@ export default function PostCard({ post, onPostUpdated }) {
   const [imgError, setImgError] = useState(false);
   const [isOfflineSaved, setIsOfflineSaved] = useState(false);
 
+  // Estados de Intercambio Condicionado (Gating) y Valoración Interactiva
+  const [showGatingModal, setShowGatingModal] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [dislikesCount, setDislikesCount] = useState(post.dislikes_count || 0);
+  const [myReaction, setMyReaction] = useState(post.my_reaction || null);
+  const [isReacting, setIsReacting] = useState(false);
+  const [authorVoteWarning, setAuthorVoteWarning] = useState(false);
+
   const isAuthor = user && user.id === post.author?.id;
+  const isGated = !user || (user.role !== 'ADMIN' && !isAuthor && (user.contributions_count || 0) === 0);
   const isLongContent = (post.content || '').length > 220;
 
   // Primer archivo adjunto para el preview visual izquierdo
@@ -77,8 +91,73 @@ export default function PostCard({ post, onPostUpdated }) {
     };
   }, [mainAttachment]);
 
+  const handleReaction = async (reactionType) => {
+    if (!user) {
+      setShowGatingModal(true);
+      return;
+    }
+
+    // RN-04: El autor no puede votar su propio recurso
+    if (isAuthor) {
+      setAuthorVoteWarning(true);
+      setTimeout(() => setAuthorVoteWarning(false), 3500);
+      if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+      return;
+    }
+
+    if (isReacting) return;
+
+    try {
+      setIsReacting(true);
+      if (navigator.vibrate) navigator.vibrate([30, 20]);
+
+      const prevReaction = myReaction;
+      const prevLikes = likesCount;
+      const prevDislikes = dislikesCount;
+
+      let nextReaction = reactionType;
+      let nextLikes = prevLikes;
+      let nextDislikes = prevDislikes;
+
+      if (prevReaction === reactionType) {
+        // Retirar voto
+        nextReaction = null;
+        if (reactionType === 'LIKE') nextLikes = Math.max(0, prevLikes - 1);
+        if (reactionType === 'DISLIKE') nextDislikes = Math.max(0, prevDislikes - 1);
+      } else {
+        // Registrar o cambiar voto (RN-05)
+        if (reactionType === 'LIKE') {
+          nextLikes = prevLikes + 1;
+          if (prevReaction === 'DISLIKE') nextDislikes = Math.max(0, prevDislikes - 1);
+        } else {
+          nextDislikes = prevDislikes + 1;
+          if (prevReaction === 'LIKE') nextLikes = Math.max(0, prevLikes - 1);
+        }
+      }
+
+      setMyReaction(nextReaction);
+      setLikesCount(nextLikes);
+      setDislikesCount(nextDislikes);
+
+      const targetAction = nextReaction ? reactionType : 'NONE';
+      await api.reactToPost(post.id, targetAction);
+      if (onPostUpdated) onPostUpdated();
+    } catch (err) {
+      console.warn('Error registrando reacción:', err);
+      setMyReaction(post.my_reaction || null);
+      setLikesCount(post.likes_count || 0);
+      setDislikesCount(post.dislikes_count || 0);
+    } finally {
+      setIsReacting(false);
+    }
+  };
+
   const handleToggleOfflineReady = async (e) => {
     e.stopPropagation();
+    if (isGated) {
+      setShowGatingModal(true);
+      return;
+    }
     if (!mainAttachment) return;
     try {
       setSavingFileId(mainAttachment.id);
@@ -113,6 +192,10 @@ export default function PostCard({ post, onPostUpdated }) {
   };
 
   const handleSaveOffline = async (file) => {
+    if (isGated) {
+      setShowGatingModal(true);
+      return;
+    }
     try {
       setSavingFileId(file.id);
       let blob;
@@ -324,6 +407,77 @@ export default function PostCard({ post, onPostUpdated }) {
             </div>
           )}
 
+          {/* Fila de Calificación Académica Interactiva (Estrellas 1-5 y Votos Útil/No Útil) */}
+          <div className="pt-2 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Estrellas 1 a 5 */}
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((starNum) => {
+                    const avg = post.average_rating || 5.0;
+                    const isFilled = starNum <= Math.round(avg);
+                    return (
+                      <button
+                        key={starNum}
+                        type="button"
+                        onClick={() => handleReaction(starNum >= 3 ? 'LIKE' : 'DISLIKE')}
+                        className="p-0.5 text-amber-400 hover:scale-125 transition-transform cursor-pointer"
+                        title={`Calificar con ${starNum} estrellas (RN-04/05)`}
+                      >
+                        <Star className={`w-3.5 h-3.5 ${isFilled ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
+                      </button>
+                    );
+                  })}
+                </div>
+                <span className="font-extrabold text-slate-800 dark:text-slate-200 text-[11px] ml-1">
+                  {(post.average_rating || 5.0).toFixed(1)}
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  ({post.ratings_count || (likesCount + dislikesCount)})
+                </span>
+              </div>
+
+              {/* Botón Útil (Like) */}
+              <button
+                type="button"
+                onClick={() => handleReaction('LIKE')}
+                disabled={isReacting}
+                className={`px-2.5 py-1 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                  myReaction === 'LIKE'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                    : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-300'
+                }`}
+                title="Marcar como apunte útil o relevante"
+              >
+                <ThumbsUp className={`w-3.5 h-3.5 ${myReaction === 'LIKE' ? 'fill-emerald-500 text-emerald-500' : ''}`} />
+                <span>{likesCount}</span>
+              </button>
+
+              {/* Botón No Relevante (Dislike) */}
+              <button
+                type="button"
+                onClick={() => handleReaction('DISLIKE')}
+                disabled={isReacting}
+                className={`px-2.5 py-1 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                  myReaction === 'DISLIKE'
+                    ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 shadow-2xs'
+                    : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-rose-300'
+                }`}
+                title="Marcar como no relevante o mejorable"
+              >
+                <ThumbsDown className={`w-3.5 h-3.5 ${myReaction === 'DISLIKE' ? 'fill-rose-500 text-rose-500' : ''}`} />
+                <span>{dislikesCount}</span>
+              </button>
+            </div>
+
+            {/* Aviso RN-04 si el autor intenta votar su propio post */}
+            {authorVoteWarning && (
+              <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 animate-fadeIn">
+                ⚠️ RN-04: No puedes calificar tu propia publicación
+              </span>
+            )}
+          </div>
+
           {/* Footer Row: Author + Time + PDF Size + Download Button + Menu */}
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
             
@@ -406,14 +560,27 @@ export default function PostCard({ post, onPostUpdated }) {
               <button
                 type="button"
                 onClick={() => {
+                  if (isGated) {
+                    setShowGatingModal(true);
+                    return;
+                  }
                   if (mainAttachment) handleSaveOffline(mainAttachment);
                   else alert(`Descargando copia del recurso "${post.title}"`);
                 }}
                 disabled={mainAttachment && savingFileId === mainAttachment.id}
-                className="px-3.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs"
-                title="Guardar en el almacenamiento del navegador (PWA) y descargar copia física"
+                className={`px-3.5 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition shadow-2xs ${
+                  isGated
+                    ? 'border-amber-300 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100/70'
+                    : 'border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300'
+                }`}
+                title={isGated ? 'Comparte al menos 1 apunte para desbloquear descargas' : 'Guardar en el almacenamiento del navegador (PWA) y descargar copia física'}
               >
-                {mainAttachment && downloadSaved[mainAttachment.id] ? (
+                {isGated ? (
+                  <>
+                    <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>Bloqueado</span>
+                  </>
+                ) : mainAttachment && downloadSaved[mainAttachment.id] ? (
                   <>
                     <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600" />
                     <span className="text-emerald-600 font-bold">Guardado</span>
@@ -546,6 +713,13 @@ export default function PostCard({ post, onPostUpdated }) {
           onClose={() => setViewingFile(null)}
         />
       )}
+
+      {/* Modal de Desbloqueo Condicionado (Gating) */}
+      <GatingUnlockModal
+        isOpen={showGatingModal}
+        onClose={() => setShowGatingModal(false)}
+        resourceTitle={post.title}
+      />
     </article>
   );
 }

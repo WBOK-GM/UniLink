@@ -64,6 +64,10 @@ export const api = {
   // Categories
   getCategories: () => request('/categories'),
   suggestCategory: (payload) => request('/categories/suggest', { method: 'POST', body: JSON.stringify(payload) }),
+  getCategorySuggestions: () => request('/categories/suggestions'),
+  approveCategorySuggestion: (id) => request(`/categories/suggestions/${id}/approve`, { method: 'POST' }),
+  rejectCategorySuggestion: (id) => request(`/categories/suggestions/${id}/reject`, { method: 'POST' }),
+  createCategory: (payload) => request('/categories', { method: 'POST', body: JSON.stringify(payload) }),
 
   // Posts
   getPosts: async (params = '') => {
