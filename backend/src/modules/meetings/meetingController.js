@@ -118,7 +118,7 @@ const createMeeting = async (req, res) => {
       await notifyUser(member.user_id, {
         title: '📅 Nuevo Encuentro Académico',
         message: `Se ha programado "${newMeeting.title}" en el grupo "${group.name}".`,
-        url: `/groups/${group_id}`,
+        url: '/groups',
         notification_type: 'MEETING_SCHEDULED',
         reference_type: 'MEETING',
         reference_id: meetingId

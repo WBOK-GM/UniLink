@@ -68,6 +68,14 @@ const getGroupTasks = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Grupo no encontrado.' });
     }
 
+    const requesterId = req.user ? req.user.id : null;
+    const requesterMembership = memoryStore.group_members.find(
+      m => m.group_id === id && m.user_id === requesterId && m.membership_status === 'ACTIVE'
+    );
+    if (!requesterMembership && req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, error: 'Debes ser miembro activo del grupo para ver las tareas.' });
+    }
+
     if (!memoryStore.group_tasks) {
       memoryStore.group_tasks = [];
     }
@@ -179,7 +187,10 @@ const updateGroupTask = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Solo miembros activos pueden modificar tareas.' });
     }
 
-    if (status && ['TODO', 'IN_PROGRESS', 'DONE'].includes(status)) {
+    if (status !== undefined && !['TODO', 'IN_PROGRESS', 'DONE'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Estado de tarea no válido. Usa TODO, IN_PROGRESS o DONE.' });
+    }
+    if (status) {
       task.status = status;
     }
     if (title && title.trim()) {
