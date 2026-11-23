@@ -28,7 +28,7 @@ import { calculateFileSha256 } from '../utils/cryptoUtils';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateContributionAccess } = useAuth();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -47,6 +47,7 @@ export default function CreatePostPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
+  const hasSupportingFile = attachedFiles.length > 0 || Boolean(recordedAudio);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,6 +89,10 @@ export default function CreatePostPage() {
       alert('Por favor completa el título, contenido y categoría.');
       return;
     }
+    if (!hasSupportingFile && content.trim().length < 255) {
+      alert('Las publicaciones solo de texto deben tener al menos 255 caracteres.');
+      return;
+    }
     // Abrir modal de derechos de autor antes de procesar
     setShowCopyrightModal(true);
   };
@@ -97,6 +102,10 @@ export default function CreatePostPage() {
     setSubmitting(true);
 
     const clientOpId = crypto.randomUUID();
+    const attachmentsToQueue = [
+      ...attachedFiles,
+      ...(recordedAudio ? [recordedAudio] : [])
+    ];
 
     // 1. MODO OFFLINE: Si no hay conexión, guardar en IndexedDB (Dexie)
     if (!navigator.onLine) {
@@ -109,7 +118,8 @@ export default function CreatePostPage() {
           group_id: groupId || null,
           post_type: postType,
           location: locationText,
-          attachments_meta: attachedFiles.map(f => ({ name: f.name, size: f.size, type: f.type }))
+          attachments: attachmentsToQueue,
+          attachments_meta: attachmentsToQueue.map(file => ({ name: file.name, size: file.size, type: file.type }))
         });
 
         alert('📴 Publicación guardada en tu dispositivo (Modo Offline). Se enviará automáticamente cuando recuperes la conexión.');
@@ -155,24 +165,40 @@ export default function CreatePostPage() {
 
       const res = await api.createPost(formData);
       if (res.success) {
+        const accessUpdated = updateContributionAccess(res.contribution_access);
+        if (!accessUpdated) {
+          alert('Tu aporte se publicó, pero el servidor no devolvió el estado actualizado del desbloqueo.');
+        }
         navigate('/');
       } else {
         alert(res.error || 'Error al crear la publicación.');
       }
     } catch (err) {
-      console.warn('Fallo de red, guardando en cola offline:', err);
-      // Fallback automático si la red falló durante el envío
-      await queueOfflinePost({
-        client_operation_id: clientOpId,
-        title,
-        content,
-        category_id: categoryId,
-        group_id: groupId || null,
-        post_type: postType,
-        location: locationText
-      });
-      alert('No se pudo contactar el servidor. Se guardó en la cola local offline.');
-      navigate('/offline-queue');
+      if (!err.isOffline) {
+        console.error('Error al publicar el recurso:', err);
+        alert(err.message || 'No se pudo publicar el recurso.');
+        return;
+      }
+
+      console.warn('Sin conexión con el servidor, guardando en cola offline:', err);
+      try {
+        await queueOfflinePost({
+          client_operation_id: clientOpId,
+          title,
+          content,
+          category_id: categoryId,
+          group_id: groupId || null,
+          post_type: postType,
+          location: locationText,
+          attachments: attachmentsToQueue,
+          attachments_meta: attachmentsToQueue.map(file => ({ name: file.name, size: file.size, type: file.type }))
+        });
+        alert('No se pudo contactar el servidor. Se guardó en la cola local offline.');
+        navigate('/offline-queue');
+      } catch (queueError) {
+        console.error('No se pudo guardar el recurso en la cola offline:', queueError);
+        alert(`No se pudo publicar ni guardar el recurso localmente: ${queueError.message}`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -287,7 +313,7 @@ export default function CreatePostPage() {
           {/* Content Textarea */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Descripción y contenido explicativo *
+              Descripción y contenido explicativo * {!hasSupportingFile && '(mínimo 255 caracteres si no adjuntas archivos)'}
             </label>
             <textarea
               required
@@ -297,6 +323,9 @@ export default function CreatePostPage() {
               placeholder="Explica de qué trata el material, fórmulas importantes, profesor o recomendaciones de estudio..."
               className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white shadow-sm focus:outline-none focus:border-brand-500 transition resize-y"
             />
+            <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              {content.trim().length} caracteres{hasSupportingFile ? '' : ' / 255 mínimo para publicaciones solo de texto'}
+            </p>
           </div>
 
           {/* Audio Recorder Component */}

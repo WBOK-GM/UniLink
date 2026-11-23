@@ -27,7 +27,6 @@ function ProtectedRoute({ children }) {
 }
 
 function MainLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallable, setIsInstallable] = useState(false);
@@ -65,8 +64,6 @@ function MainLayout() {
       
       {/* 1. Sidebar Fijo en Escritorio / Desplegable en Móvil */}
       <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
         onOpenAudit={() => setShowAuditModal(true)}
         onInstallApp={handleInstallApp}
         isInstallable={isInstallable}
@@ -80,7 +77,6 @@ function MainLayout() {
 
         {/* Barra Superior con Tag Campus, Estado de Red y Acciones */}
         <TopHeader
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           onOpenAudit={() => setShowAuditModal(true)}
         />
 
@@ -114,7 +110,11 @@ function MainLayout() {
         </main>
 
         {/* Navegación Inferior en Móvil */}
-        <BottomNav onOpenSidebar={() => setSidebarOpen(true)} />
+        <BottomNav
+          onOpenAudit={() => setShowAuditModal(true)}
+          onInstallApp={handleInstallApp}
+          isInstallable={isInstallable}
+        />
       </div>
 
       {/* Consola Administrativa Dinámica Zero-Footprint (Carga bajo demanda en vivo) */}
