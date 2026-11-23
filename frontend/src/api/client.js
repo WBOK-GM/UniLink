@@ -106,6 +106,7 @@ export const api = {
   },
   createPost: (formData) => request('/posts', { method: 'POST', body: formData }),
   reactToPost: (id, reaction_type) => request(`/posts/${id}/react`, { method: 'POST', body: JSON.stringify({ reaction_type }) }),
+  ratePost: (id, rating) => request(`/posts/${id}/rate`, { method: 'POST', body: JSON.stringify({ rating }) }),
   deactivatePost: (id) => request(`/posts/${id}`, { method: 'DELETE' }),
   reactivatePost: (id) => request(`/posts/${id}/reactivate`, { method: 'PATCH' }),
 

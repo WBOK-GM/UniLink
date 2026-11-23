@@ -1,7 +1,7 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const { memoryStore } = require('../../config/db');
+const { memoryStore, persistPostRating, deletePostRating } = require('../../config/db');
 const { getFileUrl, uploadFileToR2 } = require('../../config/storage');
 const { recordFileAccess } = require('../../services/storageRetentionService');
 const { notifyUser } = require('../notifications/notificationController');
@@ -73,16 +73,22 @@ const getPosts = async (req, res) => {
         };
       }).filter(Boolean);
 
-      // Reacciones y calificación de 1 a 5 estrellas
+      // Reacciones (útil/no útil)
       const postReactions = memoryStore.post_reactions.filter(r => r.post_id === post.id);
       const likesCount = postReactions.filter(r => r.reaction_type === 'LIKE').length;
       const dislikesCount = postReactions.filter(r => r.reaction_type === 'DISLIKE').length;
-      const totalRatings = likesCount + dislikesCount;
-      const averageRating = totalRatings > 0
-        ? Number(((likesCount * 5 + dislikesCount * 1) / totalRatings).toFixed(1))
-        : 5.0;
       const myReaction = currentUserId
         ? (postReactions.find(r => r.user_id === currentUserId) || {}).reaction_type || null
+        : null;
+
+      // Calificación real de 1 a 5 estrellas
+      const postRatings = memoryStore.post_ratings.filter(r => r.post_id === post.id);
+      const ratingsCount = postRatings.length;
+      const averageRating = ratingsCount > 0
+        ? Number((postRatings.reduce((sum, r) => sum + r.rating, 0) / ratingsCount).toFixed(1))
+        : null;
+      const myRating = currentUserId
+        ? (postRatings.find(r => r.user_id === currentUserId) || {}).rating || null
         : null;
 
       return {
@@ -104,7 +110,8 @@ const getPosts = async (req, res) => {
         likes_count: likesCount,
         dislikes_count: dislikesCount,
         average_rating: averageRating,
-        ratings_count: totalRatings,
+        ratings_count: ratingsCount,
+        my_rating: myRating,
         my_reaction: myReaction,
         client_operation_id: post.client_operation_id,
         created_at: post.created_at
@@ -362,6 +369,74 @@ const reactToPost = async (req, res) => {
   }
 };
 
+const ratePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const rating = Number(req.body.rating);
+
+    const post = memoryStore.posts.find(p => p.id === id);
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Publicación no encontrada.' });
+    }
+
+    // RN-04: El autor no puede calificar su propia publicación
+    if (post.author_id === userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'El autor no puede calificar su propia publicación.'
+      });
+    }
+
+    if (!Number.isInteger(rating) || rating < 0 || rating > 5) {
+      return res.status(400).json({ success: false, error: 'La calificación debe ser un entero entre 1 y 5.' });
+    }
+
+    const existingIndex = memoryStore.post_ratings.findIndex(
+      r => r.post_id === id && r.user_id === userId
+    );
+
+    // Retirar calificación si envía 0 o vuelve a pulsar la misma estrella
+    if (rating === 0 || (existingIndex >= 0 && memoryStore.post_ratings[existingIndex].rating === rating)) {
+      if (existingIndex >= 0) {
+        memoryStore.post_ratings.splice(existingIndex, 1);
+        deletePostRating(id, userId).catch(() => {});
+      }
+    } else if (existingIndex >= 0) {
+      memoryStore.post_ratings[existingIndex].rating = rating;
+      memoryStore.post_ratings[existingIndex].updated_at = new Date();
+      persistPostRating(memoryStore.post_ratings[existingIndex]).catch(() => {});
+    } else {
+      const record = {
+        id: uuidv4(),
+        post_id: id,
+        user_id: userId,
+        rating,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      memoryStore.post_ratings.push(record);
+      persistPostRating(record).catch(() => {});
+    }
+
+    const ratings = memoryStore.post_ratings.filter(r => r.post_id === id);
+    const ratingsCount = ratings.length;
+    const averageRating = ratingsCount > 0
+      ? Number((ratings.reduce((sum, r) => sum + r.rating, 0) / ratingsCount).toFixed(1))
+      : null;
+    const mine = ratings.find(r => r.user_id === userId);
+
+    return res.json({
+      success: true,
+      average_rating: averageRating,
+      ratings_count: ratingsCount,
+      my_rating: mine ? mine.rating : null
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 const deactivatePost = async (req, res) => {
   try {
     const { id } = req.params;
@@ -426,6 +501,7 @@ module.exports = {
   getPosts,
   createPost,
   reactToPost,
+  ratePost,
   deactivatePost,
   reactivatePost
 };
