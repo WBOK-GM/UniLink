@@ -267,10 +267,19 @@ const joinGroup = async (req, res) => {
       });
     }
 
-    // Si es privado, notificar al creador del grupo mediante Web Push y notificación interna
-    if (!isPublic) {
-      const applicantProfile = memoryStore.profiles.find(p => p.user_id === userId);
-      const applicantName = applicantProfile?.full_name || 'Un estudiante';
+    const applicantProfile = memoryStore.profiles.find(p => p.user_id === userId);
+    const applicantName = applicantProfile?.full_name || 'Un estudiante';
+
+    if (isPublic && group.creator_id !== userId) {
+      await notifyUser(group.creator_id, {
+        title: '👥 Nuevo integrante en tu grupo',
+        message: `${applicantName} se unió a tu grupo de estudio "${group.name}".`,
+        url: '/groups',
+        notification_type: 'GROUP_JOINED',
+        reference_type: 'GROUP',
+        reference_id: group.id
+      });
+    } else if (!isPublic) {
       await notifyUser(group.creator_id, {
         title: '👥 Nueva Solicitud de Ingreso',
         message: `${applicantName} solicitó unirse a tu grupo de estudio "${group.name}".`,
@@ -331,6 +340,19 @@ const respondJoinRequest = async (req, res) => {
     if (action === 'APPROVE') {
       membership.membership_status = 'ACTIVE';
       membership.joined_at = new Date();
+
+      const approvedProfile = memoryStore.profiles.find(p => p.user_id === memberId);
+      const approvedName = approvedProfile?.full_name || 'Un estudiante';
+      if (group.creator_id !== memberId) {
+        await notifyUser(group.creator_id, {
+          title: '👥 Nuevo integrante en tu grupo',
+          message: `${approvedName} se unió a tu grupo de estudio "${group.name}".`,
+          url: '/groups',
+          notification_type: 'GROUP_JOINED',
+          reference_type: 'GROUP',
+          reference_id: group.id
+        });
+      }
 
       await notifyUser(memberId, {
         title: '🎉 Solicitud Aceptada',

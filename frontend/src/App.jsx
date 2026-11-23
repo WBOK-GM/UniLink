@@ -38,25 +38,43 @@ function MainLayout() {
       setIsInstallable(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
       setIsInstallable(false);
-    }
+    };
+
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+    setIsInstallable(!isStandalone);
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const handleInstallApp = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    if (!deferredPrompt) {
+      const isAppleMobile = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+      window.alert(
+        isAppleMobile
+          ? 'Para instalar UniLink, abre el menú Compartir del navegador y selecciona “Añadir a pantalla de inicio”.'
+          : 'Tu navegador no ofrece la instalación directa en este momento. Abre el menú del navegador y selecciona “Instalar aplicación” o “Añadir a pantalla de inicio”.'
+      );
+      return;
+    }
+
+    const installPrompt = deferredPrompt;
+    setDeferredPrompt(null);
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
     if (outcome === 'accepted') {
       setIsInstallable(false);
     }
-    setDeferredPrompt(null);
   };
 
   return (

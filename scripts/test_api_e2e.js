@@ -92,18 +92,27 @@ async function runTests() {
 
     // 4. Create Post (Online)
     const opId = 'test-e2e-op-' + Date.now();
+    const customCategoryName = `Materia E2E ${Date.now()}`;
     const newPostRes = await apiCall('/posts', {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({
         title: 'Prueba Automatizada E2E de Apunte',
         content: 'Este contenido de prueba valida que una publicación compuesta únicamente por texto tenga una explicación académica suficientemente desarrollada. '.repeat(3),
-        category_id: 'c1',
+        category_name: customCategoryName,
         client_operation_id: opId,
         copyright_declaration_accepted: true
       })
     });
     assert('Creación de publicación exitosa con autoría RN-30', newPostRes.ok && !!newPostRes.body.post);
+    const { memoryStore } = require('../backend/src/config/db');
+    assert(
+      'Publicación acepta materia escrita y la agrega al catálogo',
+      !!newPostRes.body.post?.category_id &&
+        memoryStore.categories.some(
+          category => category.id === newPostRes.body.post.category_id && category.name === customCategoryName
+        )
+    );
     assert(
       'La publicación devuelve el acceso actualizado sin otra consulta',
       newPostRes.body.contribution_access?.contributions_count > initialContributionCount &&
@@ -264,6 +273,52 @@ async function runTests() {
       headers: adminHeaders
     });
     assert('Miembro adicional puede unirse al grupo público', adminJoinRes.ok);
+    const creatorNotifications = await apiCall('/notifications', { headers: authHeaders });
+    assert(
+      'El creador recibe notificación cuando alguien se une a su grupo público',
+      creatorNotifications.ok &&
+        creatorNotifications.body.notifications?.some(
+          notification =>
+            notification.notification_type === 'GROUP_JOINED' &&
+            notification.reference_id === testGroupId &&
+            notification.message.includes('se unió a tu grupo')
+        )
+    );
+
+    const privateGroup = await apiCall('/groups', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        name: 'Grupo Privado E2E Notificaciones',
+        category_id: 'c1',
+        group_type: 'PRIVATE',
+        location_latitude: 5.55,
+        location_longitude: -73.35
+      })
+    });
+    const privateJoin = await apiCall(`/groups/${privateGroup.body.group?.id}/join`, {
+      method: 'POST',
+      headers: adminHeaders
+    });
+    const approvePrivateJoin = await apiCall(
+      `/groups/${privateGroup.body.group?.id}/members/${adminLoginRes.body.user?.id}/respond`,
+      {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ action: 'APPROVE' })
+      }
+    );
+    const privateCreatorNotifications = await apiCall('/notifications', { headers: authHeaders });
+    assert(
+      'El creador recibe notificación cuando aprueba a alguien en su grupo privado',
+      privateJoin.body.membership_status === 'PENDING' &&
+        approvePrivateJoin.ok &&
+        privateCreatorNotifications.body.notifications?.some(
+          notification =>
+            notification.notification_type === 'GROUP_JOINED' &&
+            notification.reference_id === privateGroup.body.group?.id
+        )
+    );
 
     // Admin abandona el grupo
     const adminLeaveRes = await apiCall(`/groups/${testGroupId}/leave`, {
@@ -294,7 +349,6 @@ async function runTests() {
     // 8.2 Validación de Encuentros Cancelados (RN-22) y Cupo Máximo (RN-23)
     const testMeetingId = creatorMeeting.body.meeting?.id;
     // Forzar estado CANCELLED para validar RN-22
-    const { memoryStore } = require('../backend/src/config/db');
     const meetingInMemory = memoryStore.group_meetings.find(m => m.id === testMeetingId);
     if (meetingInMemory) meetingInMemory.status = 'CANCELLED';
 
