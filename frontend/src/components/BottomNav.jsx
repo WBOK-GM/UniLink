@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   Folder,
-  Compass,
   MoreVertical,
   Upload,
   Users,
@@ -102,11 +101,12 @@ export default function BottomNav({ onOpenAudit, onInstallApp, isInstallable }) 
     location.pathname === '/' &&
     new URLSearchParams(location.search).get('view') === 'search';
   const isHomeActive = location.pathname === '/' && !isSearchActive;
-  const isMapActive = location.pathname === '/map';
+  const isGroupsActive =
+    location.pathname === '/groups' || location.pathname === '/map';
   const isShareActive = location.pathname === '/create-post';
   const isMoreActive =
     moreOpen ||
-    ['/groups', '/meetings', '/profile', '/offline-queue'].includes(location.pathname);
+    ['/meetings', '/profile', '/offline-queue'].includes(location.pathname);
 
   useEffect(() => {
     setMoreOpen(false);
@@ -177,12 +177,12 @@ export default function BottomNav({ onOpenAudit, onInstallApp, isInstallable }) 
             active={isShareActive}
           />
 
-          {/* 4. Mapa */}
+          {/* 4. Grupos */}
           <NavItem
-            icon={Compass}
-            label="Mapa"
-            to="/map"
-            active={isMapActive}
+            icon={Users}
+            label="Grupos"
+            to="/groups"
+            active={isGroupsActive}
           />
 
           {/* 5. Más: menú flotante */}
@@ -201,14 +201,6 @@ export default function BottomNav({ onOpenAudit, onInstallApp, isInstallable }) 
                   Más opciones
                 </span>
               </div>
-
-              <MenuLink
-                icon={Users}
-                label="Grupos"
-                to="/groups"
-                active={location.pathname === '/groups'}
-                onClick={closeMenu}
-              />
 
               <MenuLink
                 icon={Calendar}
