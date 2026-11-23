@@ -106,6 +106,7 @@ export const api = {
   },
   createPost: (formData) => request('/posts', { method: 'POST', body: formData }),
   reactToPost: (id, reaction_type) => request(`/posts/${id}/react`, { method: 'POST', body: JSON.stringify({ reaction_type }) }),
+  ratePost: (id, rating) => request(`/posts/${id}/rate`, { method: 'POST', body: JSON.stringify({ rating }) }),
   deactivatePost: (id) => request(`/posts/${id}`, { method: 'DELETE' }),
   reactivatePost: (id) => request(`/posts/${id}/reactivate`, { method: 'PATCH' }),
 
@@ -116,6 +117,8 @@ export const api = {
   joinGroup: (id) => request(`/groups/${id}/join`, { method: 'POST' }),
   leaveGroup: (id) => request(`/groups/${id}/leave`, { method: 'POST' }),
   getGroupMembers: (groupId) => request(`/groups/${groupId}/members`),
+  getJoinRequests: (groupId) => request(`/groups/${groupId}/members?status=PENDING`),
+  respondJoinRequest: (groupId, memberId, action) => request(`/groups/${groupId}/members/${memberId}/respond`, { method: 'POST', body: JSON.stringify({ action }) }),
   getGroupTasks: (groupId) => request(`/groups/${groupId}/tasks`),
   createGroupTask: (groupId, payload) => request(`/groups/${groupId}/tasks`, { method: 'POST', body: JSON.stringify(payload) }),
   updateGroupTask: (groupId, taskId, payload) => request(`/groups/${groupId}/tasks/${taskId}`, { method: 'PATCH', body: JSON.stringify(payload) }),

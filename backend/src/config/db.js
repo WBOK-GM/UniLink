@@ -183,6 +183,7 @@ const memoryStore = {
   post_reactions: [
     { id: 'pr1', post_id: 'post-001', user_id: 'u2222222-2222-2222-2222-222222222222', reaction_type: 'LIKE', created_at: new Date() }
   ],
+  post_ratings: [],
   study_groups: [
     {
       id: 'g-001',
@@ -483,6 +484,26 @@ async function hydrateMemoryStoreFromPg() {
       }
     }
 
+    // 8b. Calificaciones en estrellas (1-5)
+    try {
+      const ratingsRes = await pool.query('SELECT * FROM post_ratings');
+      for (const r of ratingsRes.rows) {
+        const idx = memoryStore.post_ratings.findIndex(mr => mr.post_id === r.post_id && mr.user_id === r.user_id);
+        const ratingObj = {
+          id: r.id,
+          post_id: r.post_id,
+          user_id: r.user_id,
+          rating: Number(r.rating),
+          created_at: new Date(r.created_at),
+          updated_at: new Date(r.updated_at || r.created_at)
+        };
+        if (idx >= 0) memoryStore.post_ratings[idx] = ratingObj;
+        else memoryStore.post_ratings.push(ratingObj);
+      }
+    } catch (err) {
+      console.warn('[UniLink DB] No se pudieron cargar las calificaciones:', err.message);
+    }
+
     // 9. Encuentros
     const meetingsRes = await pool.query('SELECT * FROM group_meetings');
     if (meetingsRes.rows && meetingsRes.rows.length > 0) {
@@ -547,7 +568,25 @@ async function hydrateMemoryStoreFromPg() {
       }
     }
 
-    console.log(`[UniLink DB] Sincronización exitosa: ${memoryStore.users.length} usuarios, ${memoryStore.posts.length} posts y ${memoryStore.study_groups.length} grupos en memoria.`);
+    // 12. Suscripciones Web Push (deben sobrevivir reinicios/cold-starts de Render)
+    const pushRes = await pool.query('SELECT * FROM push_subscriptions');
+    if (pushRes.rows && pushRes.rows.length > 0) {
+      for (const ps of pushRes.rows) {
+        const psObj = {
+          id: ps.id,
+          user_id: ps.user_id,
+          endpoint: ps.endpoint,
+          p256dh: ps.p256dh,
+          auth: ps.auth,
+          created_at: new Date(ps.created_at)
+        };
+        const idx = memoryStore.push_subscriptions.findIndex(s => s.endpoint === ps.endpoint);
+        if (idx >= 0) memoryStore.push_subscriptions[idx] = psObj;
+        else memoryStore.push_subscriptions.push(psObj);
+      }
+    }
+
+    console.log(`[UniLink DB] Sincronización exitosa: ${memoryStore.users.length} usuarios, ${memoryStore.posts.length} posts, ${memoryStore.study_groups.length} grupos y ${memoryStore.push_subscriptions.length} suscripciones push en memoria.`);
   } catch (err) {
     console.warn('[UniLink DB] Error hidratando memoria desde PostgreSQL:', err.message);
   }
@@ -556,6 +595,25 @@ async function hydrateMemoryStoreFromPg() {
 /**
  * Inicialización completa de la base de datos
  */
+async function ensurePostRatingsTable() {
+  if (!pool) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS post_ratings (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uq_post_user_rating UNIQUE (post_id, user_id)
+      )
+    `);
+  } catch (err) {
+    console.warn('[UniLink DB] No se pudo asegurar la tabla post_ratings:', err.message);
+  }
+}
+
 async function initDatabase() {
   if (!pool) {
     console.log('[UniLink DB] DATABASE_URL no provista. Operando con almacén en memoria y seed inicial de prueba.');
@@ -567,6 +625,7 @@ async function initDatabase() {
     const res = await pool.query('SELECT NOW()');
     console.log('[UniLink DB] Conectado exitosamente a PostgreSQL (Neon):', res.rows[0].now);
     usePg = true;
+    await ensurePostRatingsTable();
     await hydrateMemoryStoreFromPg();
     return true;
   } catch (err) {
@@ -676,6 +735,78 @@ async function queryUserByEmail(email) {
   }
 }
 
+/**
+ * Persiste (inserta o actualiza) una suscripción Web Push en PostgreSQL.
+ * El endpoint es único por dispositivo, por lo que se usa ON CONFLICT para evitar duplicados.
+ */
+async function persistPushSubscription(sub) {
+  if (!pool) return false;
+  try {
+    await pool.query(
+      `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (endpoint) DO UPDATE
+         SET user_id = EXCLUDED.user_id,
+             p256dh = EXCLUDED.p256dh,
+             auth = EXCLUDED.auth`,
+      [sub.id, sub.user_id, sub.endpoint, sub.p256dh, sub.auth, sub.created_at || new Date()]
+    );
+    return true;
+  } catch (err) {
+    console.warn('[UniLink DB] Error persistiendo suscripción push en PostgreSQL:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Persiste (inserta o actualiza) la calificación de un usuario para una publicación.
+ */
+async function persistPostRating(record) {
+  if (!pool) return false;
+  try {
+    await pool.query(
+      `INSERT INTO post_ratings (id, post_id, user_id, rating, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (post_id, user_id) DO UPDATE
+         SET rating = EXCLUDED.rating,
+             updated_at = EXCLUDED.updated_at`,
+      [record.id, record.post_id, record.user_id, record.rating, record.created_at, record.updated_at]
+    );
+    return true;
+  } catch (err) {
+    console.warn('[UniLink DB] Error persistiendo calificación en PostgreSQL:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Elimina la calificación de un usuario para una publicación.
+ */
+async function deletePostRating(postId, userId) {
+  if (!pool) return false;
+  try {
+    await pool.query('DELETE FROM post_ratings WHERE post_id = $1 AND user_id = $2', [postId, userId]);
+    return true;
+  } catch (err) {
+    console.warn('[UniLink DB] Error eliminando calificación en PostgreSQL:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Elimina una suscripción Web Push expirada (410 Gone / 404 Not Found).
+ */
+async function deletePushSubscriptionByEndpoint(endpoint) {
+  if (!pool) return false;
+  try {
+    await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [endpoint]);
+    return true;
+  } catch (err) {
+    console.warn('[UniLink DB] Error eliminando suscripción push en PostgreSQL:', err.message);
+    return false;
+  }
+}
+
 // Iniciar en segundo plano sin bloquear importación
 if (pool) {
   initDatabase().catch(e => console.warn('[UniLink DB] Init diferido:', e.message));
@@ -688,5 +819,9 @@ module.exports = {
   initDatabase,
   hydrateMemoryStoreFromPg,
   persistUser,
-  queryUserByEmail
+  queryUserByEmail,
+  persistPostRating,
+  deletePostRating,
+  persistPushSubscription,
+  deletePushSubscriptionByEndpoint
 };

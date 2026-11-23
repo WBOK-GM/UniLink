@@ -41,8 +41,9 @@ export default function MeetingsPage() {
       ]);
       if (meetRes.success) setMeetings(meetRes.meetings || []);
       if (grpRes.success) {
-        setGroups(grpRes.groups || []);
-        if (grpRes.groups.length > 0) setGroupId(grpRes.groups[0].id);
+        const myGroups = (grpRes.groups || []).filter(g => g.my_membership?.status === 'ACTIVE');
+        setGroups(myGroups);
+        setGroupId(myGroups[0]?.id || '');
       }
     } catch (e) {
       console.warn('Error cargando encuentros:', e);
@@ -135,6 +136,10 @@ export default function MeetingsPage() {
                 alert('Modo Invitado: Para agendar o proponer encuentros de estudio debes registrarte o iniciar sesión.');
                 return;
               }
+              if (groups.length === 0) {
+                alert('Debes pertenecer a un grupo activo para programar encuentros.');
+                return;
+              }
               setShowCreateModal(true);
             }}
             className="px-5 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-brand-700 font-extrabold text-xs sm:text-sm shadow-lg shadow-black/15 flex items-center gap-2 transition hover:scale-105 active:scale-95 shrink-0"
@@ -157,6 +162,7 @@ export default function MeetingsPage() {
           {meetings.map((meeting) => {
             const isConfirmed = meeting.my_rsvp === 'CONFIRMED';
             const isDeclined = meeting.my_rsvp === 'DECLINED';
+            const canRsvp = groups.some(g => g.id === meeting.group_id && g.my_membership?.status === 'ACTIVE');
             const { day, month, time, weekday } = formatDateDetails(meeting.start_datetime);
 
             return (
@@ -230,6 +236,11 @@ export default function MeetingsPage() {
                 </div>
 
                 {/* RSVP Action Buttons */}
+                {!canRsvp ? (
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 w-full sm:w-auto">
+                    Únete al grupo para confirmar asistencia
+                  </span>
+                ) : (
                 <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-start pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
                   <span className="text-[11px] text-slate-500 font-bold hidden sm:block">¿Asistirás?</span>
 
@@ -259,6 +270,7 @@ export default function MeetingsPage() {
                     </button>
                   </div>
                 </div>
+                )}
               </div>
             );
           })}
@@ -379,6 +391,19 @@ export default function MeetingsPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Temas que se abordarán, guías necesarias..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 shadow-2xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
+                  Cupo máximo de asistentes
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={maxAttendees}
+                  onChange={(e) => setMaxAttendees(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
                 />
               </div>
 

@@ -35,12 +35,12 @@ import {
   BarChart3,
   Globe,
   Flame,
-  Bell,
   Sparkles
 } from 'lucide-react';
 import { api } from '../api/client';
 import { db } from '../db/db';
 import PostCard from '../components/PostCard';
+import NotificationsBell from '../components/NotificationsBell';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
@@ -53,6 +53,7 @@ export default function FeedPage({ onOpenAudit }) {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [formatFilter, setFormatFilter] = useState('ALL');
+  const [minRating, setMinRating] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -123,6 +124,7 @@ export default function FeedPage({ onOpenAudit }) {
     } else if (formatFilter === 'LOCATION') {
       if (!post.location) return false;
     }
+    if (minRating > 0 && (!post.average_rating || post.average_rating < minRating)) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -233,6 +235,38 @@ export default function FeedPage({ onOpenAudit }) {
               })}
             </div>
 
+            {/* Star rating filter */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">
+                Calificación:
+              </span>
+              {[
+                { value: 0, label: 'Todas' },
+                { value: 3, label: '3★+' },
+                { value: 4, label: '4★+' },
+                { value: 5, label: '5★' },
+              ].map((item) => {
+                const active = minRating === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => setMinRating(item.value)}
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition flex items-center gap-1 ${
+                      active
+                        ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    {item.value > 0 && (
+                      <Star className={`w-3 h-3 ${active ? 'fill-white text-white' : 'fill-amber-400 text-amber-400'}`} />
+                    )}
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Screen 2: "Explora por Categoría" 2x3 Grid */}
             <div className="space-y-2.5 pt-2">
               <div className="flex items-center gap-2">
@@ -249,7 +283,7 @@ export default function FeedPage({ onOpenAudit }) {
                   { name: 'Inteligencia Artificial', icon: Cpu },
                   { name: 'Redes y Distribuidos', icon: Network },
                   { name: 'Matemáticas y Cálculo', icon: Calculator },
-                  { name: 'Más Categorías', icon: BarChart3, isMore: true },
+                  { name: 'Proponer Materia', icon: BarChart3, isMore: true },
                 ].map((item, idx) => (
                   <button
                     key={idx}
@@ -285,7 +319,7 @@ export default function FeedPage({ onOpenAudit }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setFormatFilter('ALL'); setSearchQuery(''); setSelectedCategory(null); }}
+                  onClick={() => { setFormatFilter('ALL'); setMinRating(0); setSearchQuery(''); setSelectedCategory(null); }}
                   className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
                 >
                   Ver más →
@@ -352,17 +386,12 @@ export default function FeedPage({ onOpenAudit }) {
                 </div>
 
                 {/* Mobile notifications */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => alert('No tienes notificaciones pendientes')}
-                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
-                    title="Notificaciones"
-                  >
-                    <Bell className="w-4 h-4 text-white" />
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-purple-400" />
-                  </button>
-                </div>
+                {user && (
+                  <NotificationsBell
+                    buttonClassName="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
+                    iconClassName="w-4 h-4 text-white"
+                  />
+                )}
               </div>
 
               {/* Title & Tagline */}
@@ -675,6 +704,19 @@ export default function FeedPage({ onOpenAudit }) {
             <MapPin className="w-3.5 h-3.5 text-rose-500" />
             <span>Con Mapa en Campus</span>
           </button>
+
+          {/* Star rating filter */}
+          <select
+            value={minRating}
+            onChange={(e) => setMinRating(Number(e.target.value))}
+            className="ml-auto px-3 py-2 rounded-2xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-bold focus:outline-none focus:border-amber-400 shrink-0 cursor-pointer"
+            title="Filtrar por calificación mínima"
+          >
+            <option value={0}>Todas las calificaciones</option>
+            <option value={3}>3★ o más</option>
+            <option value={4}>4★ o más</option>
+            <option value={5}>Solo 5★</option>
+          </select>
         </div>
 
         {/* 4. ROW 2: CATEGORY FILTER PILLS (Matches Target Reference Image) */}
@@ -944,6 +986,33 @@ export default function FeedPage({ onOpenAudit }) {
                       }`}
                     >
                       {fmt === 'ALL' ? 'Todos' : fmt === 'DOCUMENT' ? 'Documentos' : fmt === 'AUDIO' ? 'Audios' : 'Con Mapa'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Calificación mínima
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { value: 0, label: 'Todas' },
+                    { value: 3, label: '3★+' },
+                    { value: 4, label: '4★+' },
+                    { value: 5, label: '5★' },
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setMinRating(item.value)}
+                      className={`p-2 rounded-xl text-xs font-bold text-center border transition ${
+                        minRating === item.value
+                          ? 'bg-amber-500 text-white border-transparent'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {item.label}
                     </button>
                   ))}
                 </div>

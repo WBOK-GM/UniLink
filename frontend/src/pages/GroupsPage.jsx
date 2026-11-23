@@ -19,6 +19,7 @@ import {
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import GroupDetailModal from '../components/GroupDetailModal';
+import LocationPickerModal from '../components/LocationPickerModal';
 
 export default function GroupsPage() {
   const { user } = useAuth();
@@ -39,6 +40,8 @@ export default function GroupsPage() {
   const [latitude, setLatitude] = useState(5.5530); // Campus Tunja
   const [longitude, setLongitude] = useState(-73.3565);
   const [submitting, setSubmitting] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationLabel, setLocationLabel] = useState('');
 
   const loadGroups = async () => {
     try {
@@ -383,33 +386,38 @@ export default function GroupsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                    Latitud Mapa Campus
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
-                    Longitud Mapa Campus
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
+                  Cupo máximo de miembros *
+                </label>
+                <input
+                  type="number"
+                  min="2"
+                  max="200"
+                  required
+                  value={maxMembers}
+                  onChange={(e) => setMaxMembers(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300 mb-1">
+                  Ubicación en el campus *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowLocationModal(true)}
+                  className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 hover:border-brand-400 transition"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <MapPin className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
+                    <span className="truncate">
+                      {locationLabel || `${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`}
+                    </span>
+                  </span>
+                  <span className="text-[10px] font-bold text-brand-700 dark:text-brand-300 shrink-0">Elegir en mapa</span>
+                </button>
               </div>
 
               <div className="flex justify-end gap-3 pt-3">
@@ -439,6 +447,19 @@ export default function GroupsPage() {
         groupId={selectedDetailGroupId}
         onClose={() => setSelectedDetailGroupId(null)}
         onGroupUpdated={loadGroups}
+      />
+
+      <LocationPickerModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        initialCoords={{ lat: Number(latitude), lng: Number(longitude) }}
+        initialPlaceName={locationLabel}
+        onSelectLocation={(loc) => {
+          setLatitude(loc.latitude);
+          setLongitude(loc.longitude);
+          setLocationLabel(loc.formatted || loc.placeName || '');
+          setShowLocationModal(false);
+        }}
       />
     </div>
   );

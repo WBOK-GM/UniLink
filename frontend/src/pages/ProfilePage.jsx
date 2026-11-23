@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   User,
   MapPin,
@@ -13,7 +14,10 @@ import {
   GraduationCap,
   Sparkles,
   BookOpen,
-  Building2
+  Building2,
+  AlertCircle,
+  UserPlus,
+  LockKeyhole
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
@@ -21,8 +25,20 @@ import AdminPortal from '../admin/AdminPortal';
 import StorageManagerModal from '../components/StorageManagerModal';
 import { getResilientPosition, UPTC_CAMPUS_PRESETS } from '../utils/geoUtils';
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export default function ProfilePage() {
-  const { user, updateUserProfile } = useAuth();
+  const navigate = useNavigate();
+  const { user, updateUserProfile, logout } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [biography, setBiography] = useState('');
@@ -112,27 +128,34 @@ export default function ProfilePage() {
 
       const reg = await navigator.serviceWorker.ready;
       const vapidRes = await api.getVapidPublicKey();
-      const publicKey = vapidRes.publicKey;
+      const applicationServerKey = urlBase64ToUint8Array(vapidRes.publicKey);
 
-      const padding = '='.repeat((4 - (publicKey.length % 4)) % 4);
-      const base64 = (publicKey + padding).replace(/\-/g, '+').replace(/_/g, '/');
-      const rawData = window.atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
+      // Reutilizar la suscripción existente; solo renovarla si la VAPID cambió
+      let subscription = await reg.pushManager.getSubscription();
+      if (subscription && subscription.options && subscription.options.applicationServerKey) {
+        const currentKey = new Uint8Array(subscription.options.applicationServerKey);
+        const sameKey = currentKey.length === applicationServerKey.length &&
+          currentKey.every((byte, index) => byte === applicationServerKey[index]);
+        if (!sameKey) {
+          await subscription.unsubscribe();
+          subscription = null;
+        }
       }
 
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: outputArray
-      });
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey
+        });
+      }
 
+      // Re-registrar siempre en el backend para restaurar suscripciones tras un cold-start
       await api.subscribePush(subscription.toJSON());
       setPushStatus('SUBSCRIBED');
       alert('🔔 ¡Notificaciones push activadas exitosamente!');
     } catch (err) {
       console.error('Error suscribiendo push:', err);
-      alert('Error al activar notificaciones: ' + err.message);
+      alert(`Error al activar notificaciones (${err.name || 'Error'}): ${err.message}`);
     }
   };
 
@@ -144,6 +167,61 @@ export default function ProfilePage() {
       alert(e.message);
     }
   };
+
+  const handleCreateAccount = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
+  if (user?.role === 'GUEST') {
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-24">
+        <div className="rounded-3xl border border-indigo-100 dark:border-indigo-900/60 bg-white dark:bg-slate-900 p-6 sm:p-8 text-center shadow-xl shadow-indigo-950/5">
+          <div className="mx-auto mb-5 w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25">
+            <UserPlus className="w-8 h-8" />
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11px] font-black uppercase tracking-wider mb-3">
+            <AlertCircle className="w-3.5 h-3.5" />
+            Vista de visitante
+          </div>
+
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+            Crea tu cuenta para usar tu perfil
+          </h1>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            Como invitado puedes explorar UniLink, pero tu perfil no se guarda ni puedes personalizarlo permanentemente.
+          </p>
+
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-3">
+              <User className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mb-2" />
+              <p className="text-xs font-bold text-slate-800 dark:text-white">Perfil personal</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Foto, biografía y carrera.</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-3">
+              <Bell className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mb-2" />
+              <p className="text-xs font-bold text-slate-800 dark:text-white">Notificaciones</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Novedades de grupos y recursos.</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-3">
+              <LockKeyhole className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mb-2" />
+              <p className="text-xs font-bold text-slate-800 dark:text-white">Acceso completo</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Publica y personaliza tu cuenta.</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCreateAccount}
+            className="mt-7 w-full sm:w-auto px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black shadow-lg shadow-indigo-600/25 transition"
+          >
+            Crear cuenta gratis
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 space-y-6">
@@ -366,7 +444,7 @@ export default function ProfilePage() {
               <select
                 onChange={(e) => handleSelectCampusPreset(e.target.value)}
                 defaultValue=""
-                className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer"
+                className="w-full sm:w-auto min-w-0 max-w-full px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer truncate"
               >
                 <option value="" disabled>Seleccionar sede/edificio de referencia...</option>
                 {UPTC_CAMPUS_PRESETS.map((p) => (

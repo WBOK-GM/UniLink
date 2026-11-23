@@ -135,6 +135,17 @@ CREATE TABLE IF NOT EXISTS post_reactions (
     CONSTRAINT uq_post_user_reaction UNIQUE (post_id, user_id)
 );
 
+-- 10b. POST_RATINGS: Calificación única de 1 a 5 estrellas por usuario
+CREATE TABLE IF NOT EXISTS post_ratings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_post_user_rating UNIQUE (post_id, user_id)
+);
+
 -- 11. GROUP_MEETINGS: Encuentros y sesiones de estudio presenciales/virtuales
 CREATE TABLE IF NOT EXISTS group_meetings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

@@ -13,6 +13,21 @@ const getMeetings = async (req, res) => {
       meetings = meetings.filter(m => m.group_id === group_id);
     }
 
+    // Privacidad: los encuentros de grupos privados solo son visibles para sus miembros
+    const visibleGroupIds = new Set(
+      memoryStore.study_groups
+        .filter(g => {
+          if (g.status !== 'ACTIVE') return false;
+          if (g.group_type === 'PUBLIC') return true;
+          if (!currentUserId) return false;
+          return memoryStore.group_members.some(
+            m => m.group_id === g.id && m.user_id === currentUserId && m.membership_status === 'ACTIVE'
+          );
+        })
+        .map(g => g.id)
+    );
+    meetings = meetings.filter(m => visibleGroupIds.has(m.group_id));
+
     meetings.sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
 
     const enriched = meetings.map(meeting => {
@@ -118,7 +133,7 @@ const createMeeting = async (req, res) => {
       await notifyUser(member.user_id, {
         title: '📅 Nuevo Encuentro Académico',
         message: `Se ha programado "${newMeeting.title}" en el grupo "${group.name}".`,
-        url: `/groups/${group_id}`,
+        url: '/groups',
         notification_type: 'MEETING_SCHEDULED',
         reference_type: 'MEETING',
         reference_id: meetingId

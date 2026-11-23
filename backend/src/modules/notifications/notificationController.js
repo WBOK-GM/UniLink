@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { memoryStore } = require('../../config/db');
+const { memoryStore, persistPushSubscription, deletePushSubscriptionByEndpoint } = require('../../config/db');
 const { webpush, vapidPublicKey } = require('../../config/vapid');
 
 const getNotifications = async (req, res) => {
@@ -59,6 +59,9 @@ const subscribePush = async (req, res) => {
       memoryStore.push_subscriptions.push(subRecord);
     }
 
+    // Persistir en PostgreSQL: sobrevive a reinicios/cold-starts de Render
+    await persistPushSubscription(subRecord);
+
     return res.status(201).json({
       success: true,
       message: 'Suscripción Web Push registrada exitosamente en el servidor.'
@@ -104,6 +107,7 @@ const sendPushToUser = async (userId, payload) => {
         if (err.statusCode === 410 || err.statusCode === 404) {
           const idx = memoryStore.push_subscriptions.findIndex(s => s.endpoint === sub.endpoint);
           if (idx >= 0) memoryStore.push_subscriptions.splice(idx, 1);
+          await deletePushSubscriptionByEndpoint(sub.endpoint);
         }
       }
     }
