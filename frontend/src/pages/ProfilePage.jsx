@@ -384,7 +384,7 @@ export default function ProfilePage() {
               <select
                 onChange={(e) => handleSelectCampusPreset(e.target.value)}
                 defaultValue=""
-                className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer"
+                className="w-full sm:w-auto min-w-0 max-w-full px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer truncate"
               >
                 <option value="" disabled>Seleccionar sede/edificio de referencia...</option>
                 {UPTC_CAMPUS_PRESETS.map((p) => (

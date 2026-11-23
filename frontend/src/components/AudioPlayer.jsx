@@ -1,18 +1,25 @@
 import React, { useState, useRef } from 'react';
-import { Play, Pause, Volume2, Music } from 'lucide-react';
+import { Play, Pause, Volume2, Music, AlertCircle } from 'lucide-react';
+import { resolveFileUrl } from '../api/client';
 
 export default function AudioPlayer({ src, title = 'Nota de audio académica' }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState(null);
   const audioRef = useRef(null);
+  const resolvedSrc = resolveFileUrl(src);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
+    setError(null);
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {
+        setError('No se pudo reproducir este audio. Verifica tu conexión o el formato del archivo.');
+        setIsPlaying(false);
+      });
     }
   };
 
@@ -32,9 +39,12 @@ export default function AudioPlayer({ src, title = 'Nota de audio académica' })
     <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 shadow-inner">
       <audio
         ref={audioRef}
-        src={src}
+        src={resolvedSrc}
+        preload="metadata"
+        playsInline
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
+        onError={() => setError('No se pudo cargar el audio. Puede que ya no esté disponible.')}
       />
       
       <button
@@ -61,6 +71,12 @@ export default function AudioPlayer({ src, title = 'Nota de audio académica' })
             style={{ width: `${progress}%` }}
           />
         </div>
+        {error && (
+          <p className="mt-1.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3 shrink-0" />
+            <span>{error}</span>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
 import React from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Home, Folder, Compass, Menu, Search } from 'lucide-react';
 
 export default function BottomNav({ onOpenSidebar }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isSearchActive = location.pathname === '/' && searchParams.get('view') === 'search';
@@ -14,7 +15,7 @@ export default function BottomNav({ onOpenSidebar }) {
     if (isSearchActive) {
       setSearchParams({});
     } else {
-      setSearchParams({ view: 'search' });
+      navigate('/?view=search');
     }
   };
 

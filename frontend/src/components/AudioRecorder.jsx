@@ -18,7 +18,9 @@ export default function AudioRecorder({ onAudioRecorded }) {
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+      const supportedType = preferredTypes.find((type) => window.MediaRecorder.isTypeSupported?.(type));
+      mediaRecorderRef.current = new MediaRecorder(stream, supportedType ? { mimeType: supportedType } : undefined);
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -28,12 +30,14 @@ export default function AudioRecorder({ onAudioRecorded }) {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const actualType = mediaRecorderRef.current?.mimeType || supportedType || 'audio/webm';
+        const extension = actualType.includes('mp4') ? 'm4a' : actualType.includes('ogg') ? 'ogg' : 'webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: actualType });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
 
         // Convertir a archivo File para adjuntar al post
-        const audioFile = new File([audioBlob], `nota_voz_${Date.now()}.webm`, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], `nota_voz_${Date.now()}.${extension}`, { type: actualType });
         if (onAudioRecorded) {
           onAudioRecorded(audioFile);
         }

@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useTheme } from '../context/ThemeContext';
 import StorageManagerModal from './StorageManagerModal';
+import NotificationsBell from './NotificationsBell';
 
 export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
   const location = useLocation();
@@ -31,7 +32,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
     <header className={`${isHome ? 'hidden lg:flex' : 'flex'} sticky top-0 z-30 bg-white/95 dark:bg-[#090d1f]/90 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 transition-colors shadow-2xs`}>
       
       {/* Left: Mobile Menu Trigger + Campus Pill Tag */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -42,11 +43,11 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
         </button>
 
         {/* University Location Pill Tag (Matches Reference Image) */}
-        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+        <div className="flex items-center gap-2.5 px-2 sm:px-3 py-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs min-w-0">
           <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
             <GraduationCap className="w-4 h-4" />
           </div>
-          <div>
+          <div className="hidden sm:block">
             <span className="text-xs font-black text-slate-900 dark:text-white leading-tight block">
               Comunidad Académica Universitaria
             </span>
@@ -59,7 +60,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
       </div>
 
       {/* Right Controls: Online status, Theme toggle & Auth */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {/* Guest Mode Indicator */}
         {user?.role === 'GUEST' && (
           <div className="flex items-center gap-2">
@@ -78,7 +79,7 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
         
         {/* Status: En línea con punto verde pulsante (Matches Reference Image) */}
         <div
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl text-xs font-bold border shadow-2xs ${
+          className={`hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-2xl text-xs font-bold border shadow-2xs ${
             isOnline
               ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800'
               : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/40 animate-pulse'
@@ -88,6 +89,14 @@ export default function TopHeader({ onToggleSidebar, onOpenAudit }) {
           <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
           <span className="text-xs font-bold">{isOnline ? 'En línea' : `Offline (${pendingCount})`}</span>
         </div>
+
+        {/* Notificaciones in-app */}
+        {user && (
+          <NotificationsBell
+            buttonClassName="relative p-2 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition shadow-2xs"
+            iconClassName="w-4 h-4"
+          />
+        )}
 
         {/* Theme Toggle Button (Light / Dark) */}
         <button

@@ -40,11 +40,17 @@ import {
   MoreVertical,
   Bell,
   Play,
-  Sparkles
+  Sparkles,
+  Flag,
+  Trash2,
+  HardDrive,
+  Eye
 } from 'lucide-react';
-import { api } from '../api/client';
-import { db } from '../db/db';
+import { api, resolveFileUrl } from '../api/client';
+import { db, saveResourceOffline } from '../db/db';
 import PostCard from '../components/PostCard';
+import AudioPlayer from '../components/AudioPlayer';
+import NotificationsBell from '../components/NotificationsBell';
 import { useAuth } from '../context/AuthContext';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 
@@ -58,6 +64,8 @@ export default function FeedPage({ onOpenAudit }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [formatFilter, setFormatFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuOpensUp, setMenuOpensUp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
@@ -149,6 +157,103 @@ export default function FeedPage({ onOpenAudit }) {
     return BookOpen;
   };
 
+  const getResourceAttachment = (item) =>
+    item.attachments?.find((att) => att.url) || null;
+
+  const handleDownloadResource = async (item) => {
+    setOpenMenuId(null);
+    const attachment = getResourceAttachment(item);
+    if (!attachment?.url) {
+      alert('Este recurso no tiene un archivo adjunto disponible.');
+      return;
+    }
+    try {
+      const response = await fetch(resolveFileUrl(attachment.url));
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = attachment.original_name || 'recurso_unilink';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (e) {
+      alert(`No se pudo descargar el recurso: ${e.message}`);
+    }
+  };
+
+  const handleSaveOfflineResource = async (item) => {
+    setOpenMenuId(null);
+    const attachment = getResourceAttachment(item);
+    if (!attachment?.url) {
+      alert('Este recurso no tiene un archivo adjunto disponible.');
+      return;
+    }
+    if (!user) {
+      alert('Inicia sesión para guardar recursos y consultarlos sin conexión.');
+      return;
+    }
+    try {
+      const response = await fetch(resolveFileUrl(attachment.url));
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      await saveResourceOffline(
+        item.id,
+        attachment.id || attachment.storage_key || attachment.original_name,
+        attachment.original_name || item.title,
+        blob,
+        user.id
+      );
+      alert('Recurso guardado. Ya puedes abrirlo sin conexión.');
+    } catch (e) {
+      alert(`No se pudo guardar offline: ${e.message}`);
+    }
+  };
+
+  const handleReportResource = async (item) => {
+    setOpenMenuId(null);
+    const reason = window.prompt('Motivo del reporte:', 'Contenido inapropiado');
+    if (!reason) return;
+    try {
+      await api.createReport({ post_id: item.id, reason });
+      alert('Reporte enviado al equipo de moderación.');
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const handleDeactivateResource = async (item) => {
+    setOpenMenuId(null);
+    if (!window.confirm('¿Desactivar este recurso? Dejará de aparecer en el feed.')) return;
+    try {
+      await api.deactivatePost(item.id);
+      loadData();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  const handleToggleResourceMenu = (event, item) => {
+    event.stopPropagation();
+    if (openMenuId === item.id) {
+      setOpenMenuId(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    setMenuOpensUp(window.innerHeight - rect.bottom < 220);
+    setOpenMenuId(item.id);
+  };
+
+  const handleOpenResourceInSearch = (item) => {
+    setOpenMenuId(null);
+    setSearchQuery(item.title || '');
+    setFormatFilter('ALL');
+    setSelectedCategory(null);
+    setSearchParams({ view: 'search' });
+  };
+
   // Demo fallback items for recent resources matching mobile screenshot 2
   const recentDisplayList = filteredPosts.length > 0 ? filteredPosts : [
     {
@@ -188,6 +293,13 @@ export default function FeedPage({ onOpenAudit }) {
     author: { full_name: 'Walter Alfonso' },
     created_at: new Date().toISOString()
   };
+
+  const featuredAttachment = getResourceAttachment(featuredPost);
+  const featuredIsAudio = !!featuredAttachment && (featuredAttachment.file_type === 'AUDIO' || featuredAttachment.mime_type?.startsWith('audio/'));
+  const featuredIsImage = !!featuredAttachment && (featuredAttachment.file_type === 'IMAGE' || featuredAttachment.mime_type?.startsWith('image/'));
+  const featuredDateLabel = featuredPost.created_at
+    ? new Date(featuredPost.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+    : 'Reciente';
 
   return (
     <div>
@@ -293,7 +405,7 @@ export default function FeedPage({ onOpenAudit }) {
                   { name: 'Inteligencia Artificial', icon: Cpu },
                   { name: 'Redes y Distribuidos', icon: Network },
                   { name: 'Matemáticas y Cálculo', icon: Calculator },
-                  { name: 'Más Categorías', icon: BarChart3, isMore: true },
+                  { name: 'Proponer Materia', icon: BarChart3, isMore: true },
                 ].map((item, idx) => (
                   <button
                     key={idx}
@@ -338,9 +450,16 @@ export default function FeedPage({ onOpenAudit }) {
 
               {/* Items List */}
               <div className="space-y-2">
-                {recentDisplayList.map((item) => (
+                {recentDisplayList.map((item) => {
+                  const audioAttachment = item.attachments?.find(
+                    (att) => att.file_type === 'AUDIO' || att.mime_type?.startsWith('audio/')
+                  );
+                  const hasAttachment = !!getResourceAttachment(item);
+                  const isRealPost = typeof item.id === 'string' && !item.id.startsWith('demo-');
+                  const canDeactivate = !!user && (item.author_id === user.id || item.author?.id === user.id);
+                  return (
+                  <div key={item.id} className="space-y-1.5">
                   <div
-                    key={item.id}
                     className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3 hover:border-indigo-200 transition"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -375,15 +494,80 @@ export default function FeedPage({ onOpenAudit }) {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => alert(`Opciones para "${item.title}"`)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg shrink-0"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={(event) => handleToggleResourceMenu(event, item)}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+                        aria-label={`Opciones de ${item.title}`}
+                        aria-expanded={openMenuId === item.id}
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+
+                      {openMenuId === item.id && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                          <div className={`absolute right-0 z-20 w-48 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs ${menuOpensUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                            {hasAttachment && (
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadResource(item)}
+                                className="w-full px-3 py-2 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 font-semibold"
+                              >
+                                <Download className="w-3.5 h-3.5 text-indigo-500" />
+                                Descargar
+                              </button>
+                            )}
+                            {hasAttachment && (
+                              <button
+                                type="button"
+                                onClick={() => handleSaveOfflineResource(item)}
+                                className="w-full px-3 py-2 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 font-semibold"
+                              >
+                                <HardDrive className="w-3.5 h-3.5 text-emerald-500" />
+                                Guardar offline
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenResourceInSearch(item)}
+                              className="w-full px-3 py-2 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 font-semibold"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-slate-500" />
+                              Ver recurso
+                            </button>
+                            {isRealPost && (
+                              <button
+                                type="button"
+                                onClick={() => handleReportResource(item)}
+                                className="w-full px-3 py-2 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 font-semibold"
+                              >
+                                <Flag className="w-3.5 h-3.5 text-amber-500" />
+                                Reportar
+                              </button>
+                            )}
+                            {isRealPost && canDeactivate && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeactivateResource(item)}
+                                className="w-full px-3 py-2 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 font-semibold"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Desactivar
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                ))}
+                  {audioAttachment && (
+                    <AudioPlayer src={audioAttachment.url} title={audioAttachment.original_name || item.title} />
+                  )}
+                  </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -415,7 +599,7 @@ export default function FeedPage({ onOpenAudit }) {
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center p-1 bg-white/10 backdrop-blur-md border border-white/20 shadow-sm">
                     <img
-                      src="/images/uptc_crest_official.png"
+                      src="/images/uptc_eagle_crest.png"
                       alt="Emblema UniLink"
                       className="w-full h-full object-contain"
                     />
@@ -428,15 +612,10 @@ export default function FeedPage({ onOpenAudit }) {
 
                 {/* Right controls: Bell Notification + Avatar */}
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => alert('No tienes notificaciones pendientes')}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
-                    title="Notificaciones"
-                  >
-                    <Bell className="w-4 h-4 text-white" />
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-purple-400" />
-                  </button>
+                  <NotificationsBell
+                    buttonClassName="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white relative transition shadow-2xs"
+                    iconClassName="w-4 h-4 text-white"
+                  />
 
                   <Link
                     to={user ? "/profile" : "/login"}
@@ -491,7 +670,7 @@ export default function FeedPage({ onOpenAudit }) {
                     <GraduationCap className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs font-black text-slate-900 dark:text-white block truncate">Apuntes en Feed</span>
+                    <span className="text-xs font-black text-slate-900 dark:text-white block leading-tight">Apuntes en Feed</span>
                     <span className="text-[10px] text-slate-500 block truncate">+{posts.length} disponibles</span>
                   </div>
                 </div>
@@ -507,7 +686,7 @@ export default function FeedPage({ onOpenAudit }) {
                     <Layers className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs font-black text-slate-900 dark:text-white block truncate">Materias Activas</span>
+                    <span className="text-xs font-black text-slate-900 dark:text-white block leading-tight">Materias Activas</span>
                     <span className="text-[10px] text-slate-500 block truncate">{categories.length} materias</span>
                   </div>
                 </div>
@@ -558,7 +737,7 @@ export default function FeedPage({ onOpenAudit }) {
                       <BookOpen className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <span className="text-xs font-black text-slate-900 dark:text-white block truncate">Mi Almacenamiento</span>
+                      <span className="text-xs font-black text-slate-900 dark:text-white block leading-tight">Mi Almacenamiento</span>
                       <span className="text-[10px] font-extrabold text-purple-600 dark:text-purple-400 block truncate">PWA Offline</span>
                     </div>
                   </div>
@@ -586,42 +765,68 @@ export default function FeedPage({ onOpenAudit }) {
               </div>
 
               {/* Featured Horizontal Card */}
-              <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-3.5">
-                <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-md relative">
-                  <img
-                    src="/images/pdf_thumb_waves.png"
-                    alt="Miniatura PDF"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <span className="inline-block px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
-                    {featuredPost.category?.name || 'Facultad de Ingeniería'}
-                  </span>
-                  
-                  <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug line-clamp-2">
-                    {featuredPost.title}
-                  </h4>
-
-                  <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <div className="w-5 h-5 rounded-full bg-indigo-600 text-white font-black flex items-center justify-center text-[9px] shrink-0">
-                        {featuredPost.author?.full_name ? featuredPost.author.full_name.charAt(0) : 'W'}
+              <div className="space-y-2">
+                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-start gap-3.5">
+                  <div
+                    onClick={() => featuredAttachment?.url && window.open(resolveFileUrl(featuredAttachment.url), '_blank', 'noopener,noreferrer')}
+                    className={`w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-md relative ${featuredAttachment?.url ? 'cursor-pointer' : ''}`}
+                  >
+                    {featuredIsImage ? (
+                      <img
+                        src={resolveFileUrl(featuredAttachment.url)}
+                        alt={featuredPost.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : featuredIsAudio ? (
+                      <div className="w-full h-full bg-gradient-to-br from-indigo-700 to-indigo-500 text-white flex items-center justify-center">
+                        <Mic className="w-7 h-7" />
                       </div>
-                      <span className="truncate">{featuredPost.author?.full_name || 'Walter Alfonso'} • Hace 4 h</span>
-                    </div>
+                    ) : (
+                      <img
+                        src="/images/pdf_thumb_waves.png"
+                        alt="Miniatura PDF"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={() => alert(`Descargando "${featuredPost.title}"`)}
-                      className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 hover:bg-indigo-100 transition"
-                      title="Descargar recurso"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <span className="inline-block px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                      {featuredPost.category?.name || 'Facultad de Ingeniería'}
+                    </span>
+
+                    <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug line-clamp-2">
+                      {featuredPost.title}
+                    </h4>
+
+                    <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <div className="w-5 h-5 rounded-full bg-indigo-600 text-white font-black flex items-center justify-center text-[9px] shrink-0">
+                          {featuredPost.author?.full_name ? featuredPost.author.full_name.charAt(0) : 'W'}
+                        </div>
+                        <span className="truncate">{featuredPost.author?.full_name || 'Walter Alfonso'} • {featuredDateLabel}</span>
+                      </div>
+
+                      {featuredAttachment?.url && (
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadResource(featuredPost)}
+                          className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 hover:bg-indigo-100 transition"
+                          title="Descargar recurso"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {featuredIsAudio && (
+                  <AudioPlayer
+                    src={featuredAttachment.url}
+                    title={featuredAttachment.original_name || featuredPost.title}
+                  />
+                )}
               </div>
 
               {/* Carousel Pagination Dots */}

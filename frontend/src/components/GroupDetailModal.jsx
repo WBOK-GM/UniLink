@@ -70,6 +70,13 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
     }
   }, [isOpen, groupId]);
 
+  // Los no-miembros no pueden ver tareas: mostrarles directamente la pestaña de integrantes
+  useEffect(() => {
+    if (group && !(group.my_membership && group.my_membership.status === 'ACTIVE')) {
+      setActiveTab('MEMBERS');
+    }
+  }, [group]);
+
   if (!isOpen || !groupId) return null;
 
   const isMember = group?.my_membership && group.my_membership.status === 'ACTIVE';
@@ -142,26 +149,31 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
   };
 
   const handleRespondRequest = async (memberId, action) => {
+    const verb = action === 'APPROVE' ? 'aprobar' : 'rechazar';
+    if (!confirm(`¿Seguro que deseas ${verb} esta solicitud de ingreso?`)) return;
     try {
       const res = await api.respondJoinRequest(groupId, memberId, action);
-      if (res.success) await loadData();
+      if (res.success) {
+        await loadData();
+        if (onGroupUpdated) onGroupUpdated();
+      }
     } catch (err) {
       alert(err.message || 'Error al procesar la solicitud.');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-3xl max-h-[92vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all">
         {/* Header Modal */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20">
+        <div className="flex items-start sm:items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20 shrink-0">
               <Users className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white break-words">
                   {group?.name || 'Grupo de Estudio'}
                 </h3>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -181,44 +193,48 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Sub-header Tabs */}
-        <div className="flex items-center justify-between px-6 py-2.5 bg-slate-100/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold shrink-0">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('TASKS')}
-              className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
-                activeTab === 'TASKS'
-                  ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <ListTodo className="w-3.5 h-3.5" />
-              <span>Tareas Grupales ({tasks.length})</span>
-            </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 sm:px-6 py-2.5 bg-slate-100/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto w-full sm:w-auto pb-0.5">
+            {isMember && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('TASKS')}
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+                  activeTab === 'TASKS'
+                    ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <ListTodo className="w-3.5 h-3.5" />
+                <span className="sm:hidden">Tareas ({tasks.length})</span>
+                <span className="hidden sm:inline">Tareas Grupales ({tasks.length})</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setActiveTab('MEMBERS')}
-              className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              className={`shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
                 activeTab === 'MEMBERS'
                   ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Integrantes y Roles ({members.length})</span>
+              <span className="sm:hidden">Integrantes ({members.length})</span>
+              <span className="hidden sm:inline">Integrantes y Roles ({members.length})</span>
             </button>
             {canModerate && (
               <button
                 type="button"
                 onClick={() => setActiveTab('REQUESTS')}
-                className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
                   activeTab === 'REQUESTS'
                     ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
