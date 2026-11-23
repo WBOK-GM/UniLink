@@ -132,9 +132,9 @@ export const api = {
   // Notifications & Push
   getNotifications: () => request('/notifications'),
   markNotificationRead: (id) => request(`/notifications/${id}/read`, { method: 'PUT' }),
-  getVapidPublicKey: () => request('/notifications/vapid-public-key'),
+  getVapidPublicKey: () => request('/notifications/vapid-public-key', { cache: 'no-store' }),
   subscribePush: (subscription) => request('/notifications/subscribe', { method: 'POST', body: JSON.stringify({ subscription }) }),
-  testPush: () => request('/notifications/test-push', { method: 'POST' }),
+  testPush: (endpoint) => request('/notifications/test-push', { method: 'POST', body: JSON.stringify({ endpoint }) }),
 
   // Reports
   createReport: (payload) => request('/reports', { method: 'POST', body: JSON.stringify(payload) }),

@@ -11,6 +11,7 @@ const { v4: uuidv4 } = require('uuid');
 
 let pool = null;
 let usePg = false;
+let databaseInitialization;
 
 // Datos en memoria / seed inicial para modo desacoplado (cuando no hay DATABASE_URL configurada)
 const memoryStore = {
@@ -568,25 +569,7 @@ async function hydrateMemoryStoreFromPg() {
       }
     }
 
-    // 12. Suscripciones Web Push (deben sobrevivir reinicios/cold-starts de Render)
-    const pushRes = await pool.query('SELECT * FROM push_subscriptions');
-    if (pushRes.rows && pushRes.rows.length > 0) {
-      for (const ps of pushRes.rows) {
-        const psObj = {
-          id: ps.id,
-          user_id: ps.user_id,
-          endpoint: ps.endpoint,
-          p256dh: ps.p256dh,
-          auth: ps.auth,
-          created_at: new Date(ps.created_at)
-        };
-        const idx = memoryStore.push_subscriptions.findIndex(s => s.endpoint === ps.endpoint);
-        if (idx >= 0) memoryStore.push_subscriptions[idx] = psObj;
-        else memoryStore.push_subscriptions.push(psObj);
-      }
-    }
-
-    console.log(`[UniLink DB] Sincronización exitosa: ${memoryStore.users.length} usuarios, ${memoryStore.posts.length} posts, ${memoryStore.study_groups.length} grupos y ${memoryStore.push_subscriptions.length} suscripciones push en memoria.`);
+    console.log(`[UniLink DB] Sincronización exitosa: ${memoryStore.users.length} usuarios, ${memoryStore.posts.length} posts y ${memoryStore.study_groups.length} grupos en memoria.`);
   } catch (err) {
     console.warn('[UniLink DB] Error hidratando memoria desde PostgreSQL:', err.message);
   }
@@ -614,7 +597,46 @@ async function ensurePostRatingsTable() {
   }
 }
 
-async function initDatabase() {
+async function initPushSubscriptions() {
+  try {
+    let subscriptions;
+    try {
+      ({ rows: subscriptions } = await pool.query('SELECT * FROM push_subscriptions'));
+    } catch (err) {
+      if (err.code !== '42P01') throw err;
+      await pool.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id UUID PRIMARY KEY,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+      `);
+      ({ rows: subscriptions } = await pool.query('SELECT * FROM push_subscriptions'));
+    }
+    for (const subscription of subscriptions) {
+      const record = { ...subscription, created_at: new Date(subscription.created_at) };
+      const index = memoryStore.push_subscriptions.findIndex(s => s.endpoint === record.endpoint);
+      if (index >= 0) memoryStore.push_subscriptions[index] = record;
+      else memoryStore.push_subscriptions.push(record);
+    }
+  } catch (err) {
+    console.warn('[UniLink DB] No se pudieron recuperar las suscripciones push:', err.message);
+  }
+}
+
+function initDatabase() {
+  if (!databaseInitialization) {
+    databaseInitialization = connectDatabase().finally(() => {
+      databaseInitialization = undefined;
+    });
+  }
+  return databaseInitialization;
+}
+
+async function connectDatabase() {
   if (!pool) {
     console.log('[UniLink DB] DATABASE_URL no provista. Operando con almacén en memoria y seed inicial de prueba.');
     usePg = false;
@@ -627,6 +649,7 @@ async function initDatabase() {
     usePg = true;
     await ensurePostRatingsTable();
     await hydrateMemoryStoreFromPg();
+    await initPushSubscriptions();
     return true;
   } catch (err) {
     console.warn('[UniLink DB] No se pudo conectar a PostgreSQL externo. Usando almacén en memoria:', err.message);
@@ -746,9 +769,11 @@ async function persistPushSubscription(sub) {
       `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (endpoint) DO UPDATE
-         SET user_id = EXCLUDED.user_id,
+         SET id = EXCLUDED.id,
+             user_id = EXCLUDED.user_id,
              p256dh = EXCLUDED.p256dh,
-             auth = EXCLUDED.auth`,
+             auth = EXCLUDED.auth,
+             created_at = EXCLUDED.created_at`,
       [sub.id, sub.user_id, sub.endpoint, sub.p256dh, sub.auth, sub.created_at || new Date()]
     );
     return true;
@@ -796,10 +821,10 @@ async function deletePostRating(postId, userId) {
 /**
  * Elimina una suscripción Web Push expirada (410 Gone / 404 Not Found).
  */
-async function deletePushSubscriptionByEndpoint(endpoint) {
+async function deletePushSubscription(id) {
   if (!pool) return false;
   try {
-    await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [endpoint]);
+    await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [id]);
     return true;
   } catch (err) {
     console.warn('[UniLink DB] Error eliminando suscripción push en PostgreSQL:', err.message);
@@ -823,5 +848,5 @@ module.exports = {
   persistPostRating,
   deletePostRating,
   persistPushSubscription,
-  deletePushSubscriptionByEndpoint
+  deletePushSubscription
 };
