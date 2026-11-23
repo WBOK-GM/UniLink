@@ -274,7 +274,7 @@ const joinGroup = async (req, res) => {
       await notifyUser(group.creator_id, {
         title: '👥 Nueva Solicitud de Ingreso',
         message: `${applicantName} solicitó unirse a tu grupo de estudio "${group.name}".`,
-        url: `/groups/${group.id}`,
+        url: '/groups',
         notification_type: 'GROUP_REQUEST',
         reference_type: 'GROUP',
         reference_id: group.id

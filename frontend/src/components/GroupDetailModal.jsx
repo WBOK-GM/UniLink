@@ -22,6 +22,7 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
   const { user } = useAuth();
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
+  const [joinRequests, setJoinRequests] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [activeTab, setActiveTab] = useState('TASKS'); // 'TASKS' | 'MEMBERS'
   const [loading, setLoading] = useState(true);
@@ -43,9 +44,18 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
         api.getGroupTasks(groupId).catch(() => ({ tasks: [] }))
       ]);
 
-      if (grpRes?.group) setGroup(grpRes.group);
+      const grp = grpRes?.group || null;
+      if (grp) setGroup(grp);
       if (memRes?.members) setMembers(memRes.members);
       if (taskRes?.tasks) setTasks(taskRes.tasks);
+
+      const privileged = ['OWNER', 'MODERATOR'].includes(grp?.my_membership?.role) || user?.role === 'ADMIN';
+      if (privileged) {
+        const reqRes = await api.getJoinRequests(groupId).catch(() => ({ members: [] }));
+        setJoinRequests(reqRes?.members || []);
+      } else {
+        setJoinRequests([]);
+      }
     } catch (err) {
       console.warn('Error cargando detalles de grupo:', err);
     } finally {
@@ -64,6 +74,7 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
 
   const isMember = group?.my_membership && group.my_membership.status === 'ACTIVE';
   const myRole = group?.my_membership?.role; // 'OWNER' | 'MODERATOR' | 'MEMBER'
+  const canModerate = ['OWNER', 'MODERATOR'].includes(myRole) || user?.role === 'ADMIN';
 
   // Crear Tarea
   const handleCreateTask = async (e) => {
@@ -127,6 +138,15 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
       }
     } catch (err) {
       alert(err.message || 'Error al abandonar el grupo.');
+    }
+  };
+
+  const handleRespondRequest = async (memberId, action) => {
+    try {
+      const res = await api.respondJoinRequest(groupId, memberId, action);
+      if (res.success) await loadData();
+    } catch (err) {
+      alert(err.message || 'Error al procesar la solicitud.');
     }
   };
 
@@ -194,6 +214,20 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
               <Users className="w-3.5 h-3.5" />
               <span>Integrantes y Roles ({members.length})</span>
             </button>
+            {canModerate && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('REQUESTS')}
+                className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+                  activeTab === 'REQUESTS'
+                    ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Solicitudes ({joinRequests.length})</span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -382,7 +416,7 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
                 </div>
               )}
             </div>
-          ) : (
+          ) : activeTab === 'MEMBERS' ? (
             /* TAB: INTEGRANTES Y ROLES */
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -422,6 +456,54 @@ export default function GroupDetailModal({ isOpen, onClose, groupId, onGroupUpda
                   );
                 })}
               </div>
+            </div>
+          ) : (
+            /* TAB: SOLICITUDES DE INGRESO */
+            <div className="space-y-3">
+              {joinRequests.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 text-xs rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <UserCheck className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="font-semibold">No hay solicitudes de ingreso pendientes.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Las solicitudes a grupos privados aparecerán aquí.</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {joinRequests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                          {req.full_name?.charAt(0) || 'U'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{req.full_name}</p>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {req.academic_program} • Semestre {req.semester}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleRespondRequest(req.user_id, 'REJECT')}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/50 transition"
+                        >
+                          Rechazar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRespondRequest(req.user_id, 'APPROVE')}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition"
+                        >
+                          Aprobar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

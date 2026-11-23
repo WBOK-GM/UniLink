@@ -12,8 +12,23 @@ const getGroupMembers = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Grupo de estudio no encontrado.' });
     }
 
+    const requestedStatus = req.query.status === 'PENDING' ? 'PENDING' : 'ACTIVE';
+    const requesterId = req.user ? req.user.id : null;
+    const requesterMembership = requesterId
+      ? memoryStore.group_members.find(m => m.group_id === id && m.user_id === requesterId && m.membership_status === 'ACTIVE')
+      : null;
+    const canModerate = requesterId && (
+      group.creator_id === requesterId ||
+      (requesterMembership && ['OWNER', 'MODERATOR'].includes(requesterMembership.member_role)) ||
+      req.user.role === 'ADMIN'
+    );
+
+    if (requestedStatus === 'PENDING' && !canModerate) {
+      return res.status(403).json({ success: false, error: 'Solo el creador o moderadores pueden ver las solicitudes de ingreso.' });
+    }
+
     const members = memoryStore.group_members
-      .filter(m => m.group_id === id && m.membership_status === 'ACTIVE')
+      .filter(m => m.group_id === id && m.membership_status === requestedStatus)
       .map(m => {
         const user = memoryStore.users.find(u => u.id === m.user_id);
         const profile = memoryStore.profiles.find(p => p.user_id === m.user_id);
@@ -33,6 +48,7 @@ const getGroupMembers = async (req, res) => {
     return res.json({
       success: true,
       group_id: id,
+      membership_status: requestedStatus,
       members
     });
   } catch (error) {
