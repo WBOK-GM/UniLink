@@ -64,20 +64,6 @@ export async function request(endpoint, options = {}) {
   }
 
   return data;
-  } catch (error) {
-    // Si no hay red o falló la conexión por completo (servidor en reposo o sin internet)
-    if (!navigator.onLine || error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.name === 'AbortError') {
-      error.isOffline = true;
-    }
-    throw networkError;
-  }
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Error ${res.status}: ${res.statusText}`);
-  }
-
-  return data;
 }
 
 export const api = {
